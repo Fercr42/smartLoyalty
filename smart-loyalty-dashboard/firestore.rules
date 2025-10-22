@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permitir que usuarios autenticados lean y escriban en la colección 'companies'
+    match /companies/{companyId} {
+      allow read, write: if request.auth != null && request.auth.uid == companyId;
+    }
+    
+    // Permitir que usuarios autenticados lean y escriban en la colección 'users'
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Permitir que usuarios autenticados lean y escriban en la colección 'loyalty_programs'
+    match /loyalty_programs/{programId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Permitir que usuarios autenticados lean y escriban en la colección 'customers'
+    match /customers/{customerId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
