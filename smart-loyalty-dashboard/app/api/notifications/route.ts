@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
   if (!company.exists) return Response.json({ error: "Primero registra tu empresa" }, { status: 400 });
 
   const link = url?.startsWith("https://") ? url : `${req.nextUrl.origin}/join/${uid}`;
-  const logoUrl: string = company.data()?.logoUrl ?? "";
+  const rawLogo: string = company.data()?.logoUrl ?? "";
+  const logoUrl = rawLogo.startsWith("/") ? `${req.nextUrl.origin}${rawLogo}` : rawLogo;
 
   const subs = await companyRef.collection("subscribers").where("channel", "==", "webpush").get();
   const tokens = subs.docs.map((d) => d.id);
