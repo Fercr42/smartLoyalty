@@ -13,19 +13,19 @@ export default function BusinessForm() {
     e.preventDefault();
     if (!auth.currentUser) return;
 
-    let logoUrl = "";
+    const data: Record<string, string | null> = {
+      name,
+      description,
+      owner: auth.currentUser.email,
+    };
     if (logo) {
       const logoRef = ref(storage, `logos/${auth.currentUser.uid}`);
       await uploadBytes(logoRef, logo);
-      logoUrl = await getDownloadURL(logoRef);
+      data.logoUrl = await getDownloadURL(logoRef);
     }
 
-    await setDoc(doc(db, "companies", auth.currentUser.uid), {
-      name,
-      description,
-      logoUrl,
-      owner: auth.currentUser.email,
-    });
+    // merge: no borrar el logo si no se sube uno nuevo.
+    await setDoc(doc(db, "companies", auth.currentUser.uid), data, { merge: true });
     alert("Empresa registrada ✅");
   };
 

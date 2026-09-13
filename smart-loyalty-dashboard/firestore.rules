@@ -1,24 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permitir que usuarios autenticados lean y escriban en la colección 'companies'
+    // Datos públicos del restaurante (la página del QR los necesita). Solo el dueño edita.
     match /companies/{companyId} {
-      allow read, write: if request.auth != null && request.auth.uid == companyId;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == companyId;
+
+      // Clientes suscritos a push. El cliente (sin cuenta) solo puede registrar su token.
+      // channel queda abierto a 'wallet' más adelante (escrito desde el servidor).
+      match /subscribers/{token} {
+        allow read, delete: if request.auth != null && request.auth.uid == companyId;
+        allow create, update: if request.resource.data.keys().hasOnly(['token', 'channel', 'platform', 'createdAt'])
+          && request.resource.data.token == token
+          && request.resource.data.channel == 'webpush'
+          && exists(/databases/$(database)/documents/companies/$(companyId));
+      }
+
+      // Historial de envíos. Solo lo escribe el servidor (Admin SDK).
+      match /notifications/{notificationId} {
+        allow read: if request.auth != null && request.auth.uid == companyId;
+      }
     }
-    
-    // Permitir que usuarios autenticados lean y escriban en la colección 'users'
+
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Permitir que usuarios autenticados lean y escriban en la colección 'loyalty_programs'
-    match /loyalty_programs/{programId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Permitir que usuarios autenticados lean y escriban en la colección 'customers'
-    match /customers/{customerId} {
-      allow read, write: if request.auth != null;
     }
   }
 }
