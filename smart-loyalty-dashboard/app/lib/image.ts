@@ -1,3 +1,17 @@
+// Comprime una foto (de cualquier tamaño) hasta que quepa en maxChars,
+// bajando primero la calidad y luego la resolución.
+export async function compressImage(file: File, maxSize: number, maxChars: number): Promise<string> {
+  let size = maxSize;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    for (const quality of [0.85, 0.7, 0.55]) {
+      const data = await resizeImage(file, size, "image/jpeg", quality);
+      if (data.length <= maxChars) return data;
+    }
+    size = Math.round(size * 0.75);
+  }
+  throw new Error("No se pudo comprimir la foto. Prueba con otra imagen.");
+}
+
 // Reduce una imagen en el navegador y la devuelve como data URL.
 export function resizeImage(
   file: File,

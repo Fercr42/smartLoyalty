@@ -11,7 +11,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import { resizeImage } from "../lib/image";
+import { compressImage } from "../lib/image";
+
+// Igual que MAX_IMAGE en /api/notifications (~2 MB de foto).
+const MAX_IMAGE_CHARS = 2_800_000;
 
 const TYPES = [
   { id: "promo", label: "Promoción", title: "2x1 en tacos hoy", body: "Solo hoy de 5 a 8 pm. Muestra esta notificación en caja." },
@@ -64,7 +67,7 @@ export default function NotificationComposer() {
     setResult(null);
     if (!file) return;
     try {
-      setImageData(await resizeImage(file, 1024, "image/jpeg", 0.8));
+      setImageData(await compressImage(file, 1600, MAX_IMAGE_CHARS));
     } catch (err) {
       setResult({ ok: false, text: err instanceof Error ? err.message : "Imagen inválida" });
     }

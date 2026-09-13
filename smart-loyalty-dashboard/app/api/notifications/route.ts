@@ -11,7 +11,8 @@ const DEAD_TOKEN = [
   "messaging/invalid-registration-token",
 ];
 const IMAGE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
-const MAX_IMAGE = 900_000; // caracteres base64 (~650 KB): cabe en un documento de Firestore
+const MAX_IMAGE = 2_800_000; // caracteres base64 (~2 MB de foto)
+const PART_SIZE = 900_000; // un documento de Firestore admite máx. 1 MB: la foto se guarda en partes
 
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!title?.trim() || title.length > 65) return bad("El título es obligatorio (máx. 65)");
   if (!body?.trim() || body.length > 240) return bad("El mensaje es obligatorio (máx. 240)");
   if (imageData && (imageData.length > MAX_IMAGE || !IMAGE.test(imageData)))
-    return bad("La foto debe ser JPG, PNG o WebP de menos de 650 KB");
+    return bad("La foto debe ser JPG, PNG o WebP de menos de 2 MB");
   if (ctaUrl && !/^https:\/\/\S+$/.test(ctaUrl)) return bad("El enlace del botón debe empezar con https://");
   if (ctaLabel && ctaLabel.length > 30) return bad("El texto del botón es muy largo (máx. 30)");
 
@@ -50,7 +51,14 @@ export async function POST(req: NextRequest) {
 
   // Guardar antes de enviar: la página de la promo debe existir cuando el cliente toque la notificación.
   if (imageData) {
-    await companyRef.collection("promoImages").doc(notificationRef.id).set({ data: imageData });
+    const images = companyRef.collection("promoImages");
+    const batch = db.batch();
+    let parts = 0;
+    for (let i = 0; i < imageData.length; i += PART_SIZE, parts++) {
+      batch.set(images.doc(`${notificationRef.id}_${parts}`), { data: imageData.slice(i, i + PART_SIZE) });
+    }
+    batch.set(images.doc(notificationRef.id), { parts });
+    await batch.commit();
   }
   await notificationRef.set({
     type,
