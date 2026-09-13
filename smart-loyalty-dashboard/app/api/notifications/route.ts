@@ -10,33 +10,59 @@ const DEAD_TOKEN = [
   "messaging/registration-token-not-registered",
   "messaging/invalid-registration-token",
 ];
+const IMAGE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const MAX_IMAGE = 900_000; // caracteres base64 (~650 KB): cabe en un documento de Firestore
+
+const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
 export async function POST(req: NextRequest) {
   const idToken = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!idToken) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!idToken) return bad("No autorizado", 401);
 
   let uid: string;
   try {
     uid = (await adminAuth().verifyIdToken(idToken)).uid;
   } catch {
-    return Response.json({ error: "Sesión inválida" }, { status: 401 });
+    return bad("Sesión inválida", 401);
   }
 
-  const { type, title, body, url } = await req.json();
-  if (!TYPES.includes(type)) return Response.json({ error: "Tipo inválido" }, { status: 400 });
-  if (!title?.trim() || title.length > 65)
-    return Response.json({ error: "El título es obligatorio (máx. 65)" }, { status: 400 });
-  if (!body?.trim() || body.length > 240)
-    return Response.json({ error: "El mensaje es obligatorio (máx. 240)" }, { status: 400 });
+  const { type, title, body, imageData, ctaLabel, ctaUrl } = await req.json();
+  if (!TYPES.includes(type)) return bad("Tipo inválido");
+  if (!title?.trim() || title.length > 65) return bad("El título es obligatorio (máx. 65)");
+  if (!body?.trim() || body.length > 240) return bad("El mensaje es obligatorio (máx. 240)");
+  if (imageData && (imageData.length > MAX_IMAGE || !IMAGE.test(imageData)))
+    return bad("La foto debe ser JPG, PNG o WebP de menos de 650 KB");
+  if (ctaUrl && !/^https:\/\/\S+$/.test(ctaUrl)) return bad("El enlace del botón debe empezar con https://");
+  if (ctaLabel && ctaLabel.length > 30) return bad("El texto del botón es muy largo (máx. 30)");
 
   const db = adminDb();
   const companyRef = db.collection("companies").doc(uid);
   const company = await companyRef.get();
-  if (!company.exists) return Response.json({ error: "Primero registra tu empresa" }, { status: 400 });
+  if (!company.exists) return bad("Primero registra tu empresa");
 
-  const link = url?.startsWith("https://") ? url : `${req.nextUrl.origin}/join/${uid}`;
+  const origin = req.nextUrl.origin;
   const rawLogo: string = company.data()?.logoUrl ?? "";
-  const logoUrl = rawLogo.startsWith("/") ? `${req.nextUrl.origin}${rawLogo}` : rawLogo;
+  const logoUrl = rawLogo.startsWith("/") ? `${origin}${rawLogo}` : rawLogo;
+
+  const notificationRef = companyRef.collection("notifications").doc();
+  const promoUrl = `${origin}/promo/${uid}/${notificationRef.id}`;
+  const imageUrl = imageData ? `${promoUrl}/image` : "";
+
+  // Guardar antes de enviar: la página de la promo debe existir cuando el cliente toque la notificación.
+  if (imageData) {
+    await companyRef.collection("promoImages").doc(notificationRef.id).set({ data: imageData });
+  }
+  await notificationRef.set({
+    type,
+    title: title.trim(),
+    body: body.trim(),
+    hasImage: Boolean(imageData),
+    ctaLabel: ctaUrl ? ctaLabel?.trim() || "Ver más" : "",
+    ctaUrl: ctaUrl?.trim() ?? "",
+    sent: 0,
+    failed: 0,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 
   const subs = await companyRef.collection("subscribers").where("channel", "==", "webpush").get();
   const tokens = subs.docs.map((d) => d.id);
@@ -50,11 +76,15 @@ export async function POST(req: NextRequest) {
     const message: MulticastMessage = {
       tokens: chunk,
       notification: { title: title.trim(), body: body.trim() },
-      data: { type, link },
+      data: { type, link: promoUrl },
       webpush: {
-        notification: logoUrl ? { icon: logoUrl } : {},
+        notification: {
+          ...(logoUrl ? { icon: logoUrl } : {}),
+          // La foto grande solo se ve en Android y computadora; iPhone la ignora.
+          ...(imageUrl ? { image: imageUrl } : {}),
+        },
         // FCM exige HTTPS en el link (en localhost se omite).
-        ...(link.startsWith("https://") ? { fcmOptions: { link } } : {}),
+        ...(promoUrl.startsWith("https://") ? { fcmOptions: { link: promoUrl } } : {}),
       },
     };
     const res = await adminMessaging().sendEachForMulticast(message);
@@ -71,15 +101,7 @@ export async function POST(req: NextRequest) {
     await batch.commit();
   }
 
-  await companyRef.collection("notifications").add({
-    type,
-    title: title.trim(),
-    body: body.trim(),
-    url: url ?? "",
-    sent,
-    failed,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+  await notificationRef.update({ sent, failed });
 
-  return Response.json({ sent, failed, removed: dead.length });
+  return Response.json({ sent, failed, removed: dead.length, promoUrl });
 }

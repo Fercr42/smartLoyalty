@@ -3,8 +3,15 @@ import { useCallback, useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import { app, db } from "../firebase/config";
+import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 
-type Company = { name: string; description?: string; logoUrl?: string };
+type Company = {
+  name: string;
+  description?: string;
+  logoUrl?: string;
+  brandColor?: string;
+  bgColor?: string;
+};
 type Status =
   | "loading"
   | "notfound"
@@ -83,15 +90,18 @@ export default function JoinClient({ companyId }: { companyId: string }) {
     });
   }, [companyId, subscribe]);
 
+  const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
+  const bg = safeColor(company?.bgColor, DEFAULT_BG);
+
   if (status === "loading") {
-    return <Shell><p className="text-gray-500">Cargando...</p></Shell>;
+    return <Shell bg={bg}><p className="text-gray-500">Cargando...</p></Shell>;
   }
   if (status === "notfound" || !company) {
-    return <Shell><p className="text-gray-700">Este código QR no es válido.</p></Shell>;
+    return <Shell bg={bg}><p className="text-gray-700">Este código QR no es válido.</p></Shell>;
   }
 
   return (
-    <Shell>
+    <Shell bg={bg}>
       {company.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={company.logoUrl} alt="" className="w-24 h-24 rounded-2xl object-cover mx-auto" />
@@ -107,7 +117,8 @@ export default function JoinClient({ companyId }: { companyId: string }) {
             </p>
             <button
               onClick={() => subscribe(company.name)}
-              className="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800"
+              className="w-full py-3 rounded-xl font-semibold hover:opacity-90"
+              style={{ background: brand, color: textOn(brand) }}
             >
               Activar notificaciones
             </button>
@@ -156,9 +167,9 @@ export default function JoinClient({ companyId }: { companyId: string }) {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ bg, children }: { bg: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
+    <main className="min-h-screen flex items-center justify-center px-4 py-10" style={{ background: bg }}>
       <div className="bg-white shadow-sm border rounded-2xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-3">
         {children}
       </div>
