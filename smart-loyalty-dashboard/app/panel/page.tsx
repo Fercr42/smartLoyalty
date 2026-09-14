@@ -13,6 +13,7 @@ import LoyaltyEditor from "../components/loyaltyEditor";
 import StatsPanel from "../components/statsPanel";
 import PlanBanner from "../components/planBanner";
 import AutomationsEditor from "../components/automationsEditor";
+import BillingPanel from "../components/billingPanel";
 import { auth, db } from "../firebase/config";
 import { planState, type PlanState } from "../lib/plan";
 
@@ -89,6 +90,13 @@ export default function Panel() {
         {plan && <PlanBanner plan={plan} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {plan && (
+            <div id="plan" className="bg-white rounded-lg shadow p-6 lg:col-span-2 scroll-mt-6">
+              <h2 className="text-xl font-semibold mb-4">Tu plan</h2>
+              <BillingPanel plan={plan} onPlanChange={setPlan} />
+            </div>
+          )}
+
           <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold mb-4">Estadísticas</h2>
             <StatsPanel />

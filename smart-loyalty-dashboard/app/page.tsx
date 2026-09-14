@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
-import { TRIAL_DAYS } from "./lib/plan";
+import { PLAN_PRICE_USD, TRIAL_DAYS } from "./lib/plan";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -63,6 +63,10 @@ const FAQ = [
   {
     q: "¿Qué pasa cuando termina la prueba gratis?",
     a: `Durante ${TRIAL_DAYS} días tienes todo. Al terminar, tus clientes conservan su tarjeta y sus sellos; para seguir enviando notificaciones activas tu plan.`,
+  },
+  {
+    q: "¿Cuánto cuesta?",
+    a: `${TRIAL_DAYS} días gratis y después ${PLAN_PRICE_USD} USD al mes, con todas las funciones. Pagas con PayPal o tarjeta y cancelas cuando quieras.`,
   },
   {
     q: "¿Necesito tarjeta de crédito para probar?",
