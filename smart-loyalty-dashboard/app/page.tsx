@@ -32,7 +32,10 @@ const STEPS = [
 
 const FEATURES = [
   { title: "Notificaciones push", text: "Promos, horarios y eventos directo en la pantalla del celular, con foto y botón." },
-  { title: "Tarjeta en Google Wallet", text: "Con tu logo, colores y portada. Se actualiza sola con cada sello." },
+  {
+    title: "Tarjeta en Google Wallet y Apple Wallet",
+    text: "Con tu logo, colores y portada. Se actualiza sola con cada sello. Apple Wallet: próximamente.",
+  },
   { title: "Sellos y premios", text: "10 visitas = 1 postre. El empleado escanea la tarjeta desde su celular con un PIN." },
   { title: "Cupones de un solo uso", text: "“20% hoy”. Se valida en caja y no se puede usar dos veces." },
   { title: "Envíos programados y por grupo", text: "Programa el viernes 5 pm o escribe solo a clientes frecuentes o inactivos." },
@@ -51,11 +54,11 @@ const AUTOMATIONS = [
 const FAQ = [
   {
     q: "¿Mis clientes tienen que descargar una app?",
-    a: "No. Escanean el QR y todo pasa en el navegador del celular. En Android pueden guardar la tarjeta en Google Wallet.",
+    a: "No. Escanean el QR y todo pasa en el navegador del celular. En Android guardan la tarjeta en Google Wallet y en iPhone podrán guardarla en Apple Wallet (próximamente).",
   },
   {
     q: "¿Funciona en iPhone?",
-    a: "Sí. En iPhone el cliente agrega la página a su pantalla de inicio para recibir notificaciones, y ve su tarjeta de sellos ahí mismo.",
+    a: "Sí. Hoy el cliente agrega la página a su pantalla de inicio para recibir notificaciones y ve su tarjeta de sellos ahí mismo. Muy pronto también podrá guardar la tarjeta en Apple Wallet.",
   },
   {
     q: "¿Qué pasa cuando termina la prueba gratis?",
@@ -111,7 +114,7 @@ export default function Landing() {
             </h1>
             <p className="text-lg text-[#4b5560] max-w-[34rem]">
               Un código QR en la mesa. Tus clientes reciben tus promociones en el celular, juntan sellos y guardan su
-              tarjeta en Google Wallet. Tú ves quién regresa.
+              tarjeta en Google Wallet o Apple Wallet (próximamente). Tú ves quién regresa.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
