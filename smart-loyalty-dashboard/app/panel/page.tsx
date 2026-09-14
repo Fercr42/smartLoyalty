@@ -12,6 +12,7 @@ import WalletCardEditor from "../components/walletCardEditor";
 import LoyaltyEditor from "../components/loyaltyEditor";
 import StatsPanel from "../components/statsPanel";
 import PlanBanner from "../components/planBanner";
+import AutomationsEditor from "../components/automationsEditor";
 import { auth, db } from "../firebase/config";
 import { planState, type PlanState } from "../lib/plan";
 
@@ -116,6 +117,11 @@ export default function Panel() {
           <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold mb-4">Recompensas</h2>
             <LoyaltyEditor />
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">Automatizaciones</h2>
+            <AutomationsEditor />
           </div>
         </div>
       </main>

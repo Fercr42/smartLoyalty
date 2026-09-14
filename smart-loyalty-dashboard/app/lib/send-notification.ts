@@ -41,7 +41,7 @@ export type StoredNotification = {
   couponId?: string;
   memberIds?: string[]; // solo estos clientes (ej. pedir reseña)
   link?: string; // abrir este enlace en vez de la página de la promo
-  kind?: "review"; // envíos automáticos (se muestran distinto en el historial)
+  kind?: "review" | "near_reward" | "birthday" | "winback"; // envíos automáticos (se muestran distinto en el historial)
 };
 
 type MemberData = { stamps?: number; totalVisits?: number; lastStampAt?: Timestamp };

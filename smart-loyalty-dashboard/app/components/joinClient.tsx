@@ -32,6 +32,15 @@ type MemberCard = {
   stamps: number;
   rewards: Reward[];
   coupons: { id: string; title: string; expiresDate: string; used: boolean }[];
+  birthday: string | null;
+  birthdayEnabled: boolean;
+  birthdayGift: string;
+};
+
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const formatBirthday = (mmdd: string) => {
+  const [month, day] = mmdd.split("-").map(Number);
+  return `${day} de ${MONTHS[month - 1]}`;
 };
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -66,16 +75,34 @@ export default function JoinClient({
   const [status, setStatus] = useState<Status>("loading");
   const [walletState, setWalletState] = useState<"idle" | "loading" | "error">("idle");
   const [memberCard, setMemberCard] = useState<MemberCard | null>(null);
+  const [birthdayDay, setBirthdayDay] = useState("");
+  const [birthdayMonth, setBirthdayMonth] = useState("");
+  const [birthdayError, setBirthdayError] = useState("");
 
-  const loadMemberCard = useCallback(async () => {
-    const res = await fetch("/api/loyalty/member", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companyId, memberId: getMemberId(companyId) }),
-    });
-    const data = await res.json();
-    if (res.ok && data.enabled) setMemberCard(data);
-  }, [companyId]);
+  const loadMemberCard = useCallback(
+    async (birthday?: string) => {
+      const res = await fetch("/api/loyalty/member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, memberId: getMemberId(companyId), ...(birthday ? { birthday } : {}) }),
+      });
+      const data = await res.json();
+      if (res.ok && data.enabled) setMemberCard(data);
+      return { ok: res.ok, error: data.error as string | undefined };
+    },
+    [companyId]
+  );
+
+  const saveBirthday = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!birthdayDay || !birthdayMonth) {
+      setBirthdayError("Elige el día y el mes.");
+      return;
+    }
+    setBirthdayError("");
+    const { ok, error } = await loadMemberCard(`${birthdayMonth.padStart(2, "0")}-${birthdayDay.padStart(2, "0")}`);
+    if (!ok) setBirthdayError(error ?? "No se pudo guardar. Inténtalo de nuevo.");
+  };
 
   const addToGoogleWallet = async () => {
     setWalletState("loading");
@@ -276,6 +303,52 @@ export default function JoinClient({
               </ul>
             </div>
           )}
+          {memberCard.birthdayEnabled &&
+            (memberCard.birthday ? (
+              <p className="text-xs text-gray-500">Tu cumpleaños: {formatBirthday(memberCard.birthday)}</p>
+            ) : (
+              <form onSubmit={saveBirthday} className="w-full text-left border rounded-lg p-3 flex flex-col gap-2">
+                <p className="text-sm font-semibold text-gray-900">¿Cuándo es tu cumpleaños?</p>
+                <p className="text-xs text-gray-600">Ese día te regalamos: {memberCard.birthdayGift}.</p>
+                <div className="flex gap-2">
+                  <select
+                    id="birthday-day"
+                    aria-label="Día"
+                    value={birthdayDay}
+                    onChange={(e) => setBirthdayDay(e.target.value)}
+                    className="border rounded p-2 text-sm"
+                  >
+                    <option value="">Día</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1)}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    id="birthday-month"
+                    aria-label="Mes"
+                    value={birthdayMonth}
+                    onChange={(e) => setBirthdayMonth(e.target.value)}
+                    className="border rounded p-2 text-sm flex-1 min-w-0"
+                  >
+                    <option value="">Mes</option>
+                    {MONTHS.map((name, i) => (
+                      <option key={name} value={String(i + 1)}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="px-3 rounded text-sm font-semibold"
+                    style={{ background: brand, color: textOn(brand) }}
+                  >
+                    Guardar
+                  </button>
+                </div>
+                {birthdayError && <p className="text-xs text-red-600">{birthdayError}</p>}
+              </form>
+            ))}
           <button onClick={() => loadMemberCard().catch(console.error)} className="text-sm text-blue-700">
             Actualizar
           </button>

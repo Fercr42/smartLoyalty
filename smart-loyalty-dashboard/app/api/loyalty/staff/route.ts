@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { DocumentReference, DocumentSnapshot, FieldPath, FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
+import { maybeNotifyNearReward } from "../../../lib/automations";
 import { memberCoupons } from "../../../lib/coupons";
 import {
   applyClassSettings,
@@ -186,6 +187,10 @@ export async function POST(req: NextRequest) {
         if (!member.exists) throw new LoyaltyError("Tarjeta no encontrada", 404);
         if (!coupon.exists || !coupon.data()?.active) throw new LoyaltyError("Este cupón ya no está activo.", 400);
         if ((coupon.data()?.expiresAt?.toMillis?.() ?? 0) <= Date.now()) throw new LoyaltyError("Este cupón ya venció.", 400);
+        const onlyFor = coupon.data()?.memberIds;
+        if (Array.isArray(onlyFor) && !onlyFor.includes(memberId)) {
+          throw new LoyaltyError("Este cupón es para otro cliente.", 403);
+        }
         if (redemption.exists) throw new LoyaltyError("Este cliente ya usó este cupón.", 409);
         tx.create(redemptionRef, { at: FieldValue.serverTimestamp() });
         tx.update(couponRef, { redemptions: FieldValue.increment(1) });
@@ -251,6 +256,9 @@ export async function POST(req: NextRequest) {
 
   const origin = publicOrigin(req.nextUrl.origin);
   await refreshWalletCard(companyRef, companyData, memberId, stamps, origin);
-  if (action === "stamp") await maybeRequestReview(companyRef, companyData, memberId, origin);
+  if (action === "stamp") {
+    await maybeRequestReview(companyRef, companyData, memberId, origin);
+    await maybeNotifyNearReward(companyRef, companyData, memberId, stamps);
+  }
   return Response.json({ stamps });
 }

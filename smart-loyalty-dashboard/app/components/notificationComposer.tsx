@@ -37,6 +37,13 @@ type AudienceId = (typeof AUDIENCES)[number]["id"];
 type Counts = Record<AudienceId, { devices: number; members: number }>;
 
 const REPEATS = { none: "Una sola vez", daily: "Cada día", weekly: "Cada semana" } as const;
+
+const AUTOMATIC_LABELS: Record<string, string> = {
+  review: "Pedido de reseña (automático)",
+  near_reward: "Te falta 1 sello (automático)",
+  birthday: "Cumpleaños (automático)",
+  winback: "Te extrañamos (automático)",
+};
 type RepeatId = keyof typeof REPEATS;
 
 type Sent = {
@@ -510,7 +517,7 @@ export default function NotificationComposer() {
                   <p className="text-gray-600">{n.body}</p>
                   <p className="text-xs text-gray-500 tabular-nums">
                     {n.sent} enviados · {n.views ?? 0} abiertas ·{" "}
-                    {n.kind === "review" ? "Pedido de reseña (automático)" : audienceLabel(n.audience ?? "all")}
+                    {AUTOMATIC_LABELS[n.kind ?? ""] ?? audienceLabel(n.audience ?? "all")}
                     {n.couponId ? " · con cupón" : ""}
                     {" · "}
                     <a href={`/promo/${user.uid}/${n.id}`} target="_blank" className="text-blue-600">
