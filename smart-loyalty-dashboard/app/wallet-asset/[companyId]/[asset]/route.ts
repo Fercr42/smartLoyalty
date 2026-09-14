@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 const ASSETS: Record<string, string> = {
   hero: "walletHero",
   "wide-logo": "walletWideLogo",
+  "card-background": "cardBackground",
+  "stamp-icon": "stampIcon",
 };
 
 export async function GET(

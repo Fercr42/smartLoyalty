@@ -14,6 +14,7 @@ import StatsPanel from "../components/statsPanel";
 import PlanBanner from "../components/planBanner";
 import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
+import CardDesigner from "../components/cardDesigner";
 import { auth, db } from "../firebase/config";
 import { planState, type PlanState } from "../lib/plan";
 
@@ -115,6 +116,11 @@ export default function Panel() {
           <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold mb-4">Enviar notificación</h2>
             <NotificationComposer />
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">Diseño de la tarjeta</h2>
+            <CardDesigner />
           </div>
 
           <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">

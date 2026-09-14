@@ -15,6 +15,7 @@ type Company = {
   brandColor?: string;
   bgColor?: string;
   loyalty?: { rewards?: unknown };
+  cardDesign?: { version?: number };
 };
 type Status =
   | "loading"
@@ -288,6 +289,14 @@ export default function JoinClient({
       {memberCard && (
         <div className="w-full border-t pt-4 mt-2 flex flex-col items-center gap-2">
           <p className="font-semibold text-gray-900">Tu tarjeta de cliente</p>
+          {company.cardDesign && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/card-image/${companyId}?variant=card&s=${memberCard.stamps}&code=${memberCard.code}&v=${company.cardDesign.version ?? 0}`}
+              alt={`Tarjeta de ${company.name} con ${memberCard.stamps} sellos`}
+              className="w-full aspect-[1012/638] rounded-2xl shadow-lg bg-gray-100"
+            />
+          )}
           <div className="bg-white p-2 rounded-xl border">
             <QRCodeSVG value={memberCard.memberId} size={160} />
           </div>

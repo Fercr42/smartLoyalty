@@ -1,4 +1,5 @@
 import { createSign } from "crypto";
+import { cleanDesign } from "./card-design";
 import { DEFAULT_BRAND, safeColor } from "./colors";
 import { describeLink } from "./links";
 import { validLocation } from "./location";
@@ -36,6 +37,7 @@ export type WalletCompany = {
   walletCard?: WalletCard;
   loyalty?: { rewards?: unknown; walletTemplate?: number };
   location?: unknown;
+  cardDesign?: unknown;
 };
 
 // Sube este número si cambia LOYALTY_TEMPLATE, para que se vuelva a aplicar a las clases.
@@ -129,15 +131,21 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
       : []),
   ];
 
+  // Diseño de marca: la portada es la tarjeta dibujada con los sellos del cliente.
+  const design = company.cardDesign ? cleanDesign(company.cardDesign, company.brandColor) : null;
+  const drawn = design?.useInWallet ? design : null;
+
   return {
     cardTitle: text(name),
     header: text(clip(card.header, 40) || "Cliente frecuente"),
     subheader: text(clip(card.subheader, 40) || "Membresía"),
-    hexBackgroundColor: safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
+    hexBackgroundColor: drawn ? drawn.bgColor : safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
     logo: image(absolute(company.logoUrl, origin), name),
     // Logo ancho: Google lo muestra en grande arriba, en lugar del logo pequeño.
     wideLogo: image(absolute(card.wideLogoUrl, origin), name),
-    heroImage: image(absolute(card.heroUrl, origin), name),
+    heroImage: drawn
+      ? image(`${origin}/card-image/${company.id}?variant=hero&s=${stamps}&v=${drawn.version ?? 0}`, name)
+      : image(absolute(card.heroUrl, origin), name),
     textModulesData: modules.length ? modules : undefined,
     linksModuleData: uris.length ? { uris } : undefined,
   };
@@ -208,7 +216,13 @@ export async function applyClassSettings(company: WalletCompany) {
 export async function updateMemberCard(company: WalletCompany, memberId: string, stamps: number, origin: string) {
   const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
     method: "PATCH",
-    body: JSON.stringify({ textModulesData: cardFields(company, origin, stamps).textModulesData ?? [] }),
+    body: JSON.stringify(
+      (() => {
+        const fields = cardFields(company, origin, stamps);
+        // La portada dibujada cambia con cada sello.
+        return { textModulesData: fields.textModulesData ?? [], ...(fields.heroImage ? { heroImage: fields.heroImage } : {}) };
+      })()
+    ),
   });
   if (res.status === 404) return false;
   if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);

@@ -264,7 +264,10 @@ export default function WalletCardEditor() {
             )}
           </div>
         </div>
-        <p className="text-xs text-gray-500 -mt-2">Portada: foto horizontal, ideal 1032 × 336 px.</p>
+        <p className="text-xs text-gray-500 -mt-2">
+          Portada: foto horizontal, ideal 1032 × 336 px. Si activas &quot;Usar este diseño en Google Wallet&quot; en
+          Diseño de la tarjeta, la portada y el color se toman de ese diseño.
+        </p>
 
         <div className="flex flex-col gap-2 border rounded p-3">
           <p className="text-sm text-gray-700">Logo ancho (opcional)</p>
