@@ -6,6 +6,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { compressImage } from "../lib/image";
+import { describeLink } from "../lib/links";
 import { syncWalletCards } from "../lib/walletClient";
 
 type InfoRow = { label: string; value: string };
@@ -252,7 +253,10 @@ export default function WalletCardEditor() {
               />
             </div>
           ))}
-          <p className="text-xs text-gray-500">Se agrega solo un botón &quot;Promociones&quot; con tu página del QR.</p>
+          <p className="text-xs text-gray-500">
+            Sin texto, el botón muestra el dato (ej. &quot;WhatsApp: +506…&quot;). Se agrega solo un botón
+            &quot;Promociones&quot; con tu página del QR.
+          </p>
         </fieldset>
 
         <button disabled={saving} className="bg-green-600 text-white p-2 rounded disabled:opacity-50">
@@ -303,7 +307,10 @@ export default function WalletCardEditor() {
                 <p className="text-gray-900 break-words">{r.value}</p>
               </div>
             ))}
-          {[...links.filter((l) => l.url.trim()).map((l) => l.label || "Abrir"), "Promociones"].map((label, i) => (
+          {[
+            ...links.filter((l) => l.url.trim()).map((l) => describeLink(l.label.trim(), l.url.trim())),
+            "Promociones",
+          ].map((label, i) => (
             <p key={`l${i}`} className="px-4 py-2 text-blue-700">{label}</p>
           ))}
         </div>

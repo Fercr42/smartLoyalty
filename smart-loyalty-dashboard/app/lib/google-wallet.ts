@@ -1,5 +1,6 @@
 import { createSign } from "crypto";
 import { DEFAULT_BRAND, safeColor } from "./colors";
+import { describeLink } from "./links";
 import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
@@ -114,7 +115,11 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   ];
   const uris = [
     ...(card.links ?? [])
-      .map((row, i) => ({ id: `link_${i}`, description: clip(row.label, 40) || "Abrir", uri: clip(row.url, 500) }))
+      .map((row, i) => ({
+        id: `link_${i}`,
+        description: describeLink(clip(row.label, 40), clip(row.url, 500)),
+        uri: clip(row.url, 500),
+      }))
       .filter((l) => LINK.test(l.uri)),
     ...(origin.startsWith("https://")
       ? [{ id: "promos", description: "Promociones", uri: `${origin}/join/${company.id}` }]
