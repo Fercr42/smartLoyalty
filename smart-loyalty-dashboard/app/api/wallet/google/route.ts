@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
-import { googleWalletSaveUrl, walletIssuerId } from "../../../lib/google-wallet";
-import { DEFAULT_BRAND, safeColor } from "../../../lib/colors";
+import { googleWalletSaveUrl, walletIssuerId, type WalletCompany } from "../../../lib/google-wallet";
 
 export const runtime = "nodejs";
 
@@ -22,10 +21,6 @@ export async function POST(req: NextRequest) {
   const company = await companyRef.get();
   if (!company.exists) return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
 
-  const data = company.data()!;
-  const origin = req.nextUrl.origin;
-  const rawLogo: string = data.logoUrl ?? "";
-
   // Registro de tarjetas emitidas (para el conteo del dueño).
   await companyRef
     .collection("walletMembers")
@@ -34,13 +29,9 @@ export async function POST(req: NextRequest) {
     .catch(() => {}); // ya existía
 
   const url = googleWalletSaveUrl({
-    companyId,
+    company: { ...company.data(), id: companyId } as WalletCompany,
     memberId,
-    origin,
-    name: data.name ?? "Restaurante",
-    description: data.description ?? "",
-    logoUrl: rawLogo.startsWith("/") ? `${origin}${rawLogo}` : rawLogo,
-    color: safeColor(data.brandColor, DEFAULT_BRAND),
+    origin: req.nextUrl.origin,
   });
   return Response.json({ url });
 }

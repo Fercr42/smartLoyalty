@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { resizeImage } from "../lib/image";
+import { syncWalletCards } from "../lib/walletClient";
 
 // El logo se guarda reducido en Firestore (sin Firebase Storage, que exige plan Blaze)
 // y se sirve desde /logo/{companyId}.
@@ -72,7 +73,9 @@ export default function BusinessForm() {
       await setDoc(doc(db, "companies", user.uid), data, { merge: true });
       if (data.logoUrl) setLogoPreview(data.logoUrl);
       setLogoData(null);
-      setMessage({ ok: true, text: "Guardado." });
+      // Nombre, logo o color cambian también en las tarjetas de Wallet ya guardadas.
+      const updated = await syncWalletCards(user);
+      setMessage({ ok: true, text: `Guardado${updated ? ` · ${updated} tarjetas de Wallet actualizadas` : ""}.` });
     } catch (err) {
       console.error(err);
       setMessage({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });

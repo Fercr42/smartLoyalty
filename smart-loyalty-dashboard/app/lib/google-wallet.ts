@@ -1,4 +1,5 @@
 import { createSign } from "crypto";
+import { DEFAULT_BRAND, safeColor } from "./colors";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
 // Tarjeta genérica: una clase por restaurante, un objeto por cliente.
@@ -11,6 +12,30 @@ const serviceAccount = (): ServiceAccount => JSON.parse(process.env.FIREBASE_SER
 export const walletIssuerId = () => process.env.GOOGLE_WALLET_ISSUER_ID?.trim() ?? "";
 const classId = (companyId: string) => `${walletIssuerId()}.company_${companyId}`;
 const text = (value: string) => ({ defaultValue: { language: "es", value } });
+
+export type WalletCard = {
+  color?: string;
+  header?: string;
+  subheader?: string;
+  heroUrl?: string;
+  info?: { label: string; value: string }[];
+  links?: { label: string; url: string }[];
+};
+
+export type WalletCompany = {
+  id: string;
+  name?: string;
+  description?: string;
+  logoUrl?: string;
+  brandColor?: string;
+  walletCard?: WalletCard;
+};
+
+const LINK = /^(https:\/\/|tel:|mailto:)\S+$/;
+const clip = (value: unknown, max: number) => (typeof value === "string" ? value.trim().slice(0, max) : "");
+const absolute = (url: string | undefined, origin: string) => (url?.startsWith("/") ? `${origin}${url}` : url ?? "");
+const image = (uri: string, alt: string) =>
+  uri.startsWith("https://") ? { sourceUri: { uri }, contentDescription: text(alt) } : undefined;
 
 function signJwt(payload: object) {
   const encode = (v: object) => Buffer.from(JSON.stringify(v)).toString("base64url");
@@ -42,41 +67,61 @@ async function accessToken() {
   return cachedToken.value;
 }
 
-type Card = {
-  companyId: string;
-  memberId: string;
-  origin: string;
-  name: string;
-  description: string;
-  logoUrl: string;
-  color: string;
-};
+async function walletApi(path: string, init: RequestInit = {}) {
+  return fetch(`${API}${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json" },
+  });
+}
+
+// Lo que se ve en la tarjeta. Lo usan la creación y la actualización, así siempre coinciden.
+function cardFields(company: WalletCompany, origin: string) {
+  const card = company.walletCard ?? {};
+  const name = clip(company.name, 60) || "Restaurante";
+
+  const modules = [
+    ...(company.description ? [{ id: "about", header: "Sobre nosotros", body: clip(company.description, 500) }] : []),
+    ...(card.info ?? [])
+      .map((row, i) => ({ id: `info_${i}`, header: clip(row.label, 40), body: clip(row.value, 200) }))
+      .filter((m) => m.header && m.body),
+  ];
+  const uris = [
+    ...(card.links ?? [])
+      .map((row, i) => ({ id: `link_${i}`, description: clip(row.label, 40) || "Abrir", uri: clip(row.url, 500) }))
+      .filter((l) => LINK.test(l.uri)),
+    ...(origin.startsWith("https://")
+      ? [{ id: "promos", description: "Promociones", uri: `${origin}/join/${company.id}` }]
+      : []),
+  ];
+
+  return {
+    cardTitle: text(name),
+    header: text(clip(card.header, 40) || "Cliente frecuente"),
+    subheader: text(clip(card.subheader, 40) || "Membresía"),
+    hexBackgroundColor: safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
+    logo: image(absolute(company.logoUrl, origin), name),
+    heroImage: image(absolute(card.heroUrl, origin), name),
+    textModulesData: modules.length ? modules : undefined,
+    linksModuleData: uris.length ? { uris } : undefined,
+  };
+}
 
 // Enlace "Guardar en Google Wallet". Crea la clase y la tarjeta al guardarla.
-export function googleWalletSaveUrl(card: Card) {
-  const https = card.origin.startsWith("https://");
+export function googleWalletSaveUrl({
+  company,
+  memberId,
+  origin,
+}: {
+  company: WalletCompany;
+  memberId: string;
+  origin: string;
+}) {
   const object = {
-    id: `${walletIssuerId()}.${card.companyId}_${card.memberId}`,
-    classId: classId(card.companyId),
+    id: `${walletIssuerId()}.${company.id}_${memberId}`,
+    classId: classId(company.id),
     state: "ACTIVE",
-    cardTitle: text(card.name),
-    header: text("Cliente frecuente"),
-    subheader: text("Membresía"),
-    hexBackgroundColor: card.color,
-    ...(card.logoUrl.startsWith("https://")
-      ? { logo: { sourceUri: { uri: card.logoUrl }, contentDescription: text(card.name) } }
-      : {}),
-    barcode: {
-      type: "QR_CODE",
-      value: card.memberId,
-      alternateText: card.memberId.slice(0, 8).toUpperCase(),
-    },
-    ...(card.description
-      ? { textModulesData: [{ id: "about", header: "Sobre nosotros", body: card.description }] }
-      : {}),
-    ...(https
-      ? { linksModuleData: { uris: [{ id: "promos", uri: `${card.origin}/join/${card.companyId}`, description: "Promociones" }] } }
-      : {}),
+    ...cardFields(company, origin),
+    barcode: { type: "QR_CODE", value: memberId, alternateText: memberId.slice(0, 8).toUpperCase() },
   };
 
   const token = signJwt({
@@ -84,21 +129,53 @@ export function googleWalletSaveUrl(card: Card) {
     aud: "google",
     typ: "savetowallet",
     iat: Math.floor(Date.now() / 1000),
-    ...(https ? { origins: [card.origin] } : {}),
+    ...(origin.startsWith("https://") ? { origins: [origin] } : {}),
     payload: {
-      genericClasses: [{ id: classId(card.companyId) }],
+      genericClasses: [{ id: classId(company.id) }],
       genericObjects: [object],
     },
   });
   return `https://pay.google.com/gp/v/save/${token}`;
 }
 
+// Aplica el diseño actual a todas las tarjetas que los clientes ya guardaron. Devuelve cuántas cambió.
+export async function syncWalletCards(company: WalletCompany, origin: string) {
+  const fields = cardFields(company, origin);
+  let pageToken = "";
+  let updated = 0;
+  do {
+    const query = `classId=${encodeURIComponent(classId(company.id))}&maxResults=100${
+      pageToken ? `&token=${encodeURIComponent(pageToken)}` : ""
+    }`;
+    const res = await walletApi(`/genericObject?${query}`);
+    if (res.status === 404) return updated; // nadie ha guardado una tarjeta todavía
+    if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const objects: { id: string }[] = data.resources ?? [];
+
+    for (let i = 0; i < objects.length; i += 10) {
+      await Promise.all(
+        objects.slice(i, i + 10).map(async (object) => {
+          // Los campos en undefined se quitan (ej. si se borró la portada).
+          const r = await walletApi(`/genericObject/${encodeURIComponent(object.id)}`, {
+            method: "PUT",
+            body: JSON.stringify({ ...object, ...fields }),
+          });
+          if (r.ok) updated++;
+          else console.error("Wallet PUT", object.id, r.status, await r.text());
+        })
+      );
+    }
+    pageToken = data.pagination?.nextPageToken ?? "";
+  } while (pageToken);
+  return updated;
+}
+
 // Mensaje con notificación a todas las tarjetas del restaurante.
 // Google limita las notificaciones a unas pocas por tarjeta al día; el mensaje igual queda en la tarjeta.
 export async function notifyWalletHolders(companyId: string, title: string, body: string) {
-  const res = await fetch(`${API}/genericClass/${encodeURIComponent(classId(companyId))}/addMessage`, {
+  const res = await walletApi(`/genericClass/${encodeURIComponent(classId(companyId))}/addMessage`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       message: {
         id: `msg_${Date.now()}`,
@@ -109,7 +186,7 @@ export async function notifyWalletHolders(companyId: string, title: string, body
       },
     }),
   });
-  if (res.status === 404) return "sin-tarjetas"; // nadie ha guardado una tarjeta todavía
+  if (res.status === 404) return "sin-tarjetas";
   if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
   return "ok";
 }

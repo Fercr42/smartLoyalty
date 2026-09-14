@@ -21,6 +21,11 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == companyId;
       }
 
+      // Imágenes pesadas del restaurante (ej. portada de Wallet). Se sirven desde el servidor.
+      match /assets/{assetId} {
+        allow read, write: if request.auth != null && request.auth.uid == companyId;
+      }
+
       // Tarjetas de Google Wallet emitidas. Solo las escribe el servidor.
       match /walletMembers/{memberId} {
         allow read: if request.auth != null && request.auth.uid == companyId;
