@@ -28,9 +28,46 @@ const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-export default function JoinClient({ companyId }: { companyId: string }) {
+export default function JoinClient({
+  companyId,
+  walletEnabled,
+}: {
+  companyId: string;
+  walletEnabled: boolean;
+}) {
   const [company, setCompany] = useState<Company | null>(null);
   const [status, setStatus] = useState<Status>("loading");
+  const [walletState, setWalletState] = useState<"idle" | "loading" | "error">("idle");
+
+  const addToGoogleWallet = async () => {
+    setWalletState("loading");
+    try {
+      // Un id fijo por celular para no crear tarjetas repetidas.
+      const key = `wallet-member:${companyId}`;
+      let memberId = "";
+      try {
+        memberId = localStorage.getItem(key) ?? "";
+      } catch {}
+      if (!memberId) {
+        memberId = crypto.randomUUID();
+        try {
+          localStorage.setItem(key, memberId);
+        } catch {}
+      }
+      const res = await fetch("/api/wallet/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, memberId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setWalletState("idle");
+      window.location.href = data.url;
+    } catch (e) {
+      console.error(e);
+      setWalletState("error");
+    }
+  };
 
   const subscribe = useCallback(
     async (companyName: string) => {
@@ -163,6 +200,23 @@ export default function JoinClient({ companyId }: { companyId: string }) {
           </p>
         )}
       </div>
+
+      {/* Google Wallet no existe en iPhone; ahí irá Apple Wallet más adelante. */}
+      {walletEnabled && !isIOS() && (
+        <div className="w-full border-t pt-4 mt-2">
+          <p className="text-sm text-gray-600 mb-3">Guarda tu tarjeta de cliente en el celular.</p>
+          <button
+            onClick={addToGoogleWallet}
+            disabled={walletState === "loading"}
+            className="w-full bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800 disabled:opacity-60"
+          >
+            {walletState === "loading" ? "Abriendo..." : "Agregar a Google Wallet"}
+          </button>
+          {walletState === "error" && (
+            <p className="text-red-600 text-sm mt-2">No se pudo crear la tarjeta. Inténtalo de nuevo.</p>
+          )}
+        </div>
+      )}
     </Shell>
   );
 }

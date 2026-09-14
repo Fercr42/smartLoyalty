@@ -14,5 +14,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function JoinPage({ params }: Props) {
   const { companyId } = await params;
-  return <JoinClient companyId={companyId} />;
+  return <JoinClient companyId={companyId} walletEnabled={Boolean(process.env.GOOGLE_WALLET_ISSUER_ID)} />;
 }

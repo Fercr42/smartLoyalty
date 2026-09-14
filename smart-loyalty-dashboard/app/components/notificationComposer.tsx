@@ -45,6 +45,7 @@ export default function NotificationComposer() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
   const [subscribers, setSubscribers] = useState<number | null>(null);
+  const [walletMembers, setWalletMembers] = useState(0);
   const [history, setHistory] = useState<Sent[]>([]);
 
   const current = TYPES.find((t) => t.id === type)!;
@@ -53,6 +54,8 @@ export default function NotificationComposer() {
     if (!user) return;
     const subs = await getCountFromServer(collection(db, "companies", user.uid, "subscribers"));
     setSubscribers(subs.data().count);
+    const cards = await getCountFromServer(collection(db, "companies", user.uid, "walletMembers"));
+    setWalletMembers(cards.data().count);
     const snap = await getDocs(
       query(collection(db, "companies", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(10))
     );
@@ -76,7 +79,8 @@ export default function NotificationComposer() {
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!confirm(`¿Enviar a ${subscribers ?? 0} suscriptores?`)) return;
+    const audience = `${subscribers ?? 0} suscriptores${walletMembers ? ` y ${walletMembers} tarjetas de Wallet` : ""}`;
+    if (!confirm(`¿Enviar a ${audience}?`)) return;
     setSending(true);
     setResult(null);
     try {
@@ -99,7 +103,9 @@ export default function NotificationComposer() {
       if (!res.ok) throw new Error(data.error ?? "Error al enviar");
       setResult({
         ok: true,
-        text: `Enviada a ${data.sent} dispositivos${data.failed ? ` · ${data.failed} fallaron` : ""}.`,
+        text: `Enviada a ${data.sent} dispositivos${data.failed ? ` · ${data.failed} fallaron` : ""}${
+          data.wallet === "ok" ? " · Google Wallet: enviada" : data.wallet === "error" ? " · Google Wallet: falló" : ""
+        }.`,
         url: data.promoUrl,
       });
       setTitle("");
@@ -120,6 +126,7 @@ export default function NotificationComposer() {
       <form onSubmit={send} className="flex flex-col gap-3">
         <p className="text-sm text-gray-600">
           Suscriptores: <b className="text-gray-900 tabular-nums">{subscribers ?? "—"}</b>
+          {" · "}Tarjetas Wallet: <b className="text-gray-900 tabular-nums">{walletMembers}</b>
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -198,8 +205,15 @@ export default function NotificationComposer() {
           />
         </fieldset>
 
-        <button disabled={sending || !subscribers} className="bg-blue-600 text-white p-2 rounded disabled:opacity-50">
-          {sending ? "Enviando..." : subscribers === 0 ? "Aún no hay suscriptores" : "Enviar notificación"}
+        <button
+          disabled={sending || (!subscribers && !walletMembers)}
+          className="bg-blue-600 text-white p-2 rounded disabled:opacity-50"
+        >
+          {sending
+            ? "Enviando..."
+            : subscribers === 0 && !walletMembers
+              ? "Aún no hay suscriptores"
+              : "Enviar notificación"}
         </button>
         {result && (
           <p className={`text-sm ${result.ok ? "text-green-700" : "text-red-600"}`}>

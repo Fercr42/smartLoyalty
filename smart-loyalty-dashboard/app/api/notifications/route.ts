@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import type { MulticastMessage } from "firebase-admin/messaging";
 import { adminAuth, adminDb, adminMessaging } from "../../firebase/admin";
+import { notifyWalletHolders, walletIssuerId } from "../../lib/google-wallet";
 
 export const runtime = "nodejs";
 
@@ -109,7 +110,17 @@ export async function POST(req: NextRequest) {
     await batch.commit();
   }
 
-  await notificationRef.update({ sent, failed });
+  let wallet = "off";
+  if (walletIssuerId()) {
+    try {
+      wallet = await notifyWalletHolders(uid, title.trim(), body.trim());
+    } catch (e) {
+      console.error(e);
+      wallet = "error";
+    }
+  }
 
-  return Response.json({ sent, failed, removed: dead.length, promoUrl });
+  await notificationRef.update({ sent, failed, wallet });
+
+  return Response.json({ sent, failed, removed: dead.length, promoUrl, wallet });
 }
