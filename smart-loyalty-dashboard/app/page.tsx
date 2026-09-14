@@ -5,6 +5,7 @@ import BusinessForm from "./components/businessForm";
 import CompanyQR from "./components/companyQR";
 import NotificationComposer from "./components/notificationComposer";
 import WalletCardEditor from "./components/walletCardEditor";
+import LoyaltyEditor from "./components/loyaltyEditor";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase/config";
 
@@ -78,6 +79,13 @@ export default function Home() {
               Tarjeta de Google Wallet
             </h2>
             <WalletCardEditor />
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">
+              Recompensas
+            </h2>
+            <LoyaltyEditor />
           </div>
         </div>
       </main>

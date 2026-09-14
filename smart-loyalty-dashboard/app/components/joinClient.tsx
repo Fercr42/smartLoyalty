@@ -2,8 +2,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
+import { QRCodeSVG } from "qrcode.react";
 import { app, db } from "../firebase/config";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
+import { cleanRewards, nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
   name: string;
@@ -11,6 +13,7 @@ type Company = {
   logoUrl?: string;
   brandColor?: string;
   bgColor?: string;
+  loyalty?: { rewards?: unknown };
 };
 type Status =
   | "loading"
@@ -22,11 +25,28 @@ type Status =
   | "subscribing"
   | "subscribed"
   | "error";
+type MemberCard = { memberId: string; code: string; stamps: number; rewards: Reward[] };
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+// Un id fijo por celular: identifica la tarjeta del cliente (QR, sellos y Wallet).
+function getMemberId(companyId: string) {
+  const key = `wallet-member:${companyId}`;
+  let memberId = "";
+  try {
+    memberId = localStorage.getItem(key) ?? "";
+  } catch {}
+  if (!memberId) {
+    memberId = crypto.randomUUID();
+    try {
+      localStorage.setItem(key, memberId);
+    } catch {}
+  }
+  return memberId;
+}
 
 export default function JoinClient({
   companyId,
@@ -38,26 +58,25 @@ export default function JoinClient({
   const [company, setCompany] = useState<Company | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [walletState, setWalletState] = useState<"idle" | "loading" | "error">("idle");
+  const [memberCard, setMemberCard] = useState<MemberCard | null>(null);
+
+  const loadMemberCard = useCallback(async () => {
+    const res = await fetch("/api/loyalty/member", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, memberId: getMemberId(companyId) }),
+    });
+    const data = await res.json();
+    if (res.ok && data.enabled) setMemberCard(data);
+  }, [companyId]);
 
   const addToGoogleWallet = async () => {
     setWalletState("loading");
     try {
-      // Un id fijo por celular para no crear tarjetas repetidas.
-      const key = `wallet-member:${companyId}`;
-      let memberId = "";
-      try {
-        memberId = localStorage.getItem(key) ?? "";
-      } catch {}
-      if (!memberId) {
-        memberId = crypto.randomUUID();
-        try {
-          localStorage.setItem(key, memberId);
-        } catch {}
-      }
       const res = await fetch("/api/wallet/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, memberId }),
+        body: JSON.stringify({ companyId, memberId: getMemberId(companyId) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -115,6 +134,7 @@ export default function JoinClient({
       if (!snap.exists()) return setStatus("notfound");
       const data = snap.data() as Company;
       setCompany(data);
+      if (cleanRewards(data.loyalty?.rewards).length) loadMemberCard().catch(console.error);
       if (isIOS() && !isStandalone()) return setStatus("ios-install");
       if (!(await isSupported())) return setStatus("unsupported");
       if (Notification.permission === "denied") return setStatus("denied");
@@ -125,7 +145,7 @@ export default function JoinClient({
       console.error(e);
       setStatus("error");
     });
-  }, [companyId, subscribe]);
+  }, [companyId, subscribe, loadMemberCard]);
 
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
@@ -200,6 +220,35 @@ export default function JoinClient({
           </p>
         )}
       </div>
+
+      {memberCard && (
+        <div className="w-full border-t pt-4 mt-2 flex flex-col items-center gap-2">
+          <p className="font-semibold text-gray-900">Tu tarjeta de cliente</p>
+          <div className="bg-white p-2 rounded-xl border">
+            <QRCodeSVG value={memberCard.memberId} size={160} />
+          </div>
+          <p className="font-mono text-sm text-gray-500">#{memberCard.code}</p>
+          <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
+            {memberCard.stamps} <span className="text-base font-normal text-gray-600">sellos</span>
+          </p>
+          <p className="text-sm text-gray-700">
+            {nextRewardText(memberCard.rewards, memberCard.stamps) || "Muestra este código en caja para sumar sellos."}
+          </p>
+          <ul className="w-full text-sm text-left divide-y border rounded-lg">
+            {memberCard.rewards.map((r) => (
+              <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
+                <span className="text-gray-900">{r.title}</span>
+                <span className="text-gray-500 tabular-nums whitespace-nowrap">
+                  {Math.min(memberCard.stamps, r.stamps)}/{r.stamps}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <button onClick={() => loadMemberCard().catch(console.error)} className="text-sm text-blue-700">
+            Actualizar sellos
+          </button>
+        </div>
+      )}
 
       {/* Google Wallet no existe en iPhone; ahí irá Apple Wallet más adelante. */}
       {walletEnabled && !isIOS() && (

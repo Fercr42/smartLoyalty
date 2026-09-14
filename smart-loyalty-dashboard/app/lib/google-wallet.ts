@@ -1,5 +1,6 @@
 import { createSign } from "crypto";
 import { DEFAULT_BRAND, safeColor } from "./colors";
+import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
 // Tarjeta genérica: una clase por restaurante, un objeto por cliente.
@@ -11,6 +12,7 @@ const serviceAccount = (): ServiceAccount => JSON.parse(process.env.FIREBASE_SER
 
 export const walletIssuerId = () => process.env.GOOGLE_WALLET_ISSUER_ID?.trim() ?? "";
 const classId = (companyId: string) => `${walletIssuerId()}.company_${companyId}`;
+const objectId = (companyId: string, memberId: string) => `${walletIssuerId()}.${companyId}_${memberId}`;
 const text = (value: string) => ({ defaultValue: { language: "es", value } });
 
 export type WalletCard = {
@@ -29,6 +31,24 @@ export type WalletCompany = {
   logoUrl?: string;
   brandColor?: string;
   walletCard?: WalletCard;
+  loyalty?: { rewards?: unknown; walletTemplate?: number };
+};
+
+// Sube este número si cambia LOYALTY_TEMPLATE, para que se vuelva a aplicar a las clases.
+export const WALLET_TEMPLATE_VERSION = 1;
+
+// Muestra sellos y próximo premio en el frente de la tarjeta.
+const LOYALTY_TEMPLATE = {
+  cardTemplateOverride: {
+    cardRowTemplateInfos: [
+      {
+        twoItems: {
+          startItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['stamps']" }] } },
+          endItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['next_reward']" }] } },
+        },
+      },
+    ],
+  },
 };
 
 const LINK = /^(https:\/\/|tel:|mailto:)\S+$/;
@@ -75,11 +95,18 @@ async function walletApi(path: string, init: RequestInit = {}) {
 }
 
 // Lo que se ve en la tarjeta. Lo usan la creación y la actualización, así siempre coinciden.
-function cardFields(company: WalletCompany, origin: string) {
+function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   const card = company.walletCard ?? {};
   const name = clip(company.name, 60) || "Restaurante";
+  const rewards = cleanRewards(company.loyalty?.rewards);
 
   const modules = [
+    ...(rewards.length
+      ? [
+          { id: "stamps", header: "Sellos", body: String(stamps) },
+          { id: "next_reward", header: "Premio", body: nextRewardText(rewards, stamps) || "Sigue sumando" },
+        ]
+      : []),
     ...(company.description ? [{ id: "about", header: "Sobre nosotros", body: clip(company.description, 500) }] : []),
     ...(card.info ?? [])
       .map((row, i) => ({ id: `info_${i}`, header: clip(row.label, 40), body: clip(row.value, 200) }))
@@ -106,21 +133,25 @@ function cardFields(company: WalletCompany, origin: string) {
   };
 }
 
+const hasRewards = (company: WalletCompany) => cleanRewards(company.loyalty?.rewards).length > 0;
+
 // Enlace "Guardar en Google Wallet". Crea la clase y la tarjeta al guardarla.
 export function googleWalletSaveUrl({
   company,
   memberId,
   origin,
+  stamps = 0,
 }: {
   company: WalletCompany;
   memberId: string;
   origin: string;
+  stamps?: number;
 }) {
   const object = {
-    id: `${walletIssuerId()}.${company.id}_${memberId}`,
+    id: objectId(company.id, memberId),
     classId: classId(company.id),
     state: "ACTIVE",
-    ...cardFields(company, origin),
+    ...cardFields(company, origin, stamps),
     barcode: { type: "QR_CODE", value: memberId, alternateText: memberId.slice(0, 8).toUpperCase() },
   };
 
@@ -131,16 +162,45 @@ export function googleWalletSaveUrl({
     iat: Math.floor(Date.now() / 1000),
     ...(origin.startsWith("https://") ? { origins: [origin] } : {}),
     payload: {
-      genericClasses: [{ id: classId(company.id) }],
+      genericClasses: [
+        { id: classId(company.id), ...(hasRewards(company) ? { classTemplateInfo: LOYALTY_TEMPLATE } : {}) },
+      ],
       genericObjects: [object],
     },
   });
   return `https://pay.google.com/gp/v/save/${token}`;
 }
 
+// Pone sellos y premio en el frente de las tarjetas del restaurante. false si aún no hay tarjetas.
+export async function applyLoyaltyTemplate(company: WalletCompany) {
+  if (!hasRewards(company)) return false;
+  const res = await walletApi(`/genericClass/${encodeURIComponent(classId(company.id))}`, {
+    method: "PATCH",
+    body: JSON.stringify({ classTemplateInfo: LOYALTY_TEMPLATE }),
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+  return true;
+}
+
+// Actualiza los sellos en la tarjeta de un cliente. false si no la guardó en Wallet.
+export async function updateMemberCard(company: WalletCompany, memberId: string, stamps: number, origin: string) {
+  const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
+    method: "PATCH",
+    body: JSON.stringify({ textModulesData: cardFields(company, origin, stamps).textModulesData ?? [] }),
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+  return true;
+}
+
 // Aplica el diseño actual a todas las tarjetas que los clientes ya guardaron. Devuelve cuántas cambió.
-export async function syncWalletCards(company: WalletCompany, origin: string) {
-  const fields = cardFields(company, origin);
+export async function syncWalletCards(
+  company: WalletCompany,
+  origin: string,
+  stampsByMember: Record<string, number> = {}
+) {
+  await applyLoyaltyTemplate(company);
   let pageToken = "";
   let updated = 0;
   do {
@@ -156,10 +216,11 @@ export async function syncWalletCards(company: WalletCompany, origin: string) {
     for (let i = 0; i < objects.length; i += 10) {
       await Promise.all(
         objects.slice(i, i + 10).map(async (object) => {
+          const memberId = object.id.slice(object.id.lastIndexOf("_") + 1);
           // Los campos en undefined se quitan (ej. si se borró la portada).
           const r = await walletApi(`/genericObject/${encodeURIComponent(object.id)}`, {
             method: "PUT",
-            body: JSON.stringify({ ...object, ...fields }),
+            body: JSON.stringify({ ...object, ...cardFields(company, origin, stampsByMember[memberId] ?? 0) }),
           });
           if (r.ok) updated++;
           else console.error("Wallet PUT", object.id, r.status, await r.text());

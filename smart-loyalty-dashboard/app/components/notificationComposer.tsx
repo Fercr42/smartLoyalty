@@ -126,7 +126,7 @@ export default function NotificationComposer() {
       <form onSubmit={send} className="flex flex-col gap-3">
         <p className="text-sm text-gray-600">
           Suscriptores: <b className="text-gray-900 tabular-nums">{subscribers ?? "—"}</b>
-          {" · "}Tarjetas Wallet: <b className="text-gray-900 tabular-nums">{walletMembers}</b>
+          {" · "}Clientes con tarjeta: <b className="text-gray-900 tabular-nums">{walletMembers}</b>
         </p>
 
         <div className="flex flex-wrap gap-2">

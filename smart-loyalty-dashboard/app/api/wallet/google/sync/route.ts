@@ -19,11 +19,19 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Sesión inválida" }, { status: 401 });
   }
 
-  const company = await adminDb().collection("companies").doc(uid).get();
+  const companyRef = adminDb().collection("companies").doc(uid);
+  const company = await companyRef.get();
   if (!company.exists) return Response.json({ updated: 0 });
 
+  const members = await companyRef.collection("walletMembers").select("stamps").get();
+  const stampsByMember = Object.fromEntries(members.docs.map((d) => [d.id, d.data().stamps ?? 0]));
+
   try {
-    const updated = await syncWalletCards({ ...company.data(), id: uid } as WalletCompany, publicOrigin(req.nextUrl.origin));
+    const updated = await syncWalletCards(
+      { ...company.data(), id: uid } as WalletCompany,
+      publicOrigin(req.nextUrl.origin),
+      stampsByMember
+    );
     return Response.json({ updated });
   } catch (e) {
     console.error(e);

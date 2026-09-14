@@ -22,17 +22,18 @@ export async function POST(req: NextRequest) {
   const company = await companyRef.get();
   if (!company.exists) return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
 
-  // Registro de tarjetas emitidas (para el conteo del dueño).
-  await companyRef
-    .collection("walletMembers")
-    .doc(memberId)
-    .create({ platform: "google", createdAt: FieldValue.serverTimestamp() })
+  // Registro del cliente (para el conteo del dueño y los sellos).
+  const memberRef = companyRef.collection("walletMembers").doc(memberId);
+  await memberRef
+    .create({ platform: "google", stamps: 0, totalVisits: 0, createdAt: FieldValue.serverTimestamp() })
     .catch(() => {}); // ya existía
+  const member = await memberRef.get();
 
   const url = googleWalletSaveUrl({
     company: { ...company.data(), id: companyId } as WalletCompany,
     memberId,
     origin: publicOrigin(req.nextUrl.origin),
+    stamps: member.data()?.stamps ?? 0,
   });
   return Response.json({ url });
 }
