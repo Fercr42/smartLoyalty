@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { DocumentReference, DocumentSnapshot, FieldPath, FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
-import { maybeNotifyNearReward } from "../../../lib/automations";
+import { canReach, maybeNotifyNearReward } from "../../../lib/automations";
 import { kickCron } from "../../../lib/cron-kick";
 import { memberCoupons } from "../../../lib/coupons";
 import {
@@ -72,12 +72,10 @@ async function maybeRequestReview(
   if (!planState((company as { plan?: Plan }).plan).allowed) return;
   try {
     const memberRef = companyRef.collection("walletMembers").doc(memberId);
-    const [member, device] = await Promise.all([
-      memberRef.get(),
-      companyRef.collection("subscribers").where("memberId", "==", memberId).limit(1).get(),
-    ]);
+    const member = await memberRef.get();
     if (member.data()?.reviewRequestedAt) return;
-    if (device.empty && member.data()?.platform !== "google") return; // no hay cómo avisarle todavía
+    // Sin celular ligado ni tarjeta guardada en Wallet no hay cómo avisarle: no se marca y se intenta en otra visita.
+    if (!(await canReach(companyRef, memberId))) return;
     const delayHours = Math.min(Math.max(Number(reviews.delayHours) || 2, 1), 48);
     await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp() });
     await scheduleNotification(

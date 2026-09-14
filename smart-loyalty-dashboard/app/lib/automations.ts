@@ -7,6 +7,7 @@ import {
   NEAR_REWARD_DELAY_MIN,
 } from "./automations-config";
 import { createMemberCoupon } from "./coupons";
+import { walletCardSaved } from "./google-wallet";
 import { planState, type Plan } from "./plan";
 import { cleanRewards } from "./rewards";
 import { scheduleNotification, sendNotification } from "./send-notification";
@@ -25,11 +26,11 @@ type CompanyData = {
   loyalty?: { rewards?: unknown };
 };
 
-// ¿Hay cómo avisarle? (celular suscrito o tarjeta en Google Wallet)
-async function canReach(companyRef: DocumentReference, memberId: string, platform?: string) {
-  if (platform === "google") return true;
+// ¿Hay cómo avisarle? Un celular suscrito ligado a su tarjeta, o su tarjeta guardada de verdad en Google Wallet.
+export async function canReach(companyRef: DocumentReference, memberId: string) {
   const device = await companyRef.collection("subscribers").where("memberId", "==", memberId).limit(1).get();
-  return !device.empty;
+  if (!device.empty) return true;
+  return walletCardSaved(companyRef.id, memberId).catch(() => false);
 }
 
 // Después de un sello: si al cliente le falta 1 para un premio, avisarle en 30 minutos.
@@ -44,8 +45,7 @@ export async function maybeNotifyNearReward(
   const reward = cleanRewards(company.loyalty?.rewards).find((r) => r.stamps - stamps === 1);
   if (!reward) return;
   try {
-    const member = await companyRef.collection("walletMembers").doc(memberId).get();
-    if (!(await canReach(companyRef, memberId, member.data()?.platform))) return;
+    if (!(await canReach(companyRef, memberId))) return;
     const vars = { premio: reward.title, restaurante: company.name ?? "" };
     await scheduleNotification(
       company.id,

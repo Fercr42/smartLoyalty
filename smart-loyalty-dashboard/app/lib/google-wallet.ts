@@ -285,6 +285,15 @@ export async function setWalletPromoLink(
   }
 }
 
+// ¿El cliente guardó de verdad su tarjeta en Google Wallet? (tocar el botón no basta: puede no guardarla)
+export async function walletCardSaved(companyId: string, memberId: string) {
+  if (!walletIssuerId()) return false;
+  const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(companyId, memberId))}`);
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.hasUsers !== false;
+}
+
 const walletMessage = (title: string, body: string) =>
   JSON.stringify({
     message: {
