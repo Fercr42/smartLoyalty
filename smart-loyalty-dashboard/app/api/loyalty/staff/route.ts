@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { DocumentReference, DocumentSnapshot, FieldPath, FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { maybeNotifyNearReward } from "../../../lib/automations";
+import { kickCron } from "../../../lib/cron-kick";
 import { memberCoupons } from "../../../lib/coupons";
 import {
   applyClassSettings,
@@ -144,6 +145,7 @@ export async function POST(req: NextRequest) {
   const events = companyRef.collection("loyaltyEvents");
 
   if (action === "scan") {
+    kickCron(publicOrigin(req.nextUrl.origin));
     const raw = String(body.code ?? "").trim().toLowerCase();
     const uuid = raw.match(UUID)?.[0];
     let found: DocumentSnapshot | undefined;

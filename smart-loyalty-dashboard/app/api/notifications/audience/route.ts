@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminAuth, adminDb } from "../../../firebase/admin";
+import { kickCron } from "../../../lib/cron-kick";
+import { publicOrigin } from "../../../lib/origin";
 import { audienceCounts } from "../../../lib/send-notification";
 
 export const runtime = "nodejs";
@@ -14,5 +16,6 @@ export async function GET(req: NextRequest) {
   } catch {
     return Response.json({ error: "Sesión inválida" }, { status: 401 });
   }
+  kickCron(publicOrigin(req.nextUrl.origin));
   return Response.json(await audienceCounts(adminDb().collection("companies").doc(uid)));
 }

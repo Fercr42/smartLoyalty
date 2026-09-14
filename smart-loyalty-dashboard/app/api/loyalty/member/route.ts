@@ -3,6 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { cleanAutomations } from "../../../lib/automations-config";
 import { memberCoupons } from "../../../lib/coupons";
+import { kickCron } from "../../../lib/cron-kick";
+import { publicOrigin } from "../../../lib/origin";
 import { cleanRewards } from "../../../lib/rewards";
 
 export const runtime = "nodejs";
@@ -25,6 +27,8 @@ export async function POST(req: NextRequest) {
   if (!COMPANY_ID.test(companyId ?? "") || !MEMBER_ID.test(memberId ?? "")) {
     return Response.json({ error: "Datos inválidos" }, { status: 400 });
   }
+
+  kickCron(publicOrigin(req.nextUrl.origin));
 
   const companyRef = adminDb().collection("companies").doc(companyId);
   const company = await companyRef.get();
