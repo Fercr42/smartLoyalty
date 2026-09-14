@@ -16,6 +16,7 @@ import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
 import CardDesigner from "../components/cardDesigner";
 import CampaignResults from "../components/campaignResults";
+import BrandLogo from "../components/brandLogo";
 import { auth, db } from "../firebase/config";
 import { planState, type PlanState } from "../lib/plan";
 
@@ -107,9 +108,7 @@ export default function Panel() {
       <header className="bg-white border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-baseline gap-3 min-w-0">
-            <span className="text-lg font-extrabold text-gray-900 whitespace-nowrap">
-              Smart<span className="text-[#0e7c66]">Loyalty</span>
-            </span>
+            <BrandLogo size={26} />
             {companyName && <span className="text-sm text-gray-500 truncate hidden sm:inline">· {companyName}</span>}
           </div>
           <div className="flex items-center gap-3">

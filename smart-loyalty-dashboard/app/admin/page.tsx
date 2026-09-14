@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { useAuth } from "../contexts/AuthContext";
 import Auth from "../components/auth";
+import BrandLogo from "../components/brandLogo";
 import { auth } from "../firebase/config";
 
 // Administrador de Smart Loyalty: todos los restaurantes, planes, pruebas por vencer e ingresos.
@@ -156,9 +157,10 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <p className="font-extrabold text-gray-900">
-            Smart<span className="text-[#0e7c66]">Loyalty</span> <span className="font-medium text-gray-500">· Administrador</span>
-          </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <BrandLogo size={26} />
+            <span className="font-medium text-gray-500 hidden sm:inline">· Administrador</span>
+          </div>
           <div className="flex items-center gap-3">
             <button onClick={() => load().catch(console.error)} className="text-sm border rounded-md px-3 py-1.5 hover:bg-gray-100">
               Actualizar

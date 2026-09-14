@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Loyalty Dashboard",
+  title: "Smart Loyalty",
   description:
-    "Dashboard para gestión de programas de fidelidad con códigos QR",
+    "Notificaciones, tarjetas de cliente y sellos para que tus clientes vuelvan a tu restaurante.",
 };
 
 export default function RootLayout({

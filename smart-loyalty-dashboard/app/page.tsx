@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
+import BrandLogo from "./components/brandLogo";
 import { PLAN_PRICE_USD, TRIAL_DAYS } from "./lib/plan";
 
 const display = Bricolage_Grotesque({
@@ -83,8 +84,8 @@ export default function Landing() {
     <div className="bg-white text-[#111418]">
       <header className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[#e6ece9]">
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className={`${display.className} text-xl font-extrabold tracking-tight`}>
-            Smart<span className="text-[#0e7c66]">Loyalty</span>
+          <Link href="/" aria-label="Smart Loyalty, inicio">
+            <BrandLogo size={30} />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm text-[#4b5560]">
             <a href="#como-funciona" className="hover:text-[#111418]">Cómo funciona</a>
@@ -232,7 +233,7 @@ export default function Landing() {
 
       <footer className="border-t border-[#e6ece9]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap justify-between gap-3 text-sm text-[#6b7580]">
-          <span>© Smart Loyalty</span>
+          <BrandLogo size={22} />
           <Link href="/panel" className="hover:text-[#111418]">
             Entrar a mi panel
           </Link>

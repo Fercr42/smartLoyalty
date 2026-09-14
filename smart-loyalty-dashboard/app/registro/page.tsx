@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db, provider } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { TRIAL_DAYS } from "../lib/plan";
+import BrandLogo from "../components/brandLogo";
 
 export default function RegistroPage() {
   const { user, loading } = useAuth();
@@ -72,8 +73,8 @@ export default function RegistroPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f7f5] text-[#111418] px-4 py-10 flex flex-col items-center">
-      <Link href="/" className="font-bold text-lg mb-8">
-        Smart<span className="text-[#0e7c66]">Loyalty</span>
+      <Link href="/" className="mb-8" aria-label="Smart Loyalty, inicio">
+        <BrandLogo size={34} />
       </Link>
 
       <div className="w-full max-w-md bg-white rounded-2xl border border-[#dfe7e3] p-6 sm:p-8 flex flex-col gap-5">
