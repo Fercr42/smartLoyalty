@@ -16,7 +16,8 @@ async function load(companyId: string, notificationId: string) {
   if (!company.exists || !notification.exists) return null;
   const couponId = notification.data()?.couponId;
   const coupon = couponId ? (await companyRef.collection("coupons").doc(couponId).get()).data() : undefined;
-  return { company: company.data()!, notification: notification.data()!, notificationRef, coupon };
+  const couponExpired = Boolean(coupon && (!coupon.active || (coupon.expiresAt?.toMillis?.() ?? 0) <= Date.now()));
+  return { company: company.data()!, notification: notification.data()!, notificationRef, coupon, couponExpired };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -34,11 +35,9 @@ export default async function PromoPage({ params }: Props) {
   const data = await load(companyId, notificationId);
   if (!data) notFound();
 
-  const { company, notification, coupon } = data;
+  const { company, notification, coupon, couponExpired } = data;
   const brand = safeColor(company.brandColor, DEFAULT_BRAND);
   const bg = safeColor(company.bgColor, DEFAULT_BG);
-  const couponExpired =
-    coupon && (!coupon.active || (coupon.expiresAt?.toMillis?.() ?? 0) <= Date.now());
 
   // Visitas a la promo (para las estadísticas del dueño).
   await data.notificationRef.update({ views: FieldValue.increment(1) }).catch(() => {});
