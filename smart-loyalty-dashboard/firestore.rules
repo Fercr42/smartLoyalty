@@ -40,6 +40,11 @@ service cloud.firestore {
         allow read: if isOwner(companyId);
       }
 
+      // Opiniones de la encuesta después de la visita. Solo las escribe el servidor.
+      match /feedback/{feedbackId} {
+        allow read: if isOwner(companyId);
+      }
+
       // Clientes con tarjeta (sellos, Wallet). Solo los escribe el servidor.
       match /walletMembers/{memberId} {
         allow read: if isOwner(companyId);

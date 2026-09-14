@@ -19,6 +19,7 @@ type Event = {
   at?: Timestamp;
 };
 type Notice = { ok: boolean; text: string } | null;
+type Feedback = { id: string; rating: number; comment: string; code: string | null; at?: Timestamp };
 
 const HINTS = [
   ["Bebida gratis", "5"],
@@ -42,6 +43,9 @@ export default function LoyaltyEditor() {
   const [reviewUrl, setReviewUrl] = useState("");
   const [reviewDelay, setReviewDelay] = useState("2");
   const [reviewClicks, setReviewClicks] = useState(0);
+  const [reviewSurvey, setReviewSurvey] = useState(true);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [feedbackStats, setFeedbackStats] = useState({ count: 0, sum: 0 });
   const [savingReview, setSavingReview] = useState(false);
   const [reviewNotice, setReviewNotice] = useState<Notice>(null);
 
@@ -67,9 +71,15 @@ export default function LoyaltyEditor() {
         setReviewUrl(reviews.url ?? "");
         setReviewDelay(String(reviews.delayHours ?? 2));
         setReviewClicks(reviews.clicks ?? 0);
+        setReviewSurvey(reviews.survey !== false);
+        const stats = snap.data()?.feedbackStats;
+        if (stats) setFeedbackStats({ count: stats.count ?? 0, sum: stats.sum ?? 0 });
       })
       .catch(console.error);
     loadEvents().catch(console.error);
+    getDocs(query(collection(db, "companies", user.uid, "feedback"), orderBy("at", "desc"), limit(10)))
+      .then((snap) => setFeedback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Feedback, "id">) }))))
+      .catch(console.error);
   }, [user, loadEvents]);
 
   const updateRow = (id: string, key: "title" | "stamps", value: string) =>
@@ -106,8 +116,12 @@ export default function LoyaltyEditor() {
   const saveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (reviewEnabled && !/^https:\/\/\S+$/.test(reviewUrl.trim())) {
-      setReviewNotice({ ok: false, text: "Pega el enlace de reseñas de Google (empieza con https://)." });
+    if (reviewUrl.trim() && !/^https:\/\/\S+$/.test(reviewUrl.trim())) {
+      setReviewNotice({ ok: false, text: "El enlace de reseñas debe empezar con https://" });
+      return;
+    }
+    if (reviewEnabled && !reviewSurvey && !reviewUrl.trim()) {
+      setReviewNotice({ ok: false, text: "Sin encuesta, pega el enlace de reseñas de Google." });
       return;
     }
     setSavingReview(true);
@@ -115,7 +129,7 @@ export default function LoyaltyEditor() {
     try {
       await setDoc(
         doc(db, "companies", user.uid),
-        { reviews: { enabled: reviewEnabled, url: reviewUrl.trim(), delayHours: Number(reviewDelay) } },
+        { reviews: { enabled: reviewEnabled, url: reviewUrl.trim(), delayHours: Number(reviewDelay), survey: reviewSurvey } },
         { merge: true }
       );
       setReviewNotice({
@@ -245,8 +259,8 @@ export default function LoyaltyEditor() {
           <div>
             <h3 className="font-semibold text-gray-900">Pedir reseña en Google</h3>
             <p className="text-sm text-gray-600">
-              Después del primer sello, el cliente recibe una notificación para dejar una reseña. Se pide una sola vez
-              por cliente.
+              Después del primer sello, el cliente recibe una notificación (una sola vez). Con la encuesta, primero califica
+              de 1 a 5: solo a quien da 4 o 5 estrellas se le pide la reseña en Google, y las opiniones bajas te llegan a ti.
             </p>
           </div>
           <label htmlFor="review-enabled" className="flex items-center gap-2 text-sm text-gray-800">
@@ -257,6 +271,15 @@ export default function LoyaltyEditor() {
               onChange={(e) => setReviewEnabled(e.target.checked)}
             />
             Pedir reseña automáticamente
+          </label>
+          <label htmlFor="review-survey" className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              id="review-survey"
+              type="checkbox"
+              checked={reviewSurvey}
+              onChange={(e) => setReviewSurvey(e.target.checked)}
+            />
+            Enviar primero una encuesta de 1 a 5 estrellas (recomendado)
           </label>
           <input
             id="review-url"
@@ -289,6 +312,36 @@ export default function LoyaltyEditor() {
             </button>
           </div>
           <p className="text-xs text-gray-500 tabular-nums">{reviewClicks} clientes abrieron el enlace de reseña.</p>
+
+          <div className="border-t pt-4 flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="font-semibold text-gray-900">Opiniones de la encuesta</h4>
+              <span className="text-sm text-gray-600 tabular-nums">
+                {feedbackStats.count
+                  ? `${(feedbackStats.sum / feedbackStats.count).toFixed(1)} ★ · ${feedbackStats.count} opiniones`
+                  : "Aún sin opiniones"}
+              </span>
+            </div>
+            {feedback.length > 0 && (
+              <ul className="divide-y text-sm">
+                {feedback.map((f) => (
+                  <li key={f.id} className="py-2">
+                    <div className="flex justify-between gap-3">
+                      <span className={f.rating <= 3 ? "text-red-700 font-medium" : "text-gray-900 font-medium"}>
+                        {"★".repeat(f.rating)}
+                        <span className="text-gray-300">{"★".repeat(5 - f.rating)}</span>
+                      </span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                        {f.code ? `#${f.code} · ` : ""}
+                        {f.at?.toDate().toLocaleDateString("es", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    {f.comment && <p className="text-gray-700">{f.comment}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {reviewNotice && (
             <p className={`text-sm ${reviewNotice.ok ? "text-green-700" : "text-red-600"}`}>{reviewNotice.text}</p>
           )}

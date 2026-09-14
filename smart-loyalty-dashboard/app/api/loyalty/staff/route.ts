@@ -63,12 +63,14 @@ async function refreshWalletCard(
 // Primer sello de un cliente: programar una notificación para pedirle reseña en Google (una sola vez).
 async function maybeRequestReview(
   companyRef: DocumentReference,
-  company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number } },
+  company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number; survey?: boolean } },
   memberId: string,
   origin: string
 ) {
   const reviews = company.reviews;
-  if (!reviews?.enabled || !/^https:\/\/\S+$/.test(reviews.url ?? "")) return;
+  // Con encuesta, primero califica de 1 a 5 (solo 4 o 5 estrellas van a Google); sin encuesta, directo a Google.
+  const survey = reviews?.survey !== false;
+  if (!reviews?.enabled || (!survey && !/^https:\/\/\S+$/.test(reviews.url ?? ""))) return;
   if (!planState((company as { plan?: Plan }).plan).allowed) return;
   try {
     const memberRef = companyRef.collection("walletMembers").doc(memberId);
@@ -84,12 +86,14 @@ async function maybeRequestReview(
         type: "aviso",
         kind: "review",
         title: `¿Cómo te fue en ${company.name ?? "tu visita"}?`.slice(0, 65),
-        body: "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
+        body: survey
+          ? "Califica tu visita en 10 segundos. Tu opinión nos ayuda a mejorar."
+          : "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
         audience: "all",
         ctaLabel: "",
         ctaUrl: "",
         memberIds: [memberId],
-        link: `${origin}/r/${company.id}`,
+        link: survey ? `${origin}/encuesta/${company.id}?m=${memberId}` : `${origin}/r/${company.id}`,
       },
       Date.now() + delayHours * 3_600_000,
       "none"

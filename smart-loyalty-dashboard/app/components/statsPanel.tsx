@@ -10,6 +10,7 @@ type Stats = {
   events: { type: string; at: number; memberId: string }[];
   notifications: { count: number; sent: number; views: number; walletViews?: number };
   reviewClicks: number;
+  feedback?: { count: number; average: number | null };
 };
 type Bar = { label: string; value: number; tooltip: string };
 
@@ -112,7 +113,11 @@ export default function StatsPanel() {
       value: stats.notifications.views,
       note: `${stats.notifications.walletViews ?? 0} desde Google Wallet · ${stats.notifications.sent} enviadas al navegador`,
     },
-    { label: "Clics para reseñar", value: stats.reviewClicks, note: "desde el inicio" },
+    {
+      label: "Calificación",
+      value: stats.feedback?.average ? `${stats.feedback.average.toFixed(1)} ★` : "—",
+      note: `${stats.feedback?.count ?? 0} opiniones · ${stats.reviewClicks} fueron a Google`,
+    },
   ];
 
   return (

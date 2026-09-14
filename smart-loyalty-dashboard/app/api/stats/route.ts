@@ -48,5 +48,9 @@ export async function GET(req: NextRequest) {
       .filter((e) => e.at),
     notifications: { count: notifications.size, sent, views, walletViews },
     reviewClicks: company.data()?.reviews?.clicks ?? 0,
+    feedback: (() => {
+      const f = company.data()?.feedbackStats ?? {};
+      return { count: f.count ?? 0, average: f.count ? f.sum / f.count : null };
+    })(),
   });
 }
