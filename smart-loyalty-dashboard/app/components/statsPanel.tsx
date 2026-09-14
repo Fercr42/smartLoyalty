@@ -106,7 +106,7 @@ export default function StatsPanel() {
     { label: "Clientes que regresaron", value: summary.returning, note: `de ${summary.visitors} que vinieron` },
     { label: "Premios canjeados", value: summary.redeems, note: "en 30 días" },
     { label: "Cupones usados", value: summary.coupons, note: "en 30 días" },
-    { label: "Celulares suscritos", value: stats.devices, note: "reciben notificaciones" },
+    { label: "Celulares suscritos", value: stats.devices, note: "activos · se revisa a diario" },
     {
       label: "Promos abiertas",
       value: stats.notifications.views,

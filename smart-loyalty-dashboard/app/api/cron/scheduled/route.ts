@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { runAutomations } from "../../../lib/automations";
 import { publicOrigin } from "../../../lib/origin";
 import { runDueJobs } from "../../../lib/send-notification";
+import { cleanupSubscribers } from "../../../lib/subscriber-cleanup";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -13,7 +14,11 @@ async function handle(req: NextRequest) {
   const origin = publicOrigin(req.nextUrl.origin);
   const results = await runDueJobs(origin);
   const automations = await runAutomations(origin);
-  return Response.json({ processed: results.length, results, automations });
+  const cleanup = await cleanupSubscribers().catch((e) => {
+    console.error("Limpieza de suscriptores", e);
+    return { error: true };
+  });
+  return Response.json({ processed: results.length, results, automations, cleanup });
 }
 
 export const GET = handle;

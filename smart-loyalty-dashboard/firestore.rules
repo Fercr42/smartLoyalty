@@ -16,7 +16,9 @@ service cloud.firestore {
       // Celulares suscritos a push. El cliente (sin cuenta) solo puede registrar su token.
       // memberId liga el celular con su tarjeta de cliente (para enviar por grupos).
       match /subscribers/{token} {
-        allow read, delete: if isOwner(companyId);
+        allow read: if isOwner(companyId);
+        // El id es el token del celular (largo y secreto): solo ese celular lo conoce y puede borrarse.
+        allow delete: if true;
         allow create, update: if request.resource.data.keys().hasOnly(['token', 'channel', 'platform', 'createdAt', 'memberId'])
           && request.resource.data.token == token
           && request.resource.data.channel == 'webpush'

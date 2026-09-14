@@ -23,7 +23,7 @@ export const FREQUENT_VISITS = 5;
 export const INACTIVE_DAYS = 30;
 
 const DAY = 86_400_000;
-const DEAD_TOKEN = [
+export const DEAD_TOKEN = [
   "messaging/registration-token-not-registered",
   "messaging/invalid-registration-token",
 ];

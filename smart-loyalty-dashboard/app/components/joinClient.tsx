@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import { QRCodeSVG } from "qrcode.react";
 import { app, db } from "../firebase/config";
@@ -62,6 +62,25 @@ function getMemberId(companyId: string) {
     } catch {}
   }
   return memberId;
+}
+
+// Token de notificaciones guardado en este celular, para no contarlo dos veces ni dejarlo si se bloquean.
+const tokenKey = (companyId: string) => `push-token:${companyId}`;
+function storedToken(companyId: string) {
+  try {
+    return localStorage.getItem(tokenKey(companyId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+function storeToken(companyId: string, token: string | null) {
+  try {
+    if (token) localStorage.setItem(tokenKey(companyId), token);
+    else localStorage.removeItem(tokenKey(companyId));
+  } catch {}
+}
+function deleteSubscriber(companyId: string, token: string) {
+  return deleteDoc(doc(db, "companies", companyId, "subscribers", token)).catch(() => {});
 }
 
 export default function JoinClient({
@@ -140,6 +159,10 @@ export default function JoinClient({
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
           serviceWorkerRegistration: registration,
         });
+        // Firebase puede cambiar el token: borrar el anterior para no contar este celular dos veces.
+        const previous = storedToken(companyId);
+        if (previous && previous !== token) await deleteSubscriber(companyId, previous);
+        storeToken(companyId, token);
         await setDoc(doc(db, "companies", companyId, "subscribers", token), {
           token,
           channel: "webpush",
@@ -173,6 +196,11 @@ export default function JoinClient({
       loadMemberCard().catch(console.error);
       if (isIOS() && !isStandalone()) return setStatus("ios-install");
       if (!(await isSupported())) return setStatus("unsupported");
+      // Si ya no da permiso (bloqueó o lo quitó), deja de contar como suscrito.
+      if (Notification.permission !== "granted" && storedToken(companyId)) {
+        await deleteSubscriber(companyId, storedToken(companyId));
+        storeToken(companyId, null);
+      }
       if (Notification.permission === "denied") return setStatus("denied");
       // Ya dio permiso antes: refrescar token sin preguntar.
       if (Notification.permission === "granted") return subscribe(data.name);
