@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { googleWalletSaveUrl, walletIssuerId, type WalletCompany } from "../../../lib/google-wallet";
+import { publicOrigin } from "../../../lib/origin";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const url = googleWalletSaveUrl({
     company: { ...company.data(), id: companyId } as WalletCompany,
     memberId,
-    origin: req.nextUrl.origin,
+    origin: publicOrigin(req.nextUrl.origin),
   });
   return Response.json({ url });
 }

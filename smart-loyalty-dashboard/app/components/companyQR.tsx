@@ -1,12 +1,13 @@
 "use client";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "../contexts/AuthContext";
+import { publicOrigin } from "../lib/origin";
 
 export default function CompanyQR() {
   const { user } = useAuth();
   if (!user || typeof window === "undefined") return null;
 
-  const joinUrl = `${window.location.origin}/join/${user.uid}`;
+  const joinUrl = `${publicOrigin(window.location.origin)}/join/${user.uid}`;
 
   const download = () => {
     const canvas = document.getElementById("company-qr") as HTMLCanvasElement | null;

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminAuth, adminDb } from "../../../../firebase/admin";
 import { syncWalletCards, walletIssuerId, type WalletCompany } from "../../../../lib/google-wallet";
+import { publicOrigin } from "../../../../lib/origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!company.exists) return Response.json({ updated: 0 });
 
   try {
-    const updated = await syncWalletCards({ ...company.data(), id: uid } as WalletCompany, req.nextUrl.origin);
+    const updated = await syncWalletCards({ ...company.data(), id: uid } as WalletCompany, publicOrigin(req.nextUrl.origin));
     return Response.json({ updated });
   } catch (e) {
     console.error(e);

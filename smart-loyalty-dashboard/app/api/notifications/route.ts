@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { MulticastMessage } from "firebase-admin/messaging";
 import { adminAuth, adminDb, adminMessaging } from "../../firebase/admin";
 import { notifyWalletHolders, walletIssuerId } from "../../lib/google-wallet";
+import { publicOrigin } from "../../lib/origin";
 
 export const runtime = "nodejs";
 
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   const company = await companyRef.get();
   if (!company.exists) return bad("Primero registra tu empresa");
 
-  const origin = req.nextUrl.origin;
+  const origin = publicOrigin(req.nextUrl.origin);
   const rawLogo: string = company.data()?.logoUrl ?? "";
   const logoUrl = rawLogo.startsWith("/") ? `${origin}${rawLogo}` : rawLogo;
 
