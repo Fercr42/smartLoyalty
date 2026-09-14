@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { DocumentReference, DocumentSnapshot, FieldPath, FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
+import { memberCoupons } from "../../../lib/coupons";
 import {
-  applyLoyaltyTemplate,
+  applyClassSettings,
   updateMemberCard,
   walletIssuerId,
   WALLET_TEMPLATE_VERSION,
@@ -14,7 +15,7 @@ import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-aut
 
 export const runtime = "nodejs";
 
-// Escáner de empleados: login con PIN, buscar tarjeta, sumar sello y canjear premio.
+// Escáner de empleados: login con PIN, buscar tarjeta, sumar sello, canjear premio y usar cupón.
 
 const COMPANY_ID = /^[A-Za-z0-9]{10,64}$/;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
@@ -46,7 +47,7 @@ async function refreshWalletCard(
 ) {
   if (!walletIssuerId()) return;
   try {
-    if (company.loyalty?.walletTemplate !== WALLET_TEMPLATE_VERSION && (await applyLoyaltyTemplate(company))) {
+    if (company.loyalty?.walletTemplate !== WALLET_TEMPLATE_VERSION && (await applyClassSettings(company))) {
       await companyRef.update({ "loyalty.walletTemplate": WALLET_TEMPLATE_VERSION });
     }
     await updateMemberCard(company, memberId, stamps, origin);
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
   }
 
   const members = companyRef.collection("walletMembers");
+  const events = companyRef.collection("loyaltyEvents");
 
   if (action === "scan") {
     const raw = String(body.code ?? "").trim().toLowerCase();
@@ -117,13 +119,49 @@ export async function POST(req: NextRequest) {
       found = matches.docs[0];
     }
     if (!found) return bad("Tarjeta no encontrada en este restaurante", 404);
-    return Response.json({ member: memberView(found), rewards });
+    return Response.json({ member: memberView(found), rewards, coupons: await memberCoupons(companyRef, found.id) });
   }
 
-  if (action !== "stamp" && action !== "redeem") return bad("Acción inválida");
+  if (!["stamp", "redeem", "coupon"].includes(action)) return bad("Acción inválida");
   const memberId = String(body.memberId ?? "");
   if (!UUID.test(memberId)) return bad("Tarjeta inválida");
   const memberRef = members.doc(memberId);
+  const code = memberId.slice(0, 8).toUpperCase();
+
+  if (action === "coupon") {
+    const couponId = String(body.couponId ?? "");
+    if (!/^[A-Za-z0-9]{1,40}$/.test(couponId)) return bad("Cupón inválido");
+    const couponRef = companyRef.collection("coupons").doc(couponId);
+    const redemptionRef = couponRef.collection("redemptions").doc(memberId);
+    try {
+      await db.runTransaction(async (tx) => {
+        const [coupon, redemption, member] = await Promise.all([
+          tx.get(couponRef),
+          tx.get(redemptionRef),
+          tx.get(memberRef),
+        ]);
+        if (!member.exists) throw new LoyaltyError("Tarjeta no encontrada", 404);
+        if (!coupon.exists || !coupon.data()?.active) throw new LoyaltyError("Este cupón ya no está activo.", 400);
+        if ((coupon.data()?.expiresAt?.toMillis?.() ?? 0) <= Date.now()) throw new LoyaltyError("Este cupón ya venció.", 400);
+        if (redemption.exists) throw new LoyaltyError("Este cliente ya usó este cupón.", 409);
+        tx.create(redemptionRef, { at: FieldValue.serverTimestamp() });
+        tx.update(couponRef, { redemptions: FieldValue.increment(1) });
+        tx.set(events.doc(), {
+          memberId,
+          code,
+          type: "coupon",
+          couponId,
+          couponTitle: coupon.data()?.title ?? "",
+          at: FieldValue.serverTimestamp(),
+        });
+      });
+    } catch (e) {
+      if (e instanceof LoyaltyError) return bad(e.message, e.status);
+      throw e;
+    }
+    return Response.json({ couponId, used: true });
+  }
+
   const reward = action === "redeem" ? rewards.find((r) => r.id === body.rewardId) : undefined;
   if (action === "redeem" && !reward) return bad("Recompensa no encontrada");
 
@@ -133,11 +171,7 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(memberRef);
       if (!snap.exists) throw new LoyaltyError("Tarjeta no encontrada", 404);
       const current = snap.data()?.stamps ?? 0;
-      const event = {
-        memberId,
-        code: memberId.slice(0, 8).toUpperCase(),
-        at: FieldValue.serverTimestamp(),
-      };
+      const event = { memberId, code, at: FieldValue.serverTimestamp() };
 
       if (action === "stamp") {
         const last = snap.data()?.lastStampAt?.toMillis?.() ?? 0;
@@ -150,14 +184,14 @@ export async function POST(req: NextRequest) {
           totalVisits: FieldValue.increment(1),
           lastStampAt: FieldValue.serverTimestamp(),
         });
-        tx.set(companyRef.collection("loyaltyEvents").doc(), { ...event, type: "stamp", amount: 1, stampsAfter: stamps });
+        tx.set(events.doc(), { ...event, type: "stamp", amount: 1, stampsAfter: stamps });
       } else {
         if (current < reward!.stamps) {
           throw new LoyaltyError(`Le faltan ${reward!.stamps - current} sellos para "${reward!.title}".`, 400);
         }
         stamps = current - reward!.stamps;
         tx.update(memberRef, { stamps, lastRedeemAt: FieldValue.serverTimestamp() });
-        tx.set(companyRef.collection("loyaltyEvents").doc(), {
+        tx.set(events.doc(), {
           ...event,
           type: "redeem",
           amount: -reward!.stamps,

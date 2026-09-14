@@ -1,16 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner(companyId) {
+      return request.auth != null && request.auth.uid == companyId;
+    }
+
     // Datos públicos del restaurante (la página del QR los necesita). Solo el dueño edita.
     match /companies/{companyId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == companyId;
+      allow write: if isOwner(companyId);
 
-      // Clientes suscritos a push. El cliente (sin cuenta) solo puede registrar su token.
-      // channel queda abierto a 'wallet' más adelante (escrito desde el servidor).
+      // Celulares suscritos a push. El cliente (sin cuenta) solo puede registrar su token.
+      // memberId liga el celular con su tarjeta de cliente (para enviar por grupos).
       match /subscribers/{token} {
-        allow read, delete: if request.auth != null && request.auth.uid == companyId;
-        allow create, update: if request.resource.data.keys().hasOnly(['token', 'channel', 'platform', 'createdAt'])
+        allow read, delete: if isOwner(companyId);
+        allow create, update: if request.resource.data.keys().hasOnly(['token', 'channel', 'platform', 'createdAt', 'memberId'])
           && request.resource.data.token == token
           && request.resource.data.channel == 'webpush'
           && exists(/databases/$(database)/documents/companies/$(companyId));
@@ -18,24 +22,41 @@ service cloud.firestore {
 
       // Historial de envíos. Solo lo escribe el servidor (Admin SDK).
       match /notifications/{notificationId} {
-        allow read: if request.auth != null && request.auth.uid == companyId;
+        allow read: if isOwner(companyId);
       }
 
       // Imágenes pesadas del restaurante (ej. portada de Wallet). Se sirven desde el servidor.
       match /assets/{assetId} {
-        allow read, write: if request.auth != null && request.auth.uid == companyId;
+        allow read, write: if isOwner(companyId);
       }
 
-      // Historial de sellos y canjes. Solo lo escribe el servidor.
+      // Historial de sellos, canjes y cupones. Solo lo escribe el servidor.
       match /loyaltyEvents/{eventId} {
-        allow read: if request.auth != null && request.auth.uid == companyId;
+        allow read: if isOwner(companyId);
       }
 
       // Clientes con tarjeta (sellos, Wallet). Solo los escribe el servidor.
-      // companies/{id}/private/* (PIN de empleados) no tiene regla: nadie lo lee desde el navegador.
       match /walletMembers/{memberId} {
-        allow read: if request.auth != null && request.auth.uid == companyId;
+        allow read: if isOwner(companyId);
       }
+
+      // Cupones: los crea el servidor; el dueño solo puede desactivarlos.
+      match /coupons/{couponId} {
+        allow read: if isOwner(companyId);
+        allow update: if isOwner(companyId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']);
+
+        match /redemptions/{memberId} {
+          allow read: if isOwner(companyId);
+        }
+      }
+
+      // private/* (PIN de empleados) y promoImages/* no tienen regla: nadie los lee desde el navegador.
+    }
+
+    // Notificaciones programadas. Las crea y envía el servidor; el dueño puede verlas y cancelarlas.
+    match /scheduledJobs/{jobId} {
+      allow read, delete: if request.auth != null && resource.data.companyId == request.auth.uid;
     }
 
     match /users/{userId} {

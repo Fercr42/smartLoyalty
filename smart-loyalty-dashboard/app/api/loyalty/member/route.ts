@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
+import { memberCoupons } from "../../../lib/coupons";
 import { cleanRewards } from "../../../lib/rewards";
 
 export const runtime = "nodejs";
@@ -8,7 +9,7 @@ export const runtime = "nodejs";
 const COMPANY_ID = /^[A-Za-z0-9]{10,64}$/;
 const MEMBER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Tarjeta del cliente en la página del QR: crea el registro la primera vez y devuelve sus sellos.
+// Tarjeta del cliente en la página del QR: sellos y cupones. Crea el registro la primera vez.
 export async function POST(req: NextRequest) {
   const { companyId, memberId } = await req.json().catch(() => ({}));
   if (!COMPANY_ID.test(companyId ?? "") || !MEMBER_ID.test(memberId ?? "")) {
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest) {
   if (!company.exists) return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
 
   const rewards = cleanRewards(company.data()?.loyalty?.rewards);
-  if (!rewards.length) return Response.json({ enabled: false });
+  const coupons = await memberCoupons(companyRef, memberId);
+  if (!rewards.length && !coupons.length) return Response.json({ enabled: false });
 
   const memberRef = companyRef.collection("walletMembers").doc(memberId);
   await memberRef
@@ -34,5 +36,6 @@ export async function POST(req: NextRequest) {
     code: memberId.slice(0, 8).toUpperCase(),
     stamps: member.stamps ?? 0,
     rewards,
+    coupons,
   });
 }

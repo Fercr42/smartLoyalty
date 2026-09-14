@@ -1,6 +1,7 @@
 import { createSign } from "crypto";
 import { DEFAULT_BRAND, safeColor } from "./colors";
 import { describeLink } from "./links";
+import { validLocation } from "./location";
 import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
@@ -34,6 +35,7 @@ export type WalletCompany = {
   brandColor?: string;
   walletCard?: WalletCard;
   loyalty?: { rewards?: unknown; walletTemplate?: number };
+  location?: unknown;
 };
 
 // Sube este número si cambia LOYALTY_TEMPLATE, para que se vuelva a aplicar a las clases.
@@ -179,13 +181,24 @@ export function googleWalletSaveUrl({
   return `https://pay.google.com/gp/v/save/${token}`;
 }
 
-// Pone sellos y premio en el frente de las tarjetas del restaurante. false si aún no hay tarjetas.
-export async function applyLoyaltyTemplate(company: WalletCompany) {
-  if (!hasRewards(company)) return false;
-  const res = await walletApi(`/genericClass/${encodeURIComponent(classId(company.id))}`, {
-    method: "PATCH",
-    body: JSON.stringify({ classTemplateInfo: LOYALTY_TEMPLATE }),
-  });
+// Ajustes de la clase del restaurante: sellos y premio en el frente de la tarjeta,
+// y la ubicación para que Google muestre la tarjeta cerca del local. false si aún no hay tarjetas.
+export async function applyClassSettings(company: WalletCompany) {
+  const settings: Record<string, unknown> = {};
+  if (hasRewards(company)) settings.classTemplateInfo = LOYALTY_TEMPLATE;
+  const location = validLocation(company.location);
+  if (location) settings.merchantLocations = [{ latitude: location.lat, longitude: location.lng }];
+  if (!Object.keys(settings).length) return false;
+
+  const path = `/genericClass/${encodeURIComponent(classId(company.id))}`;
+  let res = await walletApi(path, { method: "PATCH", body: JSON.stringify(settings) });
+  if (res.status === 400 && settings.merchantLocations) {
+    // Si Google rechaza la ubicación, no bloquear el resto de los ajustes.
+    console.error("Wallet rechazó merchantLocations", await res.text());
+    delete settings.merchantLocations;
+    if (!Object.keys(settings).length) return false;
+    res = await walletApi(path, { method: "PATCH", body: JSON.stringify(settings) });
+  }
   if (res.status === 404) return false;
   if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
   return true;
@@ -208,7 +221,7 @@ export async function syncWalletCards(
   origin: string,
   stampsByMember: Record<string, number> = {}
 ) {
-  await applyLoyaltyTemplate(company);
+  await applyClassSettings(company);
   let pageToken = "";
   let updated = 0;
   do {
@@ -238,6 +251,28 @@ export async function syncWalletCards(
     pageToken = data.pagination?.nextPageToken ?? "";
   } while (pageToken);
   return updated;
+}
+
+const walletMessage = (title: string, body: string) =>
+  JSON.stringify({
+    message: {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      header: title,
+      body,
+      messageType: "TEXT_AND_NOTIFY",
+      displayInterval: { end: { date: new Date(Date.now() + 7 * 86_400_000).toISOString() } },
+    },
+  });
+
+// Mensaje con notificación a la tarjeta de un solo cliente (envíos por grupo). false si no la guardó.
+export async function notifyWalletMember(companyId: string, memberId: string, title: string, body: string) {
+  const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(companyId, memberId))}/addMessage`, {
+    method: "POST",
+    body: walletMessage(title, body),
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+  return true;
 }
 
 // Mensaje con notificación a todas las tarjetas del restaurante.

@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { compressImage, resizeImage } from "../lib/image";
 import { describeLink } from "../lib/links";
+import { parseMapsLink, validLocation, type LatLng } from "../lib/location";
 import { syncWalletCards } from "../lib/walletClient";
 
 type InfoRow = { label: string; value: string };
@@ -38,6 +39,9 @@ export default function WalletCardEditor() {
   const [heroData, setHeroData] = useState<string | null>(null);
   const [wideLogoUrl, setWideLogoUrl] = useState("");
   const [wideLogoData, setWideLogoData] = useState<string | null>(null);
+  const [location, setLocation] = useState<LatLng | null>(null);
+  const [mapsLink, setMapsLink] = useState("");
+  const [locating, setLocating] = useState(false);
   const [info, setInfo] = useState<InfoRow[]>(threeInfo());
   const [links, setLinks] = useState<LinkRow[]>(threeLinks());
   const [saving, setSaving] = useState(false);
@@ -56,6 +60,7 @@ export default function WalletCardEditor() {
         setSubheader(card.subheader ?? "");
         setHeroUrl(card.heroUrl ?? "");
         setWideLogoUrl(card.wideLogoUrl ?? "");
+        setLocation(validLocation(data.location));
         setInfo(threeInfo(card.info));
         setLinks(threeLinks(card.links));
       })
@@ -66,6 +71,27 @@ export default function WalletCardEditor() {
   const fg = textOn(color);
 
   const wideLogoPreview = wideLogoData ?? wideLogoUrl;
+
+  const locateMe = () => {
+    setMessage(null);
+    if (!navigator.geolocation) {
+      setMessage({ ok: false, text: "Este navegador no puede dar tu ubicación. Pega el enlace de Google Maps." });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setMapsLink("");
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setMessage({ ok: false, text: "No se pudo obtener tu ubicación. Da permiso o pega el enlace de Google Maps." });
+      },
+      { enableHighAccuracy: true, timeout: 15_000 }
+    );
+  };
 
   // PNG para conservar la transparencia; se achica hasta que quepa en Firestore.
   const handleWideLogo = async (file: File | undefined) => {
@@ -145,6 +171,7 @@ export default function WalletCardEditor() {
               .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
               .filter((l) => l.url),
           },
+          location: location ?? null,
         },
         { merge: true }
       );
@@ -322,6 +349,65 @@ export default function WalletCardEditor() {
             Sin texto, el botón muestra el dato (ej. &quot;WhatsApp: +506…&quot;). Se agrega solo un botón
             &quot;Promociones&quot; con tu página del QR.
           </p>
+        </fieldset>
+
+        <fieldset className="border rounded p-3 flex flex-col gap-2">
+          <legend className="text-sm text-gray-600 px-1">Ubicación del restaurante (opcional)</legend>
+          <p className="text-xs text-gray-500">
+            Google Wallet puede mostrar la tarjeta en la pantalla del cliente cuando está cerca. Google decide cuándo
+            mostrarla.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={locateMe}
+              disabled={locating}
+              className="border px-3 py-2 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
+            >
+              {locating ? "Buscando..." : "Usar mi ubicación actual"}
+            </button>
+            {location && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocation(null);
+                  setMapsLink("");
+                }}
+                className="text-sm text-red-600"
+              >
+                Quitar ubicación
+              </button>
+            )}
+          </div>
+          <input
+            id="wallet-maps-link"
+            placeholder="O pega el enlace de Google Maps del restaurante"
+            value={mapsLink}
+            onChange={(e) => {
+              setMapsLink(e.target.value);
+              const parsed = parseMapsLink(e.target.value);
+              if (parsed) setLocation(parsed);
+            }}
+            className="border p-2 rounded"
+          />
+          {mapsLink.trim() && !parseMapsLink(mapsLink) && (
+            <p className="text-xs text-red-600">
+              No encontré coordenadas en ese enlace. Abre el restaurante en Google Maps desde la computadora y copia la
+              dirección de la barra del navegador, o usa &quot;Usar mi ubicación actual&quot; estando en el local.
+            </p>
+          )}
+          {location && (
+            <p className="text-sm text-gray-700 tabular-nums">
+              {location.lat.toFixed(5)}, {location.lng.toFixed(5)} ·{" "}
+              <a
+                href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
+                target="_blank"
+                className="text-blue-700"
+              >
+                Ver en el mapa
+              </a>
+            </p>
+          )}
         </fieldset>
 
         <button disabled={saving} className="bg-green-600 text-white p-2 rounded disabled:opacity-50">

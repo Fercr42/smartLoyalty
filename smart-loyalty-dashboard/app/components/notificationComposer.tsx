@@ -2,18 +2,22 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   collection,
-  getCountFromServer,
+  deleteDoc,
+  doc,
   getDocs,
   limit,
   orderBy,
   query,
   Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { formatDay } from "../lib/format";
 import { compressImage } from "../lib/image";
 
-// Igual que MAX_IMAGE en /api/notifications (~2 MB de foto).
+// Igual que MAX_IMAGE en lib/send-notification (~2 MB de foto).
 const MAX_IMAGE_CHARS = 2_800_000;
 
 const TYPES = [
@@ -23,16 +27,43 @@ const TYPES = [
   { id: "aviso", label: "Aviso general", title: "Aviso importante", body: "Escribe aquí tu mensaje." },
 ];
 
+const AUDIENCES = [
+  { id: "all", label: "Todos", hint: "todos los suscritos" },
+  { id: "frequent", label: "Frecuentes", hint: "5 visitas o más" },
+  { id: "inactive", label: "Inactivos", hint: "sin venir en 30 días" },
+  { id: "near_reward", label: "Cerca de un premio", hint: "les falta 1 sello" },
+] as const;
+type AudienceId = (typeof AUDIENCES)[number]["id"];
+type Counts = Record<AudienceId, { devices: number; members: number }>;
+
+const REPEATS = { none: "Una sola vez", daily: "Cada día", weekly: "Cada semana" } as const;
+type RepeatId = keyof typeof REPEATS;
+
 type Sent = {
   id: string;
-  type: string;
   title: string;
   body: string;
   sent: number;
-  failed: number;
+  views?: number;
   hasImage?: boolean;
+  couponId?: string;
+  audience?: string;
   createdAt?: Timestamp;
 };
+type Scheduled = {
+  id: string;
+  sendAt: Timestamp;
+  repeat: RepeatId;
+  payload: { title: string; body: string; audience: AudienceId; couponId?: string };
+};
+type Coupon = { id: string; title: string; expiresDate: string; active: boolean; redemptions: number; expiresAt: Timestamp };
+type Result = { ok: boolean; text: string; url?: string } | null;
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const toLocalInput = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const formatDateTime = (ms: number) => new Date(ms).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" });
+const audienceLabel = (id?: string) => AUDIENCES.find((a) => a.id === id)?.label ?? "Clientes elegidos";
 
 export default function NotificationComposer() {
   const { user } = useAuth();
@@ -42,24 +73,40 @@ export default function NotificationComposer() {
   const [imageData, setImageData] = useState<string | null>(null);
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [audience, setAudience] = useState<AudienceId>("all");
+  const [withCoupon, setWithCoupon] = useState(false);
+  const [couponTitle, setCouponTitle] = useState("");
+  const [couponExpires, setCouponExpires] = useState(() => toLocalInput(new Date(Date.now() + 7 * 86_400_000)).slice(0, 10));
+  const [when, setWhen] = useState<"now" | "later">("now");
+  const [sendAt, setSendAt] = useState(() => toLocalInput(new Date(Date.now() + 3_600_000)));
+  const [repeat, setRepeat] = useState<RepeatId>("none");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
-  const [subscribers, setSubscribers] = useState<number | null>(null);
-  const [walletMembers, setWalletMembers] = useState(0);
+  const [result, setResult] = useState<Result>(null);
+  const [counts, setCounts] = useState<Counts | null>(null);
   const [history, setHistory] = useState<Sent[]>([]);
+  const [scheduled, setScheduled] = useState<Scheduled[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
 
   const current = TYPES.find((t) => t.id === type)!;
 
   const load = useCallback(async () => {
     if (!user) return;
-    const subs = await getCountFromServer(collection(db, "companies", user.uid, "subscribers"));
-    setSubscribers(subs.data().count);
-    const cards = await getCountFromServer(collection(db, "companies", user.uid, "walletMembers"));
-    setWalletMembers(cards.data().count);
-    const snap = await getDocs(
-      query(collection(db, "companies", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(10))
+    const [countsData, sentSnap, jobsSnap, couponsSnap] = await Promise.all([
+      fetch("/api/notifications/audience", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      getDocs(query(collection(db, "companies", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(10))),
+      getDocs(query(collection(db, "scheduledJobs"), where("companyId", "==", user.uid))),
+      getDocs(query(collection(db, "companies", user.uid, "coupons"), orderBy("createdAt", "desc"), limit(10))),
+    ]);
+    setCounts(countsData);
+    setHistory(sentSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sent, "id">) })));
+    setScheduled(
+      jobsSnap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Scheduled, "id">) }))
+        .sort((a, b) => a.sendAt.toMillis() - b.sendAt.toMillis())
     );
-    setHistory(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sent, "id">) })));
+    setCoupons(couponsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Coupon, "id">) })));
   }, [user]);
 
   useEffect(() => {
@@ -79,40 +126,69 @@ export default function NotificationComposer() {
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const audience = `${subscribers ?? 0} suscriptores${walletMembers ? ` y ${walletMembers} tarjetas de Wallet` : ""}`;
-    if (!confirm(`¿Enviar a ${audience}?`)) return;
+    const later = when === "later";
+    const sendAtMs = later ? new Date(sendAt).getTime() : undefined;
+    if (later && (!sendAtMs || sendAtMs < Date.now())) {
+      setResult({ ok: false, text: "Elige una fecha y hora que todavía no haya pasado." });
+      return;
+    }
+    if (withCoupon && !couponTitle.trim()) {
+      setResult({ ok: false, text: "Escribe el nombre del cupón." });
+      return;
+    }
+
+    const target = counts?.[audience];
+    const who = audience === "all" ? "todos" : audienceLabel(audience).toLowerCase();
+    const question = later
+      ? `¿Programar para ${formatDateTime(sendAtMs!)}${repeat !== "none" ? ` (${REPEATS[repeat].toLowerCase()})` : ""}, a ${who}?`
+      : `¿Enviar ahora a ${who}${target ? ` (${target.devices} celulares)` : ""}?`;
+    if (!confirm(question)) return;
+
     setSending(true);
     setResult(null);
     try {
       const res = await fetch("/api/notifications", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${await user.getIdToken()}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
         body: JSON.stringify({
           type,
           title,
           body,
+          audience,
           imageData: imageData ?? undefined,
           ctaLabel: ctaLabel.trim() || undefined,
           ctaUrl: ctaUrl.trim() || undefined,
+          coupon: withCoupon
+            ? {
+                title: couponTitle.trim(),
+                expiresDate: couponExpires,
+                expiresAt: new Date(`${couponExpires}T23:59:59`).getTime(),
+              }
+            : undefined,
+          sendAt: sendAtMs,
+          repeat: later ? repeat : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al enviar");
-      setResult({
-        ok: true,
-        text: `Enviada a ${data.sent} dispositivos${data.failed ? ` · ${data.failed} fallaron` : ""}${
-          data.wallet === "ok" ? " · Google Wallet: enviada" : data.wallet === "error" ? " · Google Wallet: falló" : ""
-        }.`,
-        url: data.promoUrl,
-      });
+      setResult(
+        data.scheduled
+          ? { ok: true, text: `Programada para ${formatDateTime(data.sendAt)}.` }
+          : {
+              ok: true,
+              text: `Enviada a ${data.sent} celulares${data.failed ? ` · ${data.failed} fallaron` : ""}${
+                data.wallet === "ok" ? " · Google Wallet: enviada" : data.wallet === "error" ? " · Google Wallet: falló" : ""
+              }.`,
+              url: data.promoUrl,
+            }
+      );
       setTitle("");
       setBody("");
       setImageData(null);
       setCtaLabel("");
       setCtaUrl("");
+      setWithCoupon(false);
+      setCouponTitle("");
       load().catch(console.error);
     } catch (err) {
       setResult({ ok: false, text: err instanceof Error ? err.message : "Error al enviar" });
@@ -121,12 +197,26 @@ export default function NotificationComposer() {
     }
   };
 
+  const cancelScheduled = async (job: Scheduled) => {
+    if (!confirm(`¿Cancelar "${job.payload.title}"?`)) return;
+    await deleteDoc(doc(db, "scheduledJobs", job.id));
+    load().catch(console.error);
+  };
+
+  const deactivateCoupon = async (coupon: Coupon) => {
+    if (!user || !confirm(`¿Desactivar el cupón "${coupon.title}"? Ya no se podrá usar.`)) return;
+    await updateDoc(doc(db, "companies", user.uid, "coupons", coupon.id), { active: false });
+    load().catch(console.error);
+  };
+
+  const nobody = when === "now" && counts && counts[audience].devices === 0 && counts[audience].members === 0;
+
   return (
     <div className="grid gap-8 lg:grid-cols-2">
-      <form onSubmit={send} className="flex flex-col gap-3">
+      <form onSubmit={send} className="flex flex-col gap-4">
         <p className="text-sm text-gray-600">
-          Suscriptores: <b className="text-gray-900 tabular-nums">{subscribers ?? "—"}</b>
-          {" · "}Clientes con tarjeta: <b className="text-gray-900 tabular-nums">{walletMembers}</b>
+          Celulares suscritos: <b className="text-gray-900 tabular-nums">{counts?.all.devices ?? "—"}</b>
+          {" · "}Clientes con tarjeta: <b className="text-gray-900 tabular-nums">{counts?.all.members ?? "—"}</b>
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -186,6 +276,79 @@ export default function NotificationComposer() {
         </div>
 
         <fieldset className="border rounded p-3 flex flex-col gap-2">
+          <legend className="text-sm text-gray-600 px-1">¿A quién?</legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {AUDIENCES.map((a) => (
+              <label
+                key={a.id}
+                htmlFor={`audience-${a.id}`}
+                className={`border rounded-lg p-2 cursor-pointer text-sm ${
+                  audience === a.id ? "border-gray-900 bg-gray-50" : "hover:bg-gray-50"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <input
+                    id={`audience-${a.id}`}
+                    type="radio"
+                    name="audience"
+                    checked={audience === a.id}
+                    onChange={() => setAudience(a.id)}
+                  />
+                  <b className="text-gray-900">{a.label}</b>
+                </span>
+                <span className="block text-xs text-gray-500 pl-5">
+                  {a.hint} · {counts ? `${counts[a.id].devices} celulares` : "…"}
+                </span>
+              </label>
+            ))}
+          </div>
+          {audience !== "all" && (
+            <p className="text-xs text-gray-500">
+              Los grupos solo incluyen a quien tiene tarjeta de cliente. Los celulares que se suscribieron antes se suman
+              cuando vuelven a abrir la página del QR.
+            </p>
+          )}
+        </fieldset>
+
+        <fieldset className="border rounded p-3 flex flex-col gap-2">
+          <legend className="text-sm text-gray-600 px-1">Cupón (opcional)</legend>
+          <label htmlFor="notif-with-coupon" className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              id="notif-with-coupon"
+              type="checkbox"
+              checked={withCoupon}
+              onChange={(e) => setWithCoupon(e.target.checked)}
+            />
+            Incluir un cupón de un solo uso
+          </label>
+          {withCoupon && (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <input
+                id="notif-coupon-title"
+                placeholder="Ej. 20% de descuento"
+                value={couponTitle}
+                maxLength={60}
+                onChange={(e) => setCouponTitle(e.target.value)}
+                className="border p-2 rounded min-w-0"
+              />
+              <label htmlFor="notif-coupon-expires" className="flex items-center gap-2 text-sm text-gray-600">
+                Vence
+                <input
+                  id="notif-coupon-expires"
+                  type="date"
+                  value={couponExpires}
+                  onChange={(e) => setCouponExpires(e.target.value)}
+                  className="border p-2 rounded"
+                />
+              </label>
+              <p className="col-span-2 text-xs text-gray-500">
+                El cliente muestra su tarjeta en caja y el empleado lo marca como usado en el escáner.
+              </p>
+            </div>
+          )}
+        </fieldset>
+
+        <fieldset className="border rounded p-3 flex flex-col gap-2">
           <legend className="text-sm text-gray-600 px-1">Botón en la página de la promo (opcional)</legend>
           <input
             id="notif-cta-label"
@@ -205,15 +368,54 @@ export default function NotificationComposer() {
           />
         </fieldset>
 
-        <button
-          disabled={sending || (!subscribers && !walletMembers)}
-          className="bg-blue-600 text-white p-2 rounded disabled:opacity-50"
-        >
+        <fieldset className="border rounded p-3 flex flex-col gap-2">
+          <legend className="text-sm text-gray-600 px-1">¿Cuándo?</legend>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label htmlFor="when-now" className="flex items-center gap-2">
+              <input id="when-now" type="radio" name="when" checked={when === "now"} onChange={() => setWhen("now")} />
+              Enviar ahora
+            </label>
+            <label htmlFor="when-later" className="flex items-center gap-2">
+              <input id="when-later" type="radio" name="when" checked={when === "later"} onChange={() => setWhen("later")} />
+              Programar
+            </label>
+          </div>
+          {when === "later" && (
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="notif-send-at"
+                type="datetime-local"
+                value={sendAt}
+                onChange={(e) => setSendAt(e.target.value)}
+                className="border p-2 rounded"
+              />
+              <select
+                id="notif-repeat"
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value as RepeatId)}
+                className="border p-2 rounded"
+              >
+                {Object.entries(REPEATS).map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <p className="w-full text-xs text-gray-500">Puede llegar hasta unos 10 minutos después de la hora elegida.</p>
+            </div>
+          )}
+        </fieldset>
+
+        <button disabled={sending || Boolean(nobody)} className="bg-blue-600 text-white p-2 rounded disabled:opacity-50">
           {sending
-            ? "Enviando..."
-            : subscribers === 0 && !walletMembers
-              ? "Aún no hay suscriptores"
-              : "Enviar notificación"}
+            ? when === "later"
+              ? "Programando..."
+              : "Enviando..."
+            : nobody
+              ? "No hay nadie en este grupo"
+              : when === "later"
+                ? "Programar envío"
+                : "Enviar notificación"}
         </button>
         {result && (
           <p className={`text-sm ${result.ok ? "text-green-700" : "text-red-600"}`}>
@@ -243,6 +445,55 @@ export default function NotificationComposer() {
           </p>
         </div>
 
+        {scheduled.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-2">Programadas</h3>
+            <ul className="divide-y text-sm">
+              {scheduled.map((job) => (
+                <li key={job.id} className="py-2 flex justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="font-medium text-gray-900">{job.payload.title}</span>
+                    <span className="block text-xs text-gray-500">
+                      {formatDateTime(job.sendAt.toMillis())} · {REPEATS[job.repeat] ?? REPEATS.none} ·{" "}
+                      {audienceLabel(job.payload.audience)}
+                      {job.payload.couponId ? " · con cupón" : ""}
+                    </span>
+                  </span>
+                  <button onClick={() => cancelScheduled(job)} className="text-xs text-red-600 whitespace-nowrap">
+                    Cancelar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {coupons.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-2">Cupones</h3>
+            <ul className="divide-y text-sm">
+              {coupons.map((c) => {
+                const live = c.active && c.expiresAt.toMillis() > Date.now();
+                return (
+                  <li key={c.id} className="py-2 flex justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="font-medium text-gray-900">{c.title}</span>
+                      <span className="block text-xs text-gray-500">
+                        {c.redemptions} usados · {live ? `vence el ${formatDay(c.expiresDate)}` : "inactivo"}
+                      </span>
+                    </span>
+                    {live && (
+                      <button onClick={() => deactivateCoupon(c)} className="text-xs text-red-600 whitespace-nowrap">
+                        Desactivar
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {history.length > 0 && user && (
           <div>
             <h3 className="font-semibold mb-2">Enviadas</h3>
@@ -252,13 +503,18 @@ export default function NotificationComposer() {
                   <div className="flex justify-between gap-2">
                     <span className="font-medium text-gray-900">{n.title}</span>
                     <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                      {n.createdAt?.toDate().toLocaleDateString("es")} · {n.sent} env.
+                      {n.createdAt?.toDate().toLocaleDateString("es")}
                     </span>
                   </div>
                   <p className="text-gray-600">{n.body}</p>
-                  <a href={`/promo/${user.uid}/${n.id}`} target="_blank" className="text-xs text-blue-600">
-                    Ver página{n.hasImage ? " (con foto)" : ""}
-                  </a>
+                  <p className="text-xs text-gray-500 tabular-nums">
+                    {n.sent} enviados · {n.views ?? 0} abiertas · {audienceLabel(n.audience ?? "all")}
+                    {n.couponId ? " · con cupón" : ""}
+                    {" · "}
+                    <a href={`/promo/${user.uid}/${n.id}`} target="_blank" className="text-blue-600">
+                      Ver página
+                    </a>
+                  </p>
                 </li>
               ))}
             </ul>

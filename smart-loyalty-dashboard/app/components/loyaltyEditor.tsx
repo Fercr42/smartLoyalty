@@ -11,10 +11,11 @@ import { syncWalletCards } from "../lib/walletClient";
 type Row = { id: string; title: string; stamps: string };
 type Event = {
   id: string;
-  type: "stamp" | "redeem";
+  type: "stamp" | "redeem" | "coupon";
   code: string;
   rewardTitle?: string;
-  stampsAfter: number;
+  couponTitle?: string;
+  stampsAfter?: number;
   at?: Timestamp;
 };
 type Notice = { ok: boolean; text: string } | null;
@@ -233,13 +234,17 @@ export default function LoyaltyEditor() {
               {events.map((ev) => (
                 <li key={ev.id} className="py-2 flex justify-between gap-3">
                   <span className="min-w-0">
-                    {ev.type === "stamp" ? (
-                      <b className="text-gray-900">+1 sello</b>
-                    ) : (
-                      <b className="text-gray-900">Canjeó {ev.rewardTitle}</b>
-                    )}{" "}
+                    <b className="text-gray-900">
+                      {ev.type === "stamp"
+                        ? "+1 sello"
+                        : ev.type === "redeem"
+                          ? `Canjeó ${ev.rewardTitle}`
+                          : `Usó cupón ${ev.couponTitle}`}
+                    </b>{" "}
                     <span className="font-mono text-gray-500">#{ev.code}</span>
-                    <span className="block text-xs text-gray-500">Quedó con {ev.stampsAfter} sellos</span>
+                    {ev.type !== "coupon" && (
+                      <span className="block text-xs text-gray-500">Quedó con {ev.stampsAfter} sellos</span>
+                    )}
                   </span>
                   <span className="text-gray-500 text-xs whitespace-nowrap tabular-nums">
                     {ev.at?.toDate().toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}

@@ -2,11 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
+import { formatDay } from "../lib/format";
 import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[] };
 type Member = { memberId: string; code: string; stamps: number; totalVisits: number };
 type Notice = { ok: boolean; text: string } | null;
+type Coupon = { id: string; title: string; expiresDate: string; used: boolean };
 
 export default function StaffScanner({ companyId }: { companyId: string }) {
   const sessionKey = `staff-session:${companyId}`;
@@ -14,6 +16,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [pin, setPin] = useState("");
   const [member, setMember] = useState<Member | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -76,6 +79,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
         return;
       }
       setMember(data.member);
+      setCoupons(data.coupons ?? []);
       setCompany((c) => (c ? { ...c, rewards: data.rewards } : c));
     },
     [call]
@@ -173,6 +177,18 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     setNotice({ ok: true, text: `Canjeado: ${reward.title}. Le quedan ${data.stamps} sellos.` });
   };
 
+  const applyCoupon = async (coupon: Coupon) => {
+    if (!member || !confirm(`¿Usar el cupón "${coupon.title}"? Solo se puede usar una vez.`)) return;
+    setBusy(true);
+    setNotice(null);
+    const { ok, status, data } = await call({ action: "coupon", memberId: member.memberId, couponId: coupon.id });
+    setBusy(false);
+    if (ok || status === 409) {
+      setCoupons((cs) => cs.map((c) => (c.id === coupon.id ? { ...c, used: true } : c)));
+    }
+    setNotice(ok ? { ok: true, text: `Cupón aplicado: ${coupon.title}.` } : { ok: false, text: data.error ?? "No se pudo usar el cupón." });
+  };
+
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const rewards = company?.rewards ?? [];
 
@@ -228,6 +244,8 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <span className="font-mono text-sm text-gray-500">#{member.code}</span>
               <span className="text-xs text-gray-500 tabular-nums">{member.totalVisits} visitas</span>
             </div>
+            {rewards.length > 0 && (
+            <>
             <div className="text-center">
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
                 {member.stamps}
@@ -243,6 +261,8 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             >
               +1 sello
             </button>
+            </>
+            )}
 
             {rewards.length > 0 && (
               <div>
@@ -260,6 +280,29 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                         className="px-3 py-1.5 rounded-lg border text-sm font-medium disabled:opacity-40"
                       >
                         Canjear
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {coupons.length > 0 && (
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-2">Cupones</p>
+                <ul className="flex flex-col gap-2">
+                  {coupons.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 border-2 border-dashed rounded-lg p-3">
+                      <span className="min-w-0">
+                        <b className="text-gray-900">{c.title}</b>
+                        <span className="block text-xs text-gray-500">Vence el {formatDay(c.expiresDate)}</span>
+                      </span>
+                      <button
+                        disabled={busy || c.used}
+                        onClick={() => applyCoupon(c)}
+                        className="px-3 py-1.5 rounded-lg border text-sm font-medium disabled:opacity-40"
+                      >
+                        {c.used ? "Usado" : "Usar"}
                       </button>
                     </li>
                   ))}

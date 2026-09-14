@@ -5,7 +5,8 @@ import { getMessaging, getToken, isSupported, onMessage } from "firebase/messagi
 import { QRCodeSVG } from "qrcode.react";
 import { app, db } from "../firebase/config";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
-import { cleanRewards, nextRewardText, type Reward } from "../lib/rewards";
+import { formatDay } from "../lib/format";
+import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
   name: string;
@@ -25,7 +26,13 @@ type Status =
   | "subscribing"
   | "subscribed"
   | "error";
-type MemberCard = { memberId: string; code: string; stamps: number; rewards: Reward[] };
+type MemberCard = {
+  memberId: string;
+  code: string;
+  stamps: number;
+  rewards: Reward[];
+  coupons: { id: string; title: string; expiresDate: string; used: boolean }[];
+};
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isStandalone = () =>
@@ -109,6 +116,7 @@ export default function JoinClient({
         await setDoc(doc(db, "companies", companyId, "subscribers", token), {
           token,
           channel: "webpush",
+          memberId: getMemberId(companyId),
           platform: isIOS() ? "ios" : /Android/i.test(navigator.userAgent) ? "android" : "web",
           createdAt: serverTimestamp(),
         });
@@ -134,7 +142,8 @@ export default function JoinClient({
       if (!snap.exists()) return setStatus("notfound");
       const data = snap.data() as Company;
       setCompany(data);
-      if (cleanRewards(data.loyalty?.rewards).length) loadMemberCard().catch(console.error);
+      // Sellos y cupones; la API responde enabled:false si el restaurante no usa ninguno.
+      loadMemberCard().catch(console.error);
       if (isIOS() && !isStandalone()) return setStatus("ios-install");
       if (!(await isSupported())) return setStatus("unsupported");
       if (Notification.permission === "denied") return setStatus("denied");
@@ -228,24 +237,47 @@ export default function JoinClient({
             <QRCodeSVG value={memberCard.memberId} size={160} />
           </div>
           <p className="font-mono text-sm text-gray-500">#{memberCard.code}</p>
-          <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-            {memberCard.stamps} <span className="text-base font-normal text-gray-600">sellos</span>
-          </p>
-          <p className="text-sm text-gray-700">
-            {nextRewardText(memberCard.rewards, memberCard.stamps) || "Muestra este código en caja para sumar sellos."}
-          </p>
-          <ul className="w-full text-sm text-left divide-y border rounded-lg">
-            {memberCard.rewards.map((r) => (
-              <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
-                <span className="text-gray-900">{r.title}</span>
-                <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                  {Math.min(memberCard.stamps, r.stamps)}/{r.stamps}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {memberCard.rewards.length > 0 && (
+            <>
+              <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
+                {memberCard.stamps} <span className="text-base font-normal text-gray-600">sellos</span>
+              </p>
+              <p className="text-sm text-gray-700">
+                {nextRewardText(memberCard.rewards, memberCard.stamps) || "Muestra este código en caja para sumar sellos."}
+              </p>
+              <ul className="w-full text-sm text-left divide-y border rounded-lg">
+                {memberCard.rewards.map((r) => (
+                  <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
+                    <span className="text-gray-900">{r.title}</span>
+                    <span className="text-gray-500 tabular-nums whitespace-nowrap">
+                      {Math.min(memberCard.stamps, r.stamps)}/{r.stamps}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {memberCard.coupons.length > 0 && (
+            <div className="w-full text-left">
+              <p className="text-sm font-semibold text-gray-900 mb-1">Tus cupones</p>
+              <ul className="flex flex-col gap-2">
+                {memberCard.coupons.map((c) => (
+                  <li
+                    key={c.id}
+                    className={`border-2 border-dashed rounded-lg px-3 py-2 ${c.used ? "opacity-50" : ""}`}
+                    style={{ borderColor: brand }}
+                  >
+                    <p className="font-semibold text-gray-900">{c.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {c.used ? "Ya lo usaste" : `Válido hasta el ${formatDay(c.expiresDate)} · muestra tu código en caja`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <button onClick={() => loadMemberCard().catch(console.error)} className="text-sm text-blue-700">
-            Actualizar sellos
+            Actualizar
           </button>
         </div>
       )}
