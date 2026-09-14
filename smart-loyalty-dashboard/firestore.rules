@@ -8,7 +8,10 @@ service cloud.firestore {
     // Datos públicos del restaurante (la página del QR los necesita). Solo el dueño edita.
     match /companies/{companyId} {
       allow read: if true;
-      allow write: if isOwner(companyId);
+      // El plan (prueba gratis / activo) solo lo escribe el servidor.
+      allow create: if isOwner(companyId) && !('plan' in request.resource.data);
+      allow update: if isOwner(companyId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan']);
 
       // Celulares suscritos a push. El cliente (sin cuenta) solo puede registrar su token.
       // memberId liga el celular con su tarjeta de cliente (para enviar por grupos).

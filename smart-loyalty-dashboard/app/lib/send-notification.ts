@@ -2,6 +2,7 @@ import { DocumentReference, FieldValue, Timestamp } from "firebase-admin/firesto
 import type { MulticastMessage } from "firebase-admin/messaging";
 import { adminDb, adminMessaging } from "../firebase/admin";
 import { notifyWalletHolders, notifyWalletMember, walletIssuerId } from "./google-wallet";
+import { planState } from "./plan";
 import { cleanRewards, type Reward } from "./rewards";
 
 // Envío de notificaciones: ahora, programadas (scheduledJobs) y por grupo de clientes.
@@ -309,7 +310,7 @@ export async function runDueJobs(origin: string, max = 20) {
   const db = adminDb();
   const now = Date.now();
   const due = await db.collection("scheduledJobs").where("sendAt", "<=", Timestamp.fromMillis(now)).limit(max).get();
-  const results: { id: string; sent?: number; error?: boolean }[] = [];
+  const results: { id: string; sent?: number; error?: boolean; skipped?: string }[] = [];
 
   for (const doc of due.docs) {
     const job = await db.runTransaction(async (tx) => {
@@ -324,6 +325,12 @@ export async function runDueJobs(origin: string, max = 20) {
       continue;
     }
     try {
+      const company = await db.collection("companies").doc(job.companyId).get();
+      if (!planState(company.data()?.plan).allowed) {
+        await doc.ref.delete(); // prueba vencida: no se envía
+        results.push({ id: doc.id, skipped: "plan" });
+        continue;
+      }
       const result = await sendNotification(job.companyId, job.payload, origin);
       if (job.repeat === "daily" || job.repeat === "weekly") {
         const step = job.repeat === "daily" ? DAY : 7 * DAY;

@@ -10,6 +10,7 @@ import {
   type WalletCompany,
 } from "../../../lib/google-wallet";
 import { publicOrigin } from "../../../lib/origin";
+import { planState, type Plan } from "../../../lib/plan";
 import { cleanRewards } from "../../../lib/rewards";
 import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
@@ -66,6 +67,7 @@ async function maybeRequestReview(
 ) {
   const reviews = company.reviews;
   if (!reviews?.enabled || !/^https:\/\/\S+$/.test(reviews.url ?? "")) return;
+  if (!planState((company as { plan?: Plan }).plan).allowed) return;
   try {
     const memberRef = companyRef.collection("walletMembers").doc(memberId);
     const [member, device] = await Promise.all([
