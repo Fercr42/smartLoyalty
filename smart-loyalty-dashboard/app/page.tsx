@@ -6,6 +6,7 @@ import CompanyQR from "./components/companyQR";
 import NotificationComposer from "./components/notificationComposer";
 import WalletCardEditor from "./components/walletCardEditor";
 import LoyaltyEditor from "./components/loyaltyEditor";
+import StatsPanel from "./components/statsPanel";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase/config";
 
@@ -53,6 +54,13 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">
+              Estadísticas
+            </h2>
+            <StatsPanel />
+          </div>
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">
               Configuración de Empresa

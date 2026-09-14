@@ -40,6 +40,7 @@ export type StoredNotification = {
   couponId?: string;
   memberIds?: string[]; // solo estos clientes (ej. pedir reseña)
   link?: string; // abrir este enlace en vez de la página de la promo
+  kind?: "review"; // envíos automáticos (se muestran distinto en el historial)
 };
 
 type MemberData = { stamps?: number; totalVisits?: number; lastStampAt?: Timestamp };
@@ -197,6 +198,7 @@ export async function sendNotification(companyId: string, payload: StoredNotific
     ctaLabel: payload.ctaLabel ?? "",
     ctaUrl: payload.ctaUrl ?? "",
     audience: payload.memberIds ? "members" : payload.audience,
+    ...(payload.kind ? { kind: payload.kind } : {}),
     sent: 0,
     failed: 0,
     views: 0,

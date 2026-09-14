@@ -11,6 +11,7 @@ import {
 } from "../../../lib/google-wallet";
 import { publicOrigin } from "../../../lib/origin";
 import { cleanRewards } from "../../../lib/rewards";
+import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
 
 export const runtime = "nodejs";
@@ -53,6 +54,46 @@ async function refreshWalletCard(
     await updateMemberCard(company, memberId, stamps, origin);
   } catch (e) {
     console.error("Wallet", e); // el sello ya quedó guardado; la tarjeta se corrige en la próxima sincronización
+  }
+}
+
+// Primer sello de un cliente: programar una notificación para pedirle reseña en Google (una sola vez).
+async function maybeRequestReview(
+  companyRef: DocumentReference,
+  company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number } },
+  memberId: string,
+  origin: string
+) {
+  const reviews = company.reviews;
+  if (!reviews?.enabled || !/^https:\/\/\S+$/.test(reviews.url ?? "")) return;
+  try {
+    const memberRef = companyRef.collection("walletMembers").doc(memberId);
+    const [member, device] = await Promise.all([
+      memberRef.get(),
+      companyRef.collection("subscribers").where("memberId", "==", memberId).limit(1).get(),
+    ]);
+    if (member.data()?.reviewRequestedAt) return;
+    if (device.empty && member.data()?.platform !== "google") return; // no hay cómo avisarle todavía
+    const delayHours = Math.min(Math.max(Number(reviews.delayHours) || 2, 1), 48);
+    await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp() });
+    await scheduleNotification(
+      company.id,
+      {
+        type: "aviso",
+        kind: "review",
+        title: `¿Cómo te fue en ${company.name ?? "tu visita"}?`.slice(0, 65),
+        body: "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
+        audience: "all",
+        ctaLabel: "",
+        ctaUrl: "",
+        memberIds: [memberId],
+        link: `${origin}/r/${company.id}`,
+      },
+      Date.now() + delayHours * 3_600_000,
+      "none"
+    );
+  } catch (e) {
+    console.error("Reseña", e); // el sello ya quedó guardado
   }
 }
 
@@ -206,6 +247,8 @@ export async function POST(req: NextRequest) {
     throw e;
   }
 
-  await refreshWalletCard(companyRef, companyData, memberId, stamps, publicOrigin(req.nextUrl.origin));
+  const origin = publicOrigin(req.nextUrl.origin);
+  await refreshWalletCard(companyRef, companyData, memberId, stamps, origin);
+  if (action === "stamp") await maybeRequestReview(companyRef, companyData, memberId, origin);
   return Response.json({ stamps });
 }

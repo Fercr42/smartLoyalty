@@ -38,6 +38,12 @@ export default function LoyaltyEditor() {
   const [rewardsNotice, setRewardsNotice] = useState<Notice>(null);
   const [pinNotice, setPinNotice] = useState<Notice>(null);
   const [scanUrl, setScanUrl] = useState("");
+  const [reviewEnabled, setReviewEnabled] = useState(false);
+  const [reviewUrl, setReviewUrl] = useState("");
+  const [reviewDelay, setReviewDelay] = useState("2");
+  const [reviewClicks, setReviewClicks] = useState(0);
+  const [savingReview, setSavingReview] = useState(false);
+  const [reviewNotice, setReviewNotice] = useState<Notice>(null);
 
   const loadEvents = useCallback(async () => {
     if (!user) return;
@@ -56,6 +62,11 @@ export default function LoyaltyEditor() {
         const saved = cleanRewards(loyalty.rewards);
         if (saved.length) setRows(saved.map((r) => ({ id: r.id, title: r.title, stamps: String(r.stamps) })));
         setPinSet(Boolean(loyalty.pinSet));
+        const reviews = snap.data()?.reviews ?? {};
+        setReviewEnabled(Boolean(reviews.enabled));
+        setReviewUrl(reviews.url ?? "");
+        setReviewDelay(String(reviews.delayHours ?? 2));
+        setReviewClicks(reviews.clicks ?? 0);
       })
       .catch(console.error);
     loadEvents().catch(console.error);
@@ -89,6 +100,33 @@ export default function LoyaltyEditor() {
       setRewardsNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
     } finally {
       setSavingRewards(false);
+    }
+  };
+
+  const saveReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (reviewEnabled && !/^https:\/\/\S+$/.test(reviewUrl.trim())) {
+      setReviewNotice({ ok: false, text: "Pega el enlace de reseñas de Google (empieza con https://)." });
+      return;
+    }
+    setSavingReview(true);
+    setReviewNotice(null);
+    try {
+      await setDoc(
+        doc(db, "companies", user.uid),
+        { reviews: { enabled: reviewEnabled, url: reviewUrl.trim(), delayHours: Number(reviewDelay) } },
+        { merge: true }
+      );
+      setReviewNotice({
+        ok: true,
+        text: reviewEnabled ? "Guardado. Se pedirá reseña después del primer sello de cada cliente." : "Guardado. Pedido de reseña apagado.",
+      });
+    } catch (err) {
+      console.error(err);
+      setReviewNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
+    } finally {
+      setSavingReview(false);
     }
   };
 
@@ -200,6 +238,59 @@ export default function LoyaltyEditor() {
           </div>
           {pinNotice && (
             <p className={`text-sm ${pinNotice.ok ? "text-green-700" : "text-red-600"}`}>{pinNotice.text}</p>
+          )}
+        </form>
+
+        <form onSubmit={saveReview} className="flex flex-col gap-3 border-t pt-6">
+          <div>
+            <h3 className="font-semibold text-gray-900">Pedir reseña en Google</h3>
+            <p className="text-sm text-gray-600">
+              Después del primer sello, el cliente recibe una notificación para dejar una reseña. Se pide una sola vez
+              por cliente.
+            </p>
+          </div>
+          <label htmlFor="review-enabled" className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              id="review-enabled"
+              type="checkbox"
+              checked={reviewEnabled}
+              onChange={(e) => setReviewEnabled(e.target.checked)}
+            />
+            Pedir reseña automáticamente
+          </label>
+          <input
+            id="review-url"
+            type="url"
+            placeholder="Enlace de reseñas · https://g.page/r/.../review"
+            value={reviewUrl}
+            onChange={(e) => setReviewUrl(e.target.value)}
+            className="border p-2 rounded"
+          />
+          <p className="text-xs text-gray-500">
+            En tu Perfil de Negocio de Google: <b>Pedir reseñas</b> → copia el enlace.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="review-delay" className="text-sm text-gray-700">
+              Enviar
+            </label>
+            <select
+              id="review-delay"
+              value={reviewDelay}
+              onChange={(e) => setReviewDelay(e.target.value)}
+              className="border p-2 rounded text-sm"
+            >
+              <option value="1">1 hora después de la visita</option>
+              <option value="2">2 horas después de la visita</option>
+              <option value="4">4 horas después de la visita</option>
+              <option value="24">Al día siguiente</option>
+            </select>
+            <button disabled={savingReview} className="bg-gray-900 text-white px-4 py-2 rounded disabled:opacity-50">
+              {savingReview ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 tabular-nums">{reviewClicks} clientes abrieron el enlace de reseña.</p>
+          {reviewNotice && (
+            <p className={`text-sm ${reviewNotice.ok ? "text-green-700" : "text-red-600"}`}>{reviewNotice.text}</p>
           )}
         </form>
       </div>

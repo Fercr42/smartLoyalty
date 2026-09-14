@@ -48,6 +48,7 @@ type Sent = {
   hasImage?: boolean;
   couponId?: string;
   audience?: string;
+  kind?: string;
   createdAt?: Timestamp;
 };
 type Scheduled = {
@@ -508,7 +509,8 @@ export default function NotificationComposer() {
                   </div>
                   <p className="text-gray-600">{n.body}</p>
                   <p className="text-xs text-gray-500 tabular-nums">
-                    {n.sent} enviados · {n.views ?? 0} abiertas · {audienceLabel(n.audience ?? "all")}
+                    {n.sent} enviados · {n.views ?? 0} abiertas ·{" "}
+                    {n.kind === "review" ? "Pedido de reseña (automático)" : audienceLabel(n.audience ?? "all")}
                     {n.couponId ? " · con cupón" : ""}
                     {" · "}
                     <a href={`/promo/${user.uid}/${n.id}`} target="_blank" className="text-blue-600">
