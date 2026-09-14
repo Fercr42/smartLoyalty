@@ -113,6 +113,28 @@ export default function JoinClient({
     [companyId]
   );
 
+  // Vuelve a leer el diseño y los sellos (el ícono de inicio en iPhone se reanuda sin recargar la página).
+  const refreshCard = useCallback(() => {
+    getDoc(doc(db, "companies", companyId))
+      .then((snap) => {
+        if (snap.exists()) setCompany(snap.data() as Company);
+      })
+      .catch(() => {});
+    loadMemberCard().catch(() => {});
+  }, [companyId, loadMemberCard]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshCard();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
+  }, [refreshCard]);
+
   const saveBirthday = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!birthdayDay || !birthdayMonth) {
@@ -386,7 +408,7 @@ export default function JoinClient({
                 {birthdayError && <p className="text-xs text-red-600">{birthdayError}</p>}
               </form>
             ))}
-          <button onClick={() => loadMemberCard().catch(console.error)} className="text-sm text-blue-700">
+          <button onClick={refreshCard} className="text-sm text-blue-700">
             Actualizar
           </button>
         </div>

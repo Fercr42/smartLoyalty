@@ -15,6 +15,7 @@ import PlanBanner from "../components/planBanner";
 import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
 import CardDesigner from "../components/cardDesigner";
+import CampaignResults from "../components/campaignResults";
 import { auth, db } from "../firebase/config";
 import { planState, type PlanState } from "../lib/plan";
 
@@ -22,6 +23,7 @@ import { planState, type PlanState } from "../lib/plan";
 const TABS = [
   { id: "inicio", label: "Inicio", description: "Cómo le va a tu restaurante en los últimos 30 días." },
   { id: "mensajes", label: "Mensajes", description: "Envía o programa promociones, horarios y eventos." },
+  { id: "resultados", label: "Resultados", description: "Qué pasó después de cada mensaje: aperturas, cupones y clientes que volvieron." },
   { id: "automatizaciones", label: "Automatizaciones", description: "Mensajes que se envían solos en el momento justo." },
   { id: "tarjeta", label: "Tarjeta", description: "El diseño de tu tarjeta y lo que muestra en Google Wallet." },
   { id: "recompensas", label: "Recompensas", description: "Premios por sellos, escáner de empleados y reseñas." },
@@ -155,6 +157,12 @@ export default function Panel() {
           {tab === "mensajes" && (
             <Card>
               <NotificationComposer />
+            </Card>
+          )}
+
+          {tab === "resultados" && (
+            <Card>
+              <CampaignResults />
             </Card>
           )}
 

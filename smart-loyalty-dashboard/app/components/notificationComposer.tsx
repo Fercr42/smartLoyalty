@@ -16,6 +16,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { formatDay } from "../lib/format";
 import { compressImage } from "../lib/image";
+import { AUTOMATIC_LABELS } from "../lib/notification-labels";
 
 // Igual que MAX_IMAGE en lib/send-notification (~2 MB de foto).
 const MAX_IMAGE_CHARS = 2_800_000;
@@ -38,12 +39,6 @@ type Counts = Record<AudienceId, { devices: number; members: number }>;
 
 const REPEATS = { none: "Una sola vez", daily: "Cada día", weekly: "Cada semana" } as const;
 
-const AUTOMATIC_LABELS: Record<string, string> = {
-  review: "Pedido de reseña (automático)",
-  near_reward: "Te falta 1 sello (automático)",
-  birthday: "Cumpleaños (automático)",
-  winback: "Te extrañamos (automático)",
-};
 type RepeatId = keyof typeof REPEATS;
 
 type Sent = {

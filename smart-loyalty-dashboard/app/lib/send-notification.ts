@@ -224,7 +224,10 @@ export async function sendNotification(companyId: string, payload: StoredNotific
   }
 
   const subs = await companyRef.collection("subscribers").where("channel", "==", "webpush").get();
-  const tokens = subs.docs.filter((d) => !memberIds || memberIds.has(d.data().memberId)).map((d) => d.id);
+  const targetSubs = subs.docs.filter((d) => !memberIds || memberIds.has(d.data().memberId));
+  const tokens = targetSubs.map((d) => d.id);
+  // Clientes a los que les llegó (para medir si volvieron después de la campaña).
+  const reached = new Set<string>(targetSubs.map((d) => d.data().memberId).filter(Boolean));
 
   let sent = 0;
   let failed = 0;
@@ -268,9 +271,11 @@ export async function sendNotification(companyId: string, payload: StoredNotific
         let delivered = 0;
         const ids = [...memberIds];
         for (let i = 0; i < ids.length; i += 10) {
+          const batch = ids.slice(i, i + 10);
           const results = await Promise.all(
-            ids.slice(i, i + 10).map((id) => notifyWalletMember(companyId, id, payload.title, payload.body))
+            batch.map((id) => notifyWalletMember(companyId, id, payload.title, payload.body))
           );
+          results.forEach((ok, j) => ok && reached.add(batch[j]));
           delivered += results.filter(Boolean).length;
         }
         wallet = delivered ? "ok" : "sin-tarjetas";
@@ -289,7 +294,19 @@ export async function sendNotification(companyId: string, payload: StoredNotific
     }
   }
 
-  await notificationRef.update({ sent, failed, wallet });
+  if (wallet === "ok" && !memberIds) {
+    // Mensaje a toda la clase de Wallet: le llega a quienes guardaron su tarjeta.
+    const walletMembers = await companyRef.collection("walletMembers").where("platform", "==", "google").select().get();
+    walletMembers.docs.forEach((d) => reached.add(d.id));
+  }
+
+  await notificationRef.update({
+    sent,
+    failed,
+    wallet,
+    recipients: [...reached].slice(0, 20_000),
+    recipientCount: reached.size,
+  });
   return { sent, failed, removed: dead.length, promoUrl, wallet, notificationId: notificationRef.id };
 }
 
