@@ -243,7 +243,7 @@ function PhoneMockup() {
         className="rounded-[2.6rem] border-[10px] border-[#111418] shadow-2xl overflow-hidden px-4 pt-8 pb-10 flex flex-col gap-3"
         style={{ background: "linear-gradient(165deg, #127f69 0%, #0a4a3e 100%)" }}
       >
-        <p className="text-center text-white/80 text-xs">sábado 14 de septiembre</p>
+        <p className="text-center text-white/80 text-xs">sábado</p>
         <p className={`${display.className} text-center text-white text-6xl font-semibold mb-4`}>7:42</p>
 
         <div className="rounded-2xl bg-white/95 p-3 flex gap-3 shadow">
