@@ -19,8 +19,8 @@ function validBirthday(value: unknown) {
   return month >= 1 && month <= 12 && day >= 1 && day <= DAYS_IN_MONTH[month - 1] ? value : null;
 }
 
-// Tarjeta del cliente en la página del QR: sellos, cupones y cumpleaños. Crea el registro la primera vez.
-// Si llega "birthday" (MM-DD) se guarda, solo una vez.
+// Tarjeta del cliente en la página del QR: sellos, cupones, cumpleaños y si está protegida con correo.
+// Crea el registro la primera vez. Si llega "birthday" (MM-DD) se guarda, solo una vez.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { companyId, memberId } = body;
@@ -36,14 +36,25 @@ export async function POST(req: NextRequest) {
 
   const rewards = cleanRewards(company.data()?.loyalty?.rewards);
   const birthdaySettings = cleanAutomations(company.data()?.automations).birthday;
-  const coupons = await memberCoupons(companyRef, memberId);
+  let coupons = await memberCoupons(companyRef, memberId);
   if (!rewards.length && !coupons.length && !birthdaySettings.enabled) return Response.json({ enabled: false });
 
-  const memberRef = companyRef.collection("walletMembers").doc(memberId);
+  const members = companyRef.collection("walletMembers");
+  let memberRef = members.doc(memberId);
   await memberRef
     .create({ platform: "web", stamps: 0, totalVisits: 0, createdAt: FieldValue.serverTimestamp() })
     .catch(() => {}); // ya existía
   let member = (await memberRef.get()).data() ?? {};
+
+  // Esta tarjeta se unió a la principal del cliente (la protegió con su correo): mostrar la principal.
+  if (member.mergedInto) {
+    const main = await members.doc(member.mergedInto).get();
+    if (main.exists) {
+      memberRef = main.ref;
+      member = main.data() ?? {};
+      coupons = await memberCoupons(companyRef, main.id);
+    }
+  }
 
   if (body.birthday !== undefined) {
     const birthday = validBirthday(body.birthday);
@@ -55,13 +66,15 @@ export async function POST(req: NextRequest) {
 
   return Response.json({
     enabled: true,
-    memberId,
-    code: memberId.slice(0, 8).toUpperCase(),
+    memberId: memberRef.id,
+    code: memberRef.id.slice(0, 8).toUpperCase(),
     stamps: member.stamps ?? 0,
     rewards,
     coupons,
     birthday: member.birthday ?? null,
     birthdayEnabled: birthdaySettings.enabled,
     birthdayGift: birthdaySettings.gift,
+    linked: Boolean(member.customerUid),
+    email: member.email ?? null,
   });
 }

@@ -163,6 +163,12 @@ export async function POST(req: NextRequest) {
       found = matches.docs[0];
     }
     if (!found) return bad("Tarjeta no encontrada en este restaurante", 404);
+    // Tarjeta vieja que el cliente unió a su tarjeta principal al protegerla con su correo.
+    const mainId = found.data()?.mergedInto;
+    if (mainId) {
+      const main = await members.doc(mainId).get();
+      if (main.exists) found = main;
+    }
     return Response.json({ member: memberView(found), rewards, coupons: await memberCoupons(companyRef, found.id) });
   }
 

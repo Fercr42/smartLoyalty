@@ -6,6 +6,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { app, db } from "../firebase/config";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
+import { getMemberId, setMemberId } from "../lib/member-id";
+import ProtectCard from "./protectCard";
 import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
@@ -36,6 +38,8 @@ type MemberCard = {
   birthday: string | null;
   birthdayEnabled: boolean;
   birthdayGift: string;
+  linked: boolean;
+  email: string | null;
 };
 
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -49,21 +53,6 @@ const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-// Un id fijo por celular: identifica la tarjeta del cliente (QR, sellos y Wallet).
-function getMemberId(companyId: string) {
-  const key = `wallet-member:${companyId}`;
-  let memberId = "";
-  try {
-    memberId = localStorage.getItem(key) ?? "";
-  } catch {}
-  if (!memberId) {
-    memberId = crypto.randomUUID();
-    try {
-      localStorage.setItem(key, memberId);
-    } catch {}
-  }
-  return memberId;
-}
 
 // Token de notificaciones guardado en este celular, para no contarlo dos veces ni dejarlo si se bloquean.
 const tokenKey = (companyId: string) => `push-token:${companyId}`;
@@ -107,7 +96,11 @@ export default function JoinClient({
         body: JSON.stringify({ companyId, memberId: getMemberId(companyId), ...(birthday ? { birthday } : {}) }),
       });
       const data = await res.json();
-      if (res.ok && data.enabled) setMemberCard(data);
+      if (res.ok && data.enabled) {
+        // La tarjeta de este navegador pudo unirse a la principal del cliente.
+        if (data.memberId !== getMemberId(companyId)) setMemberId(companyId, data.memberId);
+        setMemberCard(data);
+      }
       return { ok: res.ok, error: data.error as string | undefined };
     },
     [companyId]
@@ -408,6 +401,13 @@ export default function JoinClient({
                 {birthdayError && <p className="text-xs text-red-600">{birthdayError}</p>}
               </form>
             ))}
+          <ProtectCard
+            companyId={companyId}
+            companyName={company.name}
+            linked={memberCard.linked}
+            email={memberCard.email}
+            onLinked={refreshCard}
+          />
           <button onClick={refreshCard} className="text-sm text-blue-700">
             Actualizar
           </button>
