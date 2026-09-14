@@ -62,7 +62,7 @@ type Scheduled = {
   id: string;
   sendAt: Timestamp;
   repeat: RepeatId;
-  payload: { title: string; body: string; audience: AudienceId; couponId?: string };
+  payload: { title: string; body: string; audience: AudienceId; couponId?: string; kind?: string; memberIds?: string[] };
 };
 type Coupon = { id: string; title: string; expiresDate: string; active: boolean; redemptions: number; expiresAt: Timestamp };
 type Result = { ok: boolean; text: string; url?: string } | null;
@@ -463,7 +463,11 @@ export default function NotificationComposer() {
                     <span className="font-medium text-gray-900">{job.payload.title}</span>
                     <span className="block text-xs text-gray-500">
                       {formatDateTime(job.sendAt.toMillis())} · {REPEATS[job.repeat] ?? REPEATS.none} ·{" "}
-                      {audienceLabel(job.payload.audience)}
+                      {job.payload.memberIds
+                        ? `${AUTOMATIC_LABELS[job.payload.kind ?? ""] ?? "Envío automático"} · ${
+                            job.payload.memberIds.length === 1 ? "1 cliente" : `${job.payload.memberIds.length} clientes`
+                          }`
+                        : audienceLabel(job.payload.audience)}
                       {job.payload.couponId ? " · con cupón" : ""}
                     </span>
                   </span>
