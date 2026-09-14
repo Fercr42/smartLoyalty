@@ -181,7 +181,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
           overflow: "hidden",
         }}
       >
-        {on ? (
+        {/* "Círculo" es el sello lleno, sin ícono adentro */}
+        {on && !(design.stampIcon === "circle" && !imageStamp) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={stampImage}
@@ -244,11 +245,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
         </div>
       )}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap, width: cols * stampSize + (cols - 1) * gap }}>{stampNodes}</div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignSelf: "center",
+          gap,
+          width: cols * stampSize + (cols - 1) * gap,
+        }}
+      >
+        {stampNodes}
+      </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div style={{ fontSize: variant === "card" ? 30 : 24, color: design.accentColor }}>{progress}</div>
-        {code && variant === "card" ? <div style={{ fontSize: 24, opacity: 0.75 }}>#{code}</div> : null}
+        {code && variant === "card" ? <div style={{ fontSize: 24, opacity: 0.75 }}>{`#${code}`}</div> : null}
       </div>
     </div>
   );
