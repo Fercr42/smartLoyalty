@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
-import { compressImage } from "../lib/image";
+import { compressImage, resizeImage } from "../lib/image";
 import { describeLink } from "../lib/links";
 import { syncWalletCards } from "../lib/walletClient";
 
@@ -36,6 +36,8 @@ export default function WalletCardEditor() {
   const [subheader, setSubheader] = useState("");
   const [heroUrl, setHeroUrl] = useState("");
   const [heroData, setHeroData] = useState<string | null>(null);
+  const [wideLogoUrl, setWideLogoUrl] = useState("");
+  const [wideLogoData, setWideLogoData] = useState<string | null>(null);
   const [info, setInfo] = useState<InfoRow[]>(threeInfo());
   const [links, setLinks] = useState<LinkRow[]>(threeLinks());
   const [saving, setSaving] = useState(false);
@@ -53,6 +55,7 @@ export default function WalletCardEditor() {
         setHeader(card.header ?? "");
         setSubheader(card.subheader ?? "");
         setHeroUrl(card.heroUrl ?? "");
+        setWideLogoUrl(card.wideLogoUrl ?? "");
         setInfo(threeInfo(card.info));
         setLinks(threeLinks(card.links));
       })
@@ -61,6 +64,26 @@ export default function WalletCardEditor() {
 
   const heroPreview = heroData ?? heroUrl;
   const fg = textOn(color);
+
+  const wideLogoPreview = wideLogoData ?? wideLogoUrl;
+
+  // PNG para conservar la transparencia; se achica hasta que quepa en Firestore.
+  const handleWideLogo = async (file: File | undefined) => {
+    setMessage(null);
+    if (!file) return;
+    try {
+      for (const size of [1280, 960, 640, 480]) {
+        const data = await resizeImage(file, size, "image/png");
+        if (data.length <= HERO_MAX_CHARS) {
+          setWideLogoData(data);
+          return;
+        }
+      }
+      throw new Error("El logo es muy pesado. Prueba con un PNG más simple.");
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : "Imagen inválida" });
+    }
+  };
 
   const handleHero = async (file: File | undefined) => {
     setMessage(null);
@@ -101,6 +124,11 @@ export default function WalletCardEditor() {
         await setDoc(doc(db, "companies", user.uid, "assets", "walletHero"), { data: heroData });
         nextHeroUrl = `/wallet-hero/${user.uid}?v=${Date.now()}`;
       }
+      let nextWideLogoUrl = wideLogoUrl;
+      if (wideLogoData) {
+        await setDoc(doc(db, "companies", user.uid, "assets", "walletWideLogo"), { data: wideLogoData });
+        nextWideLogoUrl = `/wallet-asset/${user.uid}/wide-logo?v=${Date.now()}`;
+      }
       await setDoc(
         doc(db, "companies", user.uid),
         {
@@ -109,6 +137,7 @@ export default function WalletCardEditor() {
             header: header.trim(),
             subheader: subheader.trim(),
             heroUrl: nextHeroUrl,
+            wideLogoUrl: nextWideLogoUrl,
             info: info
               .map((r) => ({ label: r.label.trim(), value: r.value.trim() }))
               .filter((r) => r.label && r.value),
@@ -121,6 +150,8 @@ export default function WalletCardEditor() {
       );
       setHeroUrl(nextHeroUrl);
       setHeroData(null);
+      setWideLogoUrl(nextWideLogoUrl);
+      setWideLogoData(null);
 
       const updated = await syncWalletCards(user);
       setMessage(
@@ -208,6 +239,40 @@ export default function WalletCardEditor() {
         </div>
         <p className="text-xs text-gray-500 -mt-2">Portada: foto horizontal, ideal 1032 × 336 px.</p>
 
+        <div className="flex flex-col gap-2 border rounded p-3">
+          <p className="text-sm text-gray-700">Logo ancho (opcional)</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="border px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-100">
+              {wideLogoPreview ? "Cambiar logo ancho" : "Subir logo ancho"}
+              <input
+                id="wallet-wide-logo"
+                type="file"
+                accept="image/png,image/webp,image/jpeg"
+                className="sr-only"
+                onChange={(e) => {
+                  handleWideLogo(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {wideLogoPreview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWideLogoData(null);
+                  setWideLogoUrl("");
+                }}
+                className="text-sm text-red-600"
+              >
+                Quitar logo ancho
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Se ve en grande arriba de la tarjeta, en lugar del logo pequeño. Ideal PNG con fondo transparente, 1280 × 400 px.
+          </p>
+        </div>
+
         <fieldset className="border rounded p-3 flex flex-col gap-2">
           <legend className="text-sm text-gray-600 px-1">Datos en la tarjeta (opcional)</legend>
           {info.map((row, i) => (
@@ -273,15 +338,22 @@ export default function WalletCardEditor() {
           className="rounded-2xl overflow-hidden shadow-md w-full max-w-[340px] mx-auto"
           style={{ background: color, color: fg }}
         >
-          <div className="p-4 flex items-center gap-3">
-            {company.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={company.logoUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-white" />
-            ) : (
-              <div className="w-9 h-9 rounded-full" style={{ background: fg, opacity: 0.25 }} />
-            )}
-            <span className="text-sm font-medium truncate">{company.name || "Tu restaurante"}</span>
-          </div>
+          {wideLogoPreview ? (
+            <div className="px-4 pt-4 pb-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={wideLogoPreview} alt="" className="h-14 max-w-full object-contain object-left" />
+            </div>
+          ) : (
+            <div className="p-4 flex items-center gap-3">
+              {company.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={company.logoUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-white" />
+              ) : (
+                <div className="w-9 h-9 rounded-full" style={{ background: fg, opacity: 0.25 }} />
+              )}
+              <span className="text-sm font-medium truncate">{company.name || "Tu restaurante"}</span>
+            </div>
+          )}
           <div className="px-4 pb-4">
             <p className="text-xs" style={{ opacity: 0.8 }}>{subheader || "Membresía"}</p>
             <p className="text-2xl font-semibold leading-tight break-words">{header || "Cliente frecuente"}</p>

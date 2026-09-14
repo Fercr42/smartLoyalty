@@ -21,6 +21,7 @@ export type WalletCard = {
   header?: string;
   subheader?: string;
   heroUrl?: string;
+  wideLogoUrl?: string;
   info?: { label: string; value: string }[];
   links?: { label: string; url: string }[];
 };
@@ -132,6 +133,8 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
     subheader: text(clip(card.subheader, 40) || "Membresía"),
     hexBackgroundColor: safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
     logo: image(absolute(company.logoUrl, origin), name),
+    // Logo ancho: Google lo muestra en grande arriba, en lugar del logo pequeño.
+    wideLogo: image(absolute(card.wideLogoUrl, origin), name),
     heroImage: image(absolute(card.heroUrl, origin), name),
     textModulesData: modules.length ? modules : undefined,
     linksModuleData: uris.length ? { uris } : undefined,
