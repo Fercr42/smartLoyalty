@@ -1,7 +1,13 @@
 import { DocumentReference, FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { MulticastMessage } from "firebase-admin/messaging";
 import { adminDb, adminMessaging } from "../firebase/admin";
-import { notifyWalletHolders, notifyWalletMember, walletIssuerId } from "./google-wallet";
+import {
+  notifyWalletHolders,
+  notifyWalletMember,
+  setWalletPromoLink,
+  walletIssuerId,
+  type WalletCompany,
+} from "./google-wallet";
 import { planState } from "./plan";
 import { cleanRewards, type Reward } from "./rewards";
 
@@ -185,7 +191,8 @@ export async function sendNotification(companyId: string, payload: StoredNotific
   const logoUrl = rawLogo.startsWith("/") ? `${origin}${rawLogo}` : rawLogo;
   const notificationRef = companyRef.collection("notifications").doc();
   const promoUrl = `${origin}/promo/${companyId}/${notificationRef.id}`;
-  const link = payload.link || promoUrl;
+  // ?src= permite saber desde dónde se abrió la promo (estadísticas).
+  const link = payload.link || `${promoUrl}?src=push`;
   const imageUrl = payload.imageId ? `${promoUrl}/image` : "";
 
   // Guardar antes de enviar: la página de la promo debe existir cuando el cliente toque la notificación.
@@ -267,6 +274,14 @@ export async function sendNotification(companyId: string, payload: StoredNotific
           delivered += results.filter(Boolean).length;
         }
         wallet = delivered ? "ok" : "sin-tarjetas";
+      }
+      if (wallet === "ok") {
+        await setWalletPromoLink(
+          { ...data, id: companyId } as WalletCompany,
+          origin,
+          { title: payload.title, url: payload.link || `${promoUrl}?src=wallet` },
+          memberIds ? [...memberIds] : null
+        );
       }
     } catch (e) {
       console.error(e);

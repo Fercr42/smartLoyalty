@@ -26,14 +26,16 @@ export async function GET(req: NextRequest) {
     companyRef.collection("walletMembers").where("createdAt", ">=", since).count().get(),
     companyRef.collection("subscribers").count().get(),
     companyRef.collection("loyaltyEvents").where("at", ">=", since).select("type", "at", "memberId").get(),
-    companyRef.collection("notifications").where("createdAt", ">=", since).select("sent", "views").get(),
+    companyRef.collection("notifications").where("createdAt", ">=", since).select("sent", "views", "walletViews").get(),
   ]);
 
   let sent = 0;
   let views = 0;
+  let walletViews = 0;
   notifications.docs.forEach((d) => {
     sent += d.data().sent ?? 0;
     views += d.data().views ?? 0;
+    walletViews += d.data().walletViews ?? 0;
   });
 
   return Response.json({
@@ -44,7 +46,7 @@ export async function GET(req: NextRequest) {
     events: events.docs
       .map((d) => ({ type: d.data().type, at: d.data().at?.toMillis?.() ?? 0, memberId: d.data().memberId }))
       .filter((e) => e.at),
-    notifications: { count: notifications.size, sent, views },
+    notifications: { count: notifications.size, sent, views, walletViews },
     reviewClicks: company.data()?.reviews?.clicks ?? 0,
   });
 }

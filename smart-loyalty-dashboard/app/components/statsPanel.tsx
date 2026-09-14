@@ -8,7 +8,7 @@ type Stats = {
   newMembers: number;
   devices: number;
   events: { type: string; at: number; memberId: string }[];
-  notifications: { count: number; sent: number; views: number };
+  notifications: { count: number; sent: number; views: number; walletViews?: number };
   reviewClicks: number;
 };
 type Bar = { label: string; value: number; tooltip: string };
@@ -110,7 +110,7 @@ export default function StatsPanel() {
     {
       label: "Promos abiertas",
       value: stats.notifications.views,
-      note: `de ${stats.notifications.sent} notificaciones enviadas`,
+      note: `${stats.notifications.walletViews ?? 0} desde Google Wallet · ${stats.notifications.sent} enviadas al navegador`,
     },
     { label: "Clics para reseñar", value: stats.reviewClicks, note: "desde el inicio" },
   ];

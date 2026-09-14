@@ -30,8 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PromoPage({ params }: Props) {
+export default async function PromoPage({
+  params,
+  searchParams,
+}: Props & { searchParams: Promise<{ src?: string | string[] }> }) {
   const { companyId, notificationId } = await params;
+  const { src } = await searchParams;
   const data = await load(companyId, notificationId);
   if (!data) notFound();
 
@@ -40,7 +44,10 @@ export default async function PromoPage({ params }: Props) {
   const bg = safeColor(company.bgColor, DEFAULT_BG);
 
   // Visitas a la promo (para las estadísticas del dueño).
-  await data.notificationRef.update({ views: FieldValue.increment(1) }).catch(() => {});
+  const source = src === "wallet" ? "walletViews" : src === "push" ? "pushViews" : null;
+  await data.notificationRef
+    .update({ views: FieldValue.increment(1), ...(source ? { [source]: FieldValue.increment(1) } : {}) })
+    .catch(() => {});
 
   return (
     <main className="min-h-screen px-4 py-8 flex justify-center items-start" style={{ background: bg }}>

@@ -253,6 +253,38 @@ export async function syncWalletCards(
   return updated;
 }
 
+// Los mensajes de Wallet no llevan enlace y Google no avisa cuándo se leen. Para medir aperturas,
+// la tarjeta muestra un enlace a la última promo (a nivel clase = todos; a nivel tarjeta = solo esos clientes).
+export async function setWalletPromoLink(
+  company: WalletCompany,
+  origin: string,
+  promo: { title: string; url: string },
+  memberIds: string[] | null
+) {
+  const description = `Ver: ${promo.title}`.slice(0, 60);
+  if (!memberIds) {
+    const res = await walletApi(`/genericClass/${encodeURIComponent(classId(company.id))}`, {
+      method: "PATCH",
+      body: JSON.stringify({ linksModuleData: { uris: [{ id: "class_promo", uri: promo.url, description }] } }),
+    });
+    if (!res.ok && res.status !== 404) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+    return;
+  }
+  const baseLinks = cardFields(company, origin).linksModuleData?.uris ?? [];
+  const uris = [{ id: "member_promo", uri: promo.url, description }, ...baseLinks];
+  for (let i = 0; i < memberIds.length; i += 10) {
+    await Promise.all(
+      memberIds.slice(i, i + 10).map(async (memberId) => {
+        const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
+          method: "PATCH",
+          body: JSON.stringify({ linksModuleData: { uris } }),
+        });
+        if (!res.ok && res.status !== 404) console.error("Wallet enlace promo", memberId, res.status, await res.text());
+      })
+    );
+  }
+}
+
 const walletMessage = (title: string, body: string) =>
   JSON.stringify({
     message: {
