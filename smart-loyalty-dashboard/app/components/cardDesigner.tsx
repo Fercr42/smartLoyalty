@@ -89,11 +89,15 @@ export default function CardDesigner() {
     setNotice(null);
     try {
       await setDoc(doc(db, "companies", user.uid), { cardDesign: { ...design, version: Date.now() } }, { merge: true });
-      const updated = design.useInWallet ? await syncWalletCards(user) : 0;
-      setNotice({
-        ok: true,
-        text: `Diseño guardado${updated ? ` · ${updated} tarjetas de Wallet actualizadas` : ""}.`,
-      });
+      const updated = await syncWalletCards(user);
+      setNotice(
+        updated === null
+          ? { ok: false, text: "Diseño guardado, pero no se pudieron actualizar las tarjetas de Google Wallet. Inténtalo de nuevo." }
+          : {
+              ok: true,
+              text: `Diseño guardado${updated ? ` · ${updated} ${updated === 1 ? "tarjeta" : "tarjetas"} de Google Wallet actualizada${updated === 1 ? "" : "s"}` : ""}. Los clientes lo ven al abrir su tarjeta.`,
+            }
+      );
     } catch (err) {
       console.error(err);
       setNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
