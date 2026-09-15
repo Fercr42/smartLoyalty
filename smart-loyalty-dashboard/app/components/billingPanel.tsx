@@ -20,7 +20,8 @@ declare global {
 const formatDate = (ms: number) => new Date(ms).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 
 function loadPaypalSdk() {
-  const src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&vault=true&intent=subscription&locale=es_XC`;
+  // Sin "locale": PayPal usa el idioma del navegador (es_XC da error de validación).
+  const src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&vault=true&intent=subscription`;
   return new Promise<void>((resolve, reject) => {
     if (window.paypal) return resolve();
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
