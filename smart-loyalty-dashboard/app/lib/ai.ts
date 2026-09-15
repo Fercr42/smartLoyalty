@@ -80,8 +80,9 @@ async function askGemini<T extends z.ZodType>(schema: T, system: string, content
       if (e instanceof AiError) throw e;
       if (e instanceof SyntaxError) throw new AiError(RETRY);
       if (e instanceof GeminiApiError) {
-        if (e.status === 404 && i < GEMINI_MODELS.length - 1) continue;
-        if (e.status === 429) throw new AiError(BUSY, 429);
+        // Modelo retirado o saturado (pasa seguido en el plan gratis): se prueba el siguiente.
+        if ((e.status === 404 || e.status >= 500) && i < GEMINI_MODELS.length - 1) continue;
+        if (e.status === 429 || e.status === 503) throw new AiError(BUSY, 429);
         console.error("Gemini API", model, e.status, e.message);
         throw new AiError(RETRY);
       }
