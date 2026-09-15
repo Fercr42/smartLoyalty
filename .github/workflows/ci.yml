@@ -1,0 +1,33 @@
+name: CI
+
+# En cada cambio: lint, tipos, pruebas rápidas y build.
+on:
+  push:
+    branches: [main]
+    paths: ["smart-loyalty-dashboard/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["smart-loyalty-dashboard/**", ".github/workflows/ci.yml"]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: smart-loyalty-dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: smart-loyalty-dashboard/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Tipos
+        run: npm run typecheck
+      - name: Pruebas rápidas
+        run: npm test
+      - name: Build
+        run: npm run build
