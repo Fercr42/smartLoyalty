@@ -14,7 +14,7 @@ import { PLAN_EXPIRED_MESSAGE, planState } from "./plan";
 const PROVIDER = process.env.AI_PROVIDER === "claude" ? "claude" : "gemini";
 const CLAUDE_MODEL = "claude-opus-5";
 // Si Google retira un modelo, se prueba el siguiente. GEMINI_MODEL en Vercel fuerza uno.
-const GEMINI_MODELS = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : ["gemini-flash-latest", "gemini-2.5-flash"];
+const GEMINI_MODELS = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : ["gemini-3.6-flash", "gemini-flash-latest"];
 
 export class AiError extends Error {
   constructor(message: string, public status = 502) {
