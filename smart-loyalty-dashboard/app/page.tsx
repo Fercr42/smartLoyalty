@@ -92,13 +92,13 @@ export default function Landing() {
             <a href="#funciones" className="hover:text-[#111418]">Funciones</a>
             <a href="#preguntas" className="hover:text-[#111418]">Preguntas</a>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/panel" className="text-sm font-semibold px-3 py-2 rounded-lg hover:bg-[#f4f7f5]">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link href="/panel" className="text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap hover:bg-[#f4f7f5]">
               Entrar
             </Link>
             <Link
               href="/registro"
-              className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#0e7c66] text-white hover:bg-[#0b6552]"
+              className="text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap bg-[#0e7c66] text-white hover:bg-[#0b6552]"
             >
               Probar gratis
             </Link>

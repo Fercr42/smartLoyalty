@@ -120,8 +120,8 @@ export default function Panel() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid gap-6 lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label="Secciones del panel" className="lg:sticky lg:top-24 self-start">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid gap-6 grid-cols-[minmax(0,1fr)] lg:grid-cols-[210px_minmax(0,1fr)]">
+        <nav aria-label="Secciones del panel" className="lg:sticky lg:top-24 self-start min-w-0">
           <ul className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-1 px-1">
             {TABS.map((t) => (
               <li key={t.id} className="shrink-0">

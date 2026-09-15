@@ -69,7 +69,7 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
             key={example}
             type="button"
             onClick={() => setGoal(example)}
-            className="text-xs rounded-full border bg-white px-2.5 py-1 text-gray-700 hover:bg-gray-100"
+            className="text-xs rounded-full border bg-white px-3 py-2 text-gray-700 hover:bg-gray-100"
           >
             {example}
           </button>

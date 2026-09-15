@@ -201,7 +201,7 @@ export default function LoyaltyEditor() {
               <button
                 type="button"
                 onClick={() => setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== row.id) : [newRow()]))}
-                className="text-sm text-red-600 px-1"
+                className="text-sm text-red-600 px-2 py-2"
                 aria-label="Quitar premio"
               >
                 Quitar
@@ -212,7 +212,7 @@ export default function LoyaltyEditor() {
             <button
               type="button"
               onClick={() => setRows((rs) => [...rs, newRow()])}
-              className="self-start text-sm text-blue-700"
+              className="self-start text-sm text-blue-700 py-2"
             >
               + Agregar premio
             </button>
@@ -246,7 +246,7 @@ export default function LoyaltyEditor() {
             />
             <button
               disabled={savingPin || pin.length < 4}
-              className="bg-gray-900 text-white px-4 rounded disabled:opacity-50"
+              className="bg-gray-900 text-white px-4 rounded whitespace-nowrap disabled:opacity-50"
             >
               {savingPin ? "Guardando..." : pinSet ? "Cambiar PIN" : "Guardar PIN"}
             </button>

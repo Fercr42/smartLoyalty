@@ -227,7 +227,7 @@ export default function ProtectCard({
         <form onSubmit={sendLink} className="flex flex-col gap-2">
           <div className="flex gap-2">
             <input id="protect-email" type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="tu@correo.com" className="border rounded p-2 text-sm flex-1 min-w-0" />
-            <button disabled={status === "sending" || status === "linking"} className="px-3 rounded bg-gray-900 text-white text-sm disabled:opacity-50">
+            <button disabled={status === "sending" || status === "linking"} className="px-3 rounded bg-gray-900 text-white text-sm whitespace-nowrap disabled:opacity-50">
               {status === "sending" ? "Enviando..." : status === "linking" ? "Protegiendo..." : "Enviar enlace"}
             </button>
           </div>
@@ -239,7 +239,7 @@ export default function ProtectCard({
       )}
 
       {status !== "code" && status !== "confirm" && (
-        <button onClick={() => setStatus("code")} className="self-start text-xs text-blue-700">
+        <button onClick={() => setStatus("code")} className="self-start text-sm text-blue-700 py-2">
           Tengo un código de 8 caracteres
         </button>
       )}

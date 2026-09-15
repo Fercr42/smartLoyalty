@@ -195,8 +195,8 @@ export default function WalletCardEditor() {
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <form onSubmit={save} className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <form onSubmit={save} className="flex flex-col gap-4 min-w-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label htmlFor="wallet-header" className="flex flex-col gap-1 text-sm text-gray-700">
             Texto principal

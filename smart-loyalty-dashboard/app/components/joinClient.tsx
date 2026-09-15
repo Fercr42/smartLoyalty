@@ -408,7 +408,7 @@ export default function JoinClient({
             email={memberCard.email}
             onLinked={refreshCard}
           />
-          <button onClick={refreshCard} className="text-sm text-blue-700">
+          <button onClick={refreshCard} className="text-sm text-blue-700 py-2 px-3">
             Actualizar
           </button>
         </div>
