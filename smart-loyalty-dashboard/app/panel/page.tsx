@@ -66,6 +66,8 @@ export default function Panel() {
     setTab(id);
     history.replaceState(null, "", `#${id}`);
     window.scrollTo({ top: 0 });
+    // En celular el menú se desliza de lado: deja visible la pestaña elegida.
+    document.getElementById(`tab-${id}`)?.scrollIntoView({ inline: "center", block: "nearest" });
   };
 
   const handleLogout = async () => {
@@ -127,6 +129,7 @@ export default function Panel() {
               <li key={t.id} className="shrink-0">
                 <button
                   onClick={() => go(t.id)}
+                  id={`tab-${t.id}`}
                   aria-current={tab === t.id ? "page" : undefined}
                   className={`w-full text-left whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
                     tab === t.id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-white hover:shadow-sm"
