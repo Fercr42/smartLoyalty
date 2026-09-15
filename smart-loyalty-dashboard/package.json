@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
+    "@google/genai": "^2.22.0",
     "firebase": "^12.4.0",
     "firebase-admin": "^13.10.0",
     "jsqr": "^1.4.0",

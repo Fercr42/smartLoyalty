@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { aiErrorResponse, aiOwner, askClaude, takeAiCredit } from "../../../lib/ai";
+import { aiErrorResponse, aiOwner, askAi, takeAiCredit } from "../../../lib/ai";
 import { AI_DAILY_LIMIT, cleanSummary, FeedbackSummarySchema } from "../../../lib/ai-context";
 
 export const runtime = "nodejs";
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   });
 
   try {
-    const result = await askClaude(
+    const result = await askAi(
       FeedbackSummarySchema,
       SYSTEM,
       `${opinions.length} opiniones de los últimos ${DAYS} días (promedio ${average.toFixed(1)}★), de la más reciente a la más antigua:\n<opiniones>\n${lines.join("\n")}\n</opiniones>`

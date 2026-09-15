@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { aiErrorResponse, aiOwner, askClaude, takeAiCredit } from "../../../lib/ai";
+import { aiErrorResponse, aiOwner, askAi, takeAiCredit } from "../../../lib/ai";
 import { AI_DAILY_LIMIT, CampaignIdeasSchema, cleanDrafts, localNow, visitPattern } from "../../../lib/ai-context";
 import { cleanRewards } from "../../../lib/rewards";
 import { audienceCounts } from "../../../lib/send-notification";
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const ideas = await askClaude(
+    const ideas = await askAi(
       CampaignIdeasSchema,
       SYSTEM,
       `<datos>\n${JSON.stringify(context, null, 1)}\n</datos>\n\n<objetivo>\n${goal}\n</objetivo>`
