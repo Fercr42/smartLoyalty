@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { publicOrigin } from "../lib/origin";
 import { cleanRewards, MAX_REWARDS } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
+import AiFeedbackSummary from "./aiFeedbackSummary";
 
 type Row = { id: string; title: string; stamps: string };
 type Event = {
@@ -322,6 +323,7 @@ export default function LoyaltyEditor() {
                   : "Aún sin opiniones"}
               </span>
             </div>
+            {feedbackStats.count > 0 && <AiFeedbackSummary />}
             {feedback.length > 0 && (
               <ul className="divide-y text-sm">
                 {feedback.map((f) => (

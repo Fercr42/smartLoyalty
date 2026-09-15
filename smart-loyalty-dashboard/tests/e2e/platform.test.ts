@@ -58,6 +58,11 @@ describe.skipIf(!hasCredentials)("Registro, planes, administrador, pagos y pági
     expect((await api("/api/billing/paypal/activate", { body: { subscriptionId: "I-FAKE123456" } })).status).toBe(401);
   });
 
+  it("IA: no deja usarla sin sesión", async () => {
+    expect((await api("/api/ai/campaign", { body: { goal: "Llenar los martes" } })).status).toBe(401);
+    expect((await api("/api/ai/feedback", { body: {} })).status).toBe(401);
+  });
+
   it("dibuja la tarjeta y la portada de Wallet como imagen", async () => {
     const companyId = await createCompany({ loyalty: { rewards: [{ id: "a", title: "Bebida", stamps: 5 }] } });
     for (const variant of ["card", "hero"]) {

@@ -14,7 +14,9 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import type { CampaignDraft } from "../lib/ai-context";
 import { formatDay } from "../lib/format";
+import AiCampaignHelper from "./aiCampaignHelper";
 import { compressImage } from "../lib/image";
 import { AUTOMATIC_LABELS } from "../lib/notification-labels";
 
@@ -212,9 +214,30 @@ export default function NotificationComposer() {
     load().catch(console.error);
   };
 
+  const applyDraft = (d: CampaignDraft) => {
+    setType(d.type);
+    setTitle(d.title);
+    setBody(d.body);
+    setAudience(d.audience);
+    setWithCoupon(Boolean(d.coupon));
+    setCouponTitle(d.coupon?.title ?? "");
+    if (d.coupon) setCouponExpires(toLocalInput(new Date(Date.now() + d.coupon.days * 86_400_000)).slice(0, 10));
+    if (d.sendAt && new Date(d.sendAt).getTime() > Date.now()) {
+      setWhen("later");
+      setSendAt(d.sendAt);
+      setRepeat("none");
+    } else {
+      setWhen("now");
+    }
+    setResult(null);
+    document.getElementById("notif-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const nobody = when === "now" && counts && counts[audience].devices === 0 && counts[audience].members === 0;
 
   return (
+    <div className="flex flex-col gap-6">
+    <AiCampaignHelper onUse={applyDraft} />
     <div className="grid gap-8 lg:grid-cols-2">
       <form onSubmit={send} className="flex flex-col gap-4">
         <p className="text-sm text-gray-600">
@@ -529,6 +552,7 @@ export default function NotificationComposer() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }
