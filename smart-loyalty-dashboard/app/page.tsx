@@ -39,7 +39,7 @@ export default async function Landing() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <LanguageSwitcher className="hidden sm:block border-[#cfd8d4]" />
-            <Link href="/panel" className="text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap hover:bg-[#f4f7f5]">
+            <Link href="/panel" className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap hover:bg-[#f4f7f5]">
               {t.login}
             </Link>
             <Link
