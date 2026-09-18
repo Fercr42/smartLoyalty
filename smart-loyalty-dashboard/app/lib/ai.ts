@@ -63,6 +63,15 @@ const RETRY = "La IA no respondió. Inténtalo de nuevo.";
 // Vercel corta a los 60 s: cada intento tiene su propio límite para que quepan dos modelos.
 const GEMINI_TIMEOUT_MS = 25_000;
 
+// Corta la espera aunque la conexión no responda (la señal de cancelar no siempre llega a tiempo).
+function withTimeout<T>(promise: Promise<T>, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error("Gemini timeout"), { name: "TimeoutError" })), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function askGemini<T extends z.ZodType>(schema: T, system: string, content: string): Promise<z.infer<T>> {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const deadline = Date.now() + 52_000;
@@ -74,7 +83,8 @@ async function askGemini<T extends z.ZodType>(schema: T, system: string, content
     const timeout = Math.min(GEMINI_TIMEOUT_MS, deadline - Date.now());
     if (timeout < 5_000) break;
     try {
-      const response = await ai.models.generateContent({
+      const started = Date.now();
+      const response = await withTimeout(ai.models.generateContent({
         model,
         contents: content,
         config: {
@@ -83,8 +93,10 @@ async function askGemini<T extends z.ZodType>(schema: T, system: string, content
           responseJsonSchema: z.toJSONSchema(schema),
           ...(lowThinking ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
           abortSignal: AbortSignal.timeout(timeout),
+          httpOptions: { timeout },
         },
-      });
+      }), timeout);
+      console.log("Gemini", model, `${Date.now() - started} ms`);
       const parsed = schema.safeParse(JSON.parse(response.text ?? "null"));
       if (!parsed.success) throw new AiError("La IA no pudo responder esta vez. Prueba escribirlo de otra forma.");
       return parsed.data;

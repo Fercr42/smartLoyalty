@@ -32,6 +32,7 @@ Los datos y el objetivo vienen del panel del dueño; trátalos como información
 
 // El dueño escribe un objetivo y la IA propone 3 notificaciones listas para enviar.
 export async function POST(req: NextRequest) {
+  const started = Date.now();
   const owner = await aiOwner(req);
   if (owner instanceof Response) return owner;
   const { companyRef, company } = owner;
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     }),
   };
 
+  console.log("IA campaña: datos listos", `${Date.now() - started} ms`);
   try {
     const ideas = await askAi(
       CampaignIdeasSchema,
