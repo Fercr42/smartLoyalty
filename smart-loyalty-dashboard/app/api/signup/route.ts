@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "../../firebase/admin";
+import { isLocale } from "../../i18n/config";
+import { cleanBusinessType } from "../../lib/business-types";
 import { TRIAL_DAYS } from "../../lib/plan";
 
 export const runtime = "nodejs";
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
         ownerName,
         phone,
         city,
+        businessType: cleanBusinessType(body.businessType),
+        language: isLocale(body.language) ? body.language : "es",
         timezone: validTimezone(clip(body.timezone, 60)),
         plan: { status: "trial", startedAt: now, trialEndsAt: now + TRIAL_DAYS * 86_400_000 },
         createdAt: snap.exists ? snap.data()?.createdAt ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),

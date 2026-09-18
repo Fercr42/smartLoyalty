@@ -1,33 +1,22 @@
-// Ajustes de las automatizaciones (companies/{id}.automations). Se usa en el navegador y en el servidor.
-// Los textos aceptan {restaurante}, {premio}, {regalo} y {dias}.
+import type { Messages } from "../i18n/messages";
 
-export const AUTOMATIONS_RUN_HOUR = 10; // cumpleaños y "te extrañamos" se revisan desde las 10 am, hora del restaurante
+// Ajustes de las automatizaciones (companies/{id}.automations). Se usa en el navegador y en el servidor.
+// Los textos por defecto vienen del idioma del negocio (m.automations.defaults).
+
+export const AUTOMATIONS_RUN_HOUR = 10; // cumpleaños y "te extrañamos" se revisan desde las 10 am, hora del negocio
 export const NEAR_REWARD_DELAY_MIN = 30;
 
-export const AUTOMATION_DEFAULTS = {
-  nearReward: {
-    enabled: false,
-    title: "¡Te falta 1 sello!",
-    message: "Te falta 1 sello para {premio}. ¡Te esperamos pronto!",
-  },
-  birthday: {
-    enabled: false,
-    gift: "Postre gratis",
-    days: 7,
-    title: "¡Feliz cumpleaños!",
-    message: "En {restaurante} te tenemos un regalo: {regalo}. Válido por {dias} días.",
-  },
-  winback: {
-    enabled: false,
-    days: 30,
-    title: "Te extrañamos",
-    message: "Hace tiempo que no te vemos en {restaurante}. ¡Vuelve pronto!",
-    coupon: "",
-    couponDays: 7,
-  },
-};
+type DefaultTexts = Messages["automations"]["defaults"];
 
-export type Automations = typeof AUTOMATION_DEFAULTS;
+export function automationDefaults(d: DefaultTexts) {
+  return {
+    nearReward: { enabled: false, title: d.nearRewardTitle, message: d.nearRewardMessage },
+    birthday: { enabled: false, gift: d.birthdayGift, days: 7, title: d.birthdayTitle, message: d.birthdayMessage },
+    winback: { enabled: false, days: 30, title: d.winbackTitle, message: d.winbackMessage, coupon: "", couponDays: 7 },
+  };
+}
+
+export type Automations = ReturnType<typeof automationDefaults>;
 
 const text = (v: unknown, fallback: string, max: number) =>
   typeof v === "string" && v.trim() ? v.trim().slice(0, max) : fallback;
@@ -36,9 +25,9 @@ const int = (v: unknown, fallback: number, min: number, max: number) => {
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
 };
 
-export function cleanAutomations(raw: unknown): Automations {
+export function cleanAutomations(raw: unknown, defaults: DefaultTexts): Automations {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, Record<string, unknown> | undefined>;
-  const d = AUTOMATION_DEFAULTS;
+  const d = automationDefaults(defaults);
   return {
     nearReward: {
       enabled: Boolean(r.nearReward?.enabled),
@@ -63,5 +52,23 @@ export function cleanAutomations(raw: unknown): Automations {
   };
 }
 
-export const fillTemplate = (template: string, vars: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? String(vars[key]) : match));
+// Variables de los textos. Se aceptan en español y en inglés: {negocio} = {restaurante} = {business}, etc.
+export type TemplateVars = { business?: string; reward?: string; gift?: string; days?: number };
+const ALIASES: Record<string, keyof TemplateVars> = {
+  business: "business",
+  negocio: "business",
+  restaurante: "business",
+  reward: "reward",
+  premio: "reward",
+  gift: "gift",
+  regalo: "gift",
+  days: "days",
+  dias: "days",
+};
+
+export const fillTemplate = (template: string, vars: TemplateVars) =>
+  template.replace(/\{(\w+)\}/g, (match, key: string) => {
+    const name = ALIASES[key.toLowerCase()];
+    const value = name ? vars[name] : undefined;
+    return value === undefined ? match : String(value);
+  });

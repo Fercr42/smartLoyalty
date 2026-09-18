@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
 import { campaignAudience } from "../lib/notification-labels";
 
 type Campaign = {
@@ -23,10 +24,12 @@ type Campaign = {
 
 const BAR = "#0e7c66";
 const pct = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
-const formatDate = (ms: number) => new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short" });
 
 export default function CampaignResults() {
   const { user } = useAuth();
+  const { m, f, dateLocale } = useI18n();
+  const t = m.results;
+  const formatDate = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [windowDays, setWindowDays] = useState(7);
   const [error, setError] = useState("");
@@ -36,23 +39,23 @@ export default function CampaignResults() {
     try {
       const res = await fetch("/api/campaigns", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudieron cargar los resultados");
+      if (!res.ok) throw new Error(data.error ?? t.loadError);
       setCampaigns(data.campaigns);
       setWindowDays(data.windowDays);
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudieron cargar los resultados");
+      setError(e instanceof Error ? e.message : t.loadError);
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     load().catch(console.error);
   }, [load]);
 
   if (error && !campaigns) return <p className="text-sm text-red-600">{error}</p>;
-  if (!campaigns) return <p className="text-sm text-gray-500">Cargando resultados...</p>;
+  if (!campaigns) return <p className="text-sm text-gray-500">{t.loading}</p>;
   if (!campaigns.length) {
-    return <p className="text-sm text-gray-500">Todavía no has enviado mensajes. Cuando envíes uno, aquí verás cómo le fue.</p>;
+    return <p className="text-sm text-gray-500">{t.empty}</p>;
   }
 
   const measured = campaigns.filter((c) => c.returned !== null && c.recipientCount);
@@ -68,26 +71,23 @@ export default function CampaignResults() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">
-          Últimas {campaigns.length} campañas. &quot;Volvieron&quot; = clientes que recibieron el mensaje y sumaron un sello en los{" "}
-          {windowDays} días siguientes.
-        </p>
+        <p className="text-sm text-gray-600">{f(t.intro, { count: campaigns.length, days: windowDays })}</p>
         <button onClick={() => load().catch(console.error)} className="border px-3 py-1.5 rounded text-sm hover:bg-gray-100">
-          Actualizar
+          {m.common.refresh}
         </button>
       </div>
 
       <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Tile label="Clientes alcanzados" value={totals.reached} note="en campañas medidas" />
-        <Tile label="Volvieron" value={totals.returned} note={`${pct(totals.returned, totals.reached)}% de los alcanzados`} />
-        <Tile label="Visitas generadas" value={totals.visits} note={`en ${windowDays} días tras cada envío`} />
-        <Tile label="Cupones usados" value={couponsUsed} note="de campañas con cupón" />
+        <Tile label={t.reached} value={totals.reached} note={t.reachedNote} />
+        <Tile label={t.returned} value={totals.returned} note={f(t.returnedNote, { pct: pct(totals.returned, totals.reached) })} />
+        <Tile label={t.visits} value={totals.visits} note={f(t.visitsNote, { days: windowDays })} />
+        <Tile label={t.couponsUsed} value={couponsUsed} note={t.couponsNote} />
       </dl>
 
       {best && (best.returned ?? 0) > 0 && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          <b>Campaña con más regreso:</b> &quot;{best.title}&quot; — volvieron {best.returned} de {best.recipientCount} clientes (
-          {pct(best.returned ?? 0, best.recipientCount ?? 0)}%).
+          <b>{t.best}</b>{" "}
+          {f(t.bestText, { title: best.title, returned: best.returned ?? 0, total: best.recipientCount ?? 0, pct: pct(best.returned ?? 0, best.recipientCount ?? 0) })}
         </div>
       )}
 
@@ -95,11 +95,11 @@ export default function CampaignResults() {
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b bg-gray-50">
-              <th className="px-3 py-2 font-medium">Campaña</th>
-              <th className="px-3 py-2 font-medium text-right">Alcance</th>
-              <th className="px-3 py-2 font-medium text-right">Aperturas</th>
-              <th className="px-3 py-2 font-medium">Cupón</th>
-              <th className="px-3 py-2 font-medium">Volvieron</th>
+              <th className="px-3 py-2 font-medium">{t.colCampaign}</th>
+              <th className="px-3 py-2 font-medium text-right">{t.colReach}</th>
+              <th className="px-3 py-2 font-medium text-right">{t.colOpens}</th>
+              <th className="px-3 py-2 font-medium">{t.colCoupon}</th>
+              <th className="px-3 py-2 font-medium">{t.colReturned}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -110,25 +110,25 @@ export default function CampaignResults() {
                   <td className="px-3 py-3">
                     <p className="font-medium text-gray-900">{c.title}</p>
                     <p className="text-xs text-gray-500">
-                      {formatDate(c.sentAt)} · {campaignAudience(c.kind ?? undefined, c.audience)}
+                      {formatDate(c.sentAt)} · {campaignAudience(m.labels, c.kind ?? undefined, c.audience)}
                     </p>
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">
                     {c.recipientCount ?? c.pushSent}
                     <p className="text-xs text-gray-500">
-                      {c.pushSent} navegador{c.wallet === "ok" ? " + Wallet" : ""}
+                      {c.pushSent} {t.browser}{c.wallet === "ok" ? " + Wallet" : ""}
                     </p>
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">
                     {c.views}
                     <p className="text-xs text-gray-500">
-                      {c.pushViews} navegador · {c.walletViews} Wallet
+                      {c.pushViews} {t.browser} · {c.walletViews} Wallet
                     </p>
                   </td>
                   <td className="px-3 py-3">
                     {c.coupon ? (
                       <>
-                        <span className="tabular-nums font-medium text-gray-900">{c.coupon.redemptions} usados</span>
+                        <span className="tabular-nums font-medium text-gray-900">{f(t.used, { count: c.coupon.redemptions })}</span>
                         <p className="text-xs text-gray-500 truncate max-w-[10rem]">{c.coupon.title}</p>
                       </>
                     ) : (
@@ -137,19 +137,19 @@ export default function CampaignResults() {
                   </td>
                   <td className="px-3 py-3 min-w-[12rem]">
                     {c.returned === null ? (
-                      <span className="text-xs text-gray-400">No medido (enviada antes de esta función)</span>
+                      <span className="text-xs text-gray-400">{t.notMeasured}</span>
                     ) : (
                       <div className="flex flex-col gap-1">
                         <div className="flex justify-between gap-2 tabular-nums">
                           <span className="font-medium text-gray-900">
-                            {c.returned} de {c.recipientCount} ({returnRate}%)
+                            {f(t.returnedOf, { returned: c.returned, total: c.recipientCount ?? 0, pct: returnRate })}
                           </span>
-                          <span className="text-xs text-gray-500">{c.visits} visitas</span>
+                          <span className="text-xs text-gray-500">{f(t.visitsCount, { count: c.visits ?? 0 })}</span>
                         </div>
                         <div className="h-2 rounded-full bg-gray-100 overflow-hidden" aria-hidden>
                           <div className="h-full rounded-full" style={{ width: `${returnRate}%`, background: BAR }} />
                         </div>
-                        {c.inProgress && <span className="text-xs text-amber-700">Midiendo: faltan días de la ventana</span>}
+                        {c.inProgress && <span className="text-xs text-amber-700">{t.measuring}</span>}
                       </div>
                     )}
                   </td>
@@ -159,10 +159,7 @@ export default function CampaignResults() {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-gray-500">
-        Solo cuentan las visitas con sello en el escáner. Las aperturas en Google Wallet se miden cuando el cliente toca el
-        enlace de la promo en su tarjeta.
-      </p>
+      <p className="text-xs text-gray-500">{t.footnote}</p>
     </div>
   );
 }

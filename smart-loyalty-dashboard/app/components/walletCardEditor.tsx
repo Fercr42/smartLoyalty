@@ -6,6 +6,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { compressImage, resizeImage } from "../lib/image";
+import { useI18n } from "../i18n/client";
 import { describeLink } from "../lib/links";
 import { parseMapsLink, validLocation, type LatLng } from "../lib/location";
 import { syncWalletCards } from "../lib/walletClient";
@@ -13,16 +14,6 @@ import { syncWalletCards } from "../lib/walletClient";
 type InfoRow = { label: string; value: string };
 type LinkRow = { label: string; url: string };
 
-const INFO_HINTS = [
-  ["Horario", "Lun a Dom · 1 pm a 11 pm"],
-  ["Dirección", "Av. Principal 123, Centro"],
-  ["Teléfono", "+52 55 1234 5678"],
-];
-const LINK_HINTS = [
-  ["Ver menú", "https://..."],
-  ["WhatsApp", "https://wa.me/5215512345678"],
-  ["Llamar", "tel:+525512345678"],
-];
 const LINK = /^(https:\/\/|tel:|mailto:)\S+$/;
 const HERO_MAX_CHARS = 900_000; // un documento de Firestore admite máx. 1 MB
 
@@ -31,6 +22,8 @@ const threeLinks = (rows?: LinkRow[]) => [0, 1, 2].map((i) => rows?.[i] ?? { lab
 
 export default function WalletCardEditor() {
   const { user } = useAuth();
+  const { m, f } = useI18n();
+  const t = m.walletCard;
   const [company, setCompany] = useState({ name: "", logoUrl: "" });
   const [color, setColor] = useState(DEFAULT_BRAND);
   const [header, setHeader] = useState("");
@@ -75,7 +68,7 @@ export default function WalletCardEditor() {
   const locateMe = () => {
     setMessage(null);
     if (!navigator.geolocation) {
-      setMessage({ ok: false, text: "Este navegador no puede dar tu ubicación. Pega el enlace de Google Maps." });
+      setMessage({ ok: false, text: t.noGeolocation });
       return;
     }
     setLocating(true);
@@ -87,7 +80,7 @@ export default function WalletCardEditor() {
       },
       () => {
         setLocating(false);
-        setMessage({ ok: false, text: "No se pudo obtener tu ubicación. Da permiso o pega el enlace de Google Maps." });
+        setMessage({ ok: false, text: t.locationFailed });
       },
       { enableHighAccuracy: true, timeout: 15_000 }
     );
@@ -105,9 +98,9 @@ export default function WalletCardEditor() {
           return;
         }
       }
-      throw new Error("El logo es muy pesado. Prueba con un PNG más simple.");
+      throw new Error(t.logoTooHeavy);
     } catch (err) {
-      setMessage({ ok: false, text: err instanceof Error ? err.message : "Imagen inválida" });
+      setMessage({ ok: false, text: err instanceof Error ? err.message : t.invalidImage });
     }
   };
 
@@ -117,7 +110,7 @@ export default function WalletCardEditor() {
     try {
       setHeroData(await compressImage(file, 1032, HERO_MAX_CHARS));
     } catch (err) {
-      setMessage({ ok: false, text: err instanceof Error ? err.message : "Imagen inválida" });
+      setMessage({ ok: false, text: err instanceof Error ? err.message : t.invalidImage });
     }
   };
 
@@ -130,14 +123,14 @@ export default function WalletCardEditor() {
     e.preventDefault();
     if (!user) return;
     if (!company.name) {
-      setMessage({ ok: false, text: "Primero guarda los datos del restaurante (arriba)." });
+      setMessage({ ok: false, text: t.saveBusinessFirst });
       return;
     }
     const badLink = links.find((l) => l.url.trim() && !LINK.test(l.url.trim()));
     if (badLink) {
       setMessage({
         ok: false,
-        text: `El enlace "${badLink.label || badLink.url}" debe empezar con https://, tel: o mailto:`,
+        text: f(t.badLink, { link: badLink.label || badLink.url }),
       });
       return;
     }
@@ -183,12 +176,12 @@ export default function WalletCardEditor() {
       const updated = await syncWalletCards(user);
       setMessage(
         updated === null
-          ? { ok: false, text: "Guardado, pero no se pudieron actualizar las tarjetas que ya tienen tus clientes." }
-          : { ok: true, text: `Guardado${updated ? ` · ${updated} tarjetas actualizadas` : ""}.` }
+          ? { ok: false, text: t.syncFailed }
+          : { ok: true, text: updated ? f(t.savedCount, { count: updated }) : m.common.saved }
       );
     } catch (err) {
       console.error(err);
-      setMessage({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
+      setMessage({ ok: false, text: m.common.networkError });
     } finally {
       setSaving(false);
     }
@@ -199,10 +192,10 @@ export default function WalletCardEditor() {
       <form onSubmit={save} className="flex flex-col gap-4 min-w-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label htmlFor="wallet-header" className="flex flex-col gap-1 text-sm text-gray-700">
-            Texto principal
+            {t.header}
             <input
               id="wallet-header"
-              placeholder="Cliente frecuente"
+              placeholder={t.headerPlaceholder}
               value={header}
               maxLength={40}
               onChange={(e) => setHeader(e.target.value)}
@@ -210,10 +203,10 @@ export default function WalletCardEditor() {
             />
           </label>
           <label htmlFor="wallet-subheader" className="flex flex-col gap-1 text-sm text-gray-700">
-            Texto secundario
+            {t.subheader}
             <input
               id="wallet-subheader"
-              placeholder="Membresía"
+              placeholder={t.subheaderPlaceholder}
               value={subheader}
               maxLength={40}
               onChange={(e) => setSubheader(e.target.value)}
@@ -224,7 +217,7 @@ export default function WalletCardEditor() {
 
         <div className="flex flex-wrap items-end gap-4">
           <label htmlFor="wallet-color" className="flex flex-col gap-1 text-sm text-gray-700">
-            Color de la tarjeta
+            {t.color}
             <span className="flex items-center gap-2 border rounded p-1.5">
               <input
                 id="wallet-color"
@@ -238,7 +231,7 @@ export default function WalletCardEditor() {
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <label className="border px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-100">
-              {heroPreview ? "Cambiar portada" : "Agregar portada"}
+              {heroPreview ? t.changeHero : t.addHero}
               <input
                 id="wallet-hero"
                 type="file"
@@ -259,21 +252,18 @@ export default function WalletCardEditor() {
                 }}
                 className="text-sm text-red-600"
               >
-                Quitar portada
+                {t.removeHero}
               </button>
             )}
           </div>
         </div>
-        <p className="text-xs text-gray-500 -mt-2">
-          Portada: foto horizontal, ideal 1032 × 336 px. Si activas &quot;Usar este diseño en Google Wallet&quot; en
-          Diseño de la tarjeta, la portada y el color se toman de ese diseño.
-        </p>
+        <p className="text-xs text-gray-500 -mt-2">{t.heroHint}</p>
 
         <div className="flex flex-col gap-2 border rounded p-3">
-          <p className="text-sm text-gray-700">Logo ancho (opcional)</p>
+          <p className="text-sm text-gray-700">{t.wideLogo}</p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="border px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-100">
-              {wideLogoPreview ? "Cambiar logo ancho" : "Subir logo ancho"}
+              {wideLogoPreview ? t.changeWideLogo : t.uploadWideLogo}
               <input
                 id="wallet-wide-logo"
                 type="file"
@@ -294,22 +284,20 @@ export default function WalletCardEditor() {
                 }}
                 className="text-sm text-red-600"
               >
-                Quitar logo ancho
+                {t.removeWideLogo}
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-500">
-            Se ve en grande arriba de la tarjeta, en lugar del logo pequeño. Ideal PNG con fondo transparente, 1280 × 400 px.
-          </p>
+          <p className="text-xs text-gray-500">{t.wideLogoHint}</p>
         </div>
 
         <fieldset className="border rounded p-3 flex flex-col gap-2">
-          <legend className="text-sm text-gray-600 px-1">Datos en la tarjeta (opcional)</legend>
+          <legend className="text-sm text-gray-600 px-1">{t.info}</legend>
           {info.map((row, i) => (
             <div key={i} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
               <input
                 id={`wallet-info-label-${i}`}
-                placeholder={INFO_HINTS[i][0]}
+                placeholder={t.infoHints[i][0]}
                 value={row.label}
                 maxLength={40}
                 onChange={(e) => updateInfo(i, "label", e.target.value)}
@@ -317,7 +305,7 @@ export default function WalletCardEditor() {
               />
               <input
                 id={`wallet-info-value-${i}`}
-                placeholder={INFO_HINTS[i][1]}
+                placeholder={t.infoHints[i][1]}
                 value={row.value}
                 maxLength={200}
                 onChange={(e) => updateInfo(i, "value", e.target.value)}
@@ -328,12 +316,12 @@ export default function WalletCardEditor() {
         </fieldset>
 
         <fieldset className="border rounded p-3 flex flex-col gap-2">
-          <legend className="text-sm text-gray-600 px-1">Botones con enlace (opcional)</legend>
+          <legend className="text-sm text-gray-600 px-1">{t.links}</legend>
           {links.map((row, i) => (
             <div key={i} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
               <input
                 id={`wallet-link-label-${i}`}
-                placeholder={LINK_HINTS[i][0]}
+                placeholder={t.linkHints[i][0]}
                 value={row.label}
                 maxLength={40}
                 onChange={(e) => updateLink(i, "label", e.target.value)}
@@ -341,25 +329,19 @@ export default function WalletCardEditor() {
               />
               <input
                 id={`wallet-link-url-${i}`}
-                placeholder={LINK_HINTS[i][1]}
+                placeholder={t.linkHints[i][1]}
                 value={row.url}
                 onChange={(e) => updateLink(i, "url", e.target.value)}
                 className="border p-2 rounded min-w-0"
               />
             </div>
           ))}
-          <p className="text-xs text-gray-500">
-            Sin texto, el botón muestra el dato (ej. &quot;WhatsApp: +506…&quot;). Se agrega solo un botón
-            &quot;Promociones&quot; con tu página del QR.
-          </p>
+          <p className="text-xs text-gray-500">{t.linksHint}</p>
         </fieldset>
 
         <fieldset className="border rounded p-3 flex flex-col gap-2">
-          <legend className="text-sm text-gray-600 px-1">Ubicación del restaurante (opcional)</legend>
-          <p className="text-xs text-gray-500">
-            Google Wallet puede mostrar la tarjeta en la pantalla del cliente cuando está cerca. Google decide cuándo
-            mostrarla.
-          </p>
+          <legend className="text-sm text-gray-600 px-1">{t.location}</legend>
+          <p className="text-xs text-gray-500">{t.locationHint}</p>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -367,7 +349,7 @@ export default function WalletCardEditor() {
               disabled={locating}
               className="border px-3 py-2 rounded text-sm hover:bg-gray-100 disabled:opacity-50"
             >
-              {locating ? "Buscando..." : "Usar mi ubicación actual"}
+              {locating ? t.locating : t.useMyLocation}
             </button>
             {location && (
               <button
@@ -378,13 +360,13 @@ export default function WalletCardEditor() {
                 }}
                 className="text-sm text-red-600"
               >
-                Quitar ubicación
+                {t.removeLocation}
               </button>
             )}
           </div>
           <input
             id="wallet-maps-link"
-            placeholder="O pega el enlace de Google Maps del restaurante"
+            placeholder={t.mapsPlaceholder}
             value={mapsLink}
             onChange={(e) => {
               setMapsLink(e.target.value);
@@ -394,10 +376,7 @@ export default function WalletCardEditor() {
             className="border p-2 rounded"
           />
           {mapsLink.trim() && !parseMapsLink(mapsLink) && (
-            <p className="text-xs text-red-600">
-              No encontré coordenadas en ese enlace. Abre el restaurante en Google Maps desde la computadora y copia la
-              dirección de la barra del navegador, o usa &quot;Usar mi ubicación actual&quot; estando en el local.
-            </p>
+            <p className="text-xs text-red-600">{t.mapsInvalid}</p>
           )}
           {location && (
             <p className="text-sm text-gray-700 tabular-nums">
@@ -407,14 +386,14 @@ export default function WalletCardEditor() {
                 target="_blank"
                 className="text-blue-700"
               >
-                Ver en el mapa
+                {t.viewMap}
               </a>
             </p>
           )}
         </fieldset>
 
         <button disabled={saving} className="bg-green-600 text-white p-2 rounded disabled:opacity-50">
-          {saving ? "Guardando y actualizando tarjetas..." : "Guardar tarjeta"}
+          {saving ? t.saving : t.save}
         </button>
         {message && (
           <p className={`text-sm ${message.ok ? "text-green-700" : "text-red-600"}`}>{message.text}</p>
@@ -422,7 +401,7 @@ export default function WalletCardEditor() {
       </form>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-6 self-start w-full">
-        <p className="text-xs uppercase tracking-wide text-gray-500">Vista previa</p>
+        <p className="text-xs uppercase tracking-wide text-gray-500">{t.preview}</p>
         <div
           className="rounded-2xl overflow-hidden shadow-md w-full max-w-[340px] mx-auto"
           style={{ background: color, color: fg }}
@@ -440,12 +419,12 @@ export default function WalletCardEditor() {
               ) : (
                 <div className="w-9 h-9 rounded-full" style={{ background: fg, opacity: 0.25 }} />
               )}
-              <span className="text-sm font-medium truncate">{company.name || "Tu restaurante"}</span>
+              <span className="text-sm font-medium truncate">{company.name || t.yourBusiness}</span>
             </div>
           )}
           <div className="px-4 pb-4">
-            <p className="text-xs" style={{ opacity: 0.8 }}>{subheader || "Membresía"}</p>
-            <p className="text-2xl font-semibold leading-tight break-words">{header || "Cliente frecuente"}</p>
+            <p className="text-xs" style={{ opacity: 0.8 }}>{subheader || t.subheaderPlaceholder}</p>
+            <p className="text-2xl font-semibold leading-tight break-words">{header || t.headerPlaceholder}</p>
           </div>
           <div className="flex justify-center pb-5">
             <div className="bg-white p-2.5 rounded-xl">
@@ -459,7 +438,7 @@ export default function WalletCardEditor() {
         </div>
 
         <div className="w-full max-w-[340px] mx-auto rounded-xl border bg-white divide-y text-sm">
-          <p className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500">Detalles (al abrir la tarjeta)</p>
+          <p className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500">{t.details}</p>
           {info
             .filter((r) => r.label.trim() && r.value.trim())
             .map((r, i) => (
@@ -470,7 +449,7 @@ export default function WalletCardEditor() {
             ))}
           {[
             ...links.filter((l) => l.url.trim()).map((l) => describeLink(l.label.trim(), l.url.trim())),
-            "Promociones",
+            t.promotions,
           ].map((label, i) => (
             <p key={`l${i}`} className="px-4 py-2 text-blue-700">{label}</p>
           ))}

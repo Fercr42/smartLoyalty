@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
 import {
-  AUTOMATION_DEFAULTS,
+  automationDefaults,
   AUTOMATIONS_RUN_HOUR,
   cleanAutomations,
   fillTemplate,
@@ -17,7 +18,9 @@ type Notice = { ok: boolean; text: string } | null;
 
 export default function AutomationsEditor() {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<Automations>(AUTOMATION_DEFAULTS);
+  const { m, f } = useI18n();
+  const t = m.automations;
+  const [settings, setSettings] = useState<Automations>(() => automationDefaults(t.defaults));
   const [companyName, setCompanyName] = useState("");
   const [firstReward, setFirstReward] = useState("");
   const [saving, setSaving] = useState(false);
@@ -28,12 +31,12 @@ export default function AutomationsEditor() {
     getDoc(doc(db, "companies", user.uid))
       .then((snap) => {
         const data = snap.data() ?? {};
-        setSettings(cleanAutomations(data.automations));
+        setSettings(cleanAutomations(data.automations, t.defaults));
         setCompanyName(data.name ?? "");
         setFirstReward(cleanRewards(data.loyalty?.rewards)[0]?.title ?? "");
       })
       .catch(console.error);
-  }, [user]);
+  }, [user, t]);
 
   const update = <K extends keyof Automations>(key: K, patch: Partial<Automations[K]>) =>
     setSettings((s) => ({ ...s, [key]: { ...s[key], ...patch } }));
@@ -44,7 +47,7 @@ export default function AutomationsEditor() {
     setSaving(true);
     setNotice(null);
     try {
-      const clean = cleanAutomations(settings);
+      const clean = cleanAutomations(settings, t.defaults);
       await setDoc(
         doc(db, "companies", user.uid),
         {
@@ -55,31 +58,27 @@ export default function AutomationsEditor() {
         { merge: true }
       );
       setSettings(clean);
-      setNotice({ ok: true, text: "Automatizaciones guardadas." });
+      setNotice({ ok: true, text: t.saved });
     } catch (err) {
       console.error(err);
-      setNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
+      setNotice({ ok: false, text: m.common.networkError });
     } finally {
       setSaving(false);
     }
   };
 
-  const vars = { restaurante: companyName || "tu restaurante", premio: firstReward || "tu premio" };
+  const vars = { business: companyName || t.fallbackBusiness, reward: firstReward || t.fallbackReward };
   const { nearReward, birthday, winback } = settings;
 
   return (
     <form onSubmit={save} className="flex flex-col gap-6">
-      <p className="text-sm text-gray-600">
-        Se envían solas a cada cliente. Cumpleaños y &quot;Te extrañamos&quot; se revisan todos los días desde las{" "}
-        {AUTOMATIONS_RUN_HOUR} am (hora de tu restaurante). Puedes usar {"{restaurante}"}, {"{premio}"},{" "}
-        {"{regalo}"} y {"{dias}"} en los textos.
-      </p>
+      <p className="text-sm text-gray-600">{f(t.intro, { hour: AUTOMATIONS_RUN_HOUR, vars: t.varsList })}</p>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <AutomationCard
           id="near-reward"
-          title="Te falta 1 sello"
-          description={`${NEAR_REWARD_DELAY_MIN} minutos después del sello que deja al cliente a 1 de un premio.`}
+          title={t.nearRewardTitle}
+          description={f(t.nearRewardDescription, { minutes: NEAR_REWARD_DELAY_MIN })}
           enabled={nearReward.enabled}
           onToggle={(enabled) => update("nearReward", { enabled })}
           preview={{
@@ -88,36 +87,36 @@ export default function AutomationsEditor() {
           }}
         >
           {!firstReward && (
-            <p className="text-xs text-amber-700">Primero agrega premios en la sección Recompensas.</p>
+            <p className="text-xs text-amber-700">{t.addRewardsFirst}</p>
           )}
-          <TextField id="near-reward-title" label="Título" value={nearReward.title} max={65} onChange={(title) => update("nearReward", { title })} />
-          <TextArea id="near-reward-message" label="Mensaje" value={nearReward.message} onChange={(message) => update("nearReward", { message })} />
+          <TextField id="near-reward-title" label={t.title} value={nearReward.title} max={65} onChange={(title) => update("nearReward", { title })} />
+          <TextArea id="near-reward-message" label={t.message} value={nearReward.message} onChange={(message) => update("nearReward", { message })} />
         </AutomationCard>
 
         <AutomationCard
           id="birthday"
-          title="Feliz cumpleaños"
-          description="El cliente registra su cumpleaños en su tarjeta. Ese día recibe un cupón que solo él puede usar."
+          title={t.birthdayTitle}
+          description={t.birthdayDescription}
           enabled={birthday.enabled}
           onToggle={(enabled) => update("birthday", { enabled })}
           preview={{
-            title: fillTemplate(birthday.title, { ...vars, regalo: birthday.gift, dias: birthday.days }),
-            body: fillTemplate(birthday.message, { ...vars, regalo: birthday.gift, dias: birthday.days }),
+            title: fillTemplate(birthday.title, { ...vars, gift: birthday.gift, days: birthday.days }),
+            body: fillTemplate(birthday.message, { ...vars, gift: birthday.gift, days: birthday.days }),
             coupon: birthday.gift,
           }}
         >
           <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
-            <TextField id="birthday-gift" label="Regalo" value={birthday.gift} max={60} onChange={(gift) => update("birthday", { gift })} />
-            <NumberField id="birthday-days" label="Días válido" value={birthday.days} min={1} max={60} onChange={(days) => update("birthday", { days })} />
+            <TextField id="birthday-gift" label={t.gift} value={birthday.gift} max={60} onChange={(gift) => update("birthday", { gift })} />
+            <NumberField id="birthday-days" label={t.validDays} value={birthday.days} min={1} max={60} onChange={(days) => update("birthday", { days })} />
           </div>
-          <TextField id="birthday-title" label="Título" value={birthday.title} max={65} onChange={(title) => update("birthday", { title })} />
-          <TextArea id="birthday-message" label="Mensaje" value={birthday.message} onChange={(message) => update("birthday", { message })} />
+          <TextField id="birthday-title" label={t.title} value={birthday.title} max={65} onChange={(title) => update("birthday", { title })} />
+          <TextArea id="birthday-message" label={t.message} value={birthday.message} onChange={(message) => update("birthday", { message })} />
         </AutomationCard>
 
         <AutomationCard
           id="winback"
-          title="Te extrañamos"
-          description="Para quien no viene hace un tiempo. Se envía una vez por cada ausencia."
+          title={t.winbackTitle}
+          description={t.winbackDescription}
           enabled={winback.enabled}
           onToggle={(enabled) => update("winback", { enabled })}
           preview={{
@@ -126,26 +125,26 @@ export default function AutomationsEditor() {
             coupon: winback.coupon,
           }}
         >
-          <NumberField id="winback-days" label="Días sin venir" value={winback.days} min={7} max={365} onChange={(days) => update("winback", { days })} />
-          <TextField id="winback-title" label="Título" value={winback.title} max={65} onChange={(title) => update("winback", { title })} />
-          <TextArea id="winback-message" label="Mensaje" value={winback.message} onChange={(message) => update("winback", { message })} />
+          <NumberField id="winback-days" label={t.daysAway} value={winback.days} min={7} max={365} onChange={(days) => update("winback", { days })} />
+          <TextField id="winback-title" label={t.title} value={winback.title} max={65} onChange={(title) => update("winback", { title })} />
+          <TextArea id="winback-message" label={t.message} value={winback.message} onChange={(message) => update("winback", { message })} />
           <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
             <TextField
               id="winback-coupon"
-              label="Cupón (opcional)"
-              placeholder="10% de descuento"
+              label={t.coupon}
+              placeholder={t.couponPlaceholder}
               value={winback.coupon}
               max={60}
               onChange={(coupon) => update("winback", { coupon })}
             />
-            <NumberField id="winback-coupon-days" label="Días válido" value={winback.couponDays} min={1} max={60} onChange={(couponDays) => update("winback", { couponDays })} />
+            <NumberField id="winback-coupon-days" label={t.validDays} value={winback.couponDays} min={1} max={60} onChange={(couponDays) => update("winback", { couponDays })} />
           </div>
         </AutomationCard>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <button disabled={saving} className="bg-green-600 text-white px-5 py-2 rounded disabled:opacity-50">
-          {saving ? "Guardando..." : "Guardar automatizaciones"}
+          {saving ? m.common.saving : t.save}
         </button>
         {notice && <p className={`text-sm ${notice.ok ? "text-green-700" : "text-red-600"}`}>{notice.text}</p>}
       </div>
@@ -170,6 +169,7 @@ function AutomationCard({
   preview: { title: string; body: string; coupon?: string };
   children: React.ReactNode;
 }) {
+  const { m, f } = useI18n();
   return (
     <fieldset className={`border rounded-lg p-4 flex flex-col gap-3 ${enabled ? "border-green-600" : ""}`}>
       <legend className="sr-only">{title}</legend>
@@ -180,17 +180,17 @@ function AutomationCard({
         </span>
         <span className="flex items-center gap-2 text-sm shrink-0">
           <input id={`${id}-enabled`} type="checkbox" checked={enabled} onChange={(e) => onToggle(e.target.checked)} />
-          {enabled ? "Activa" : "Apagada"}
+          {enabled ? m.automations.on : m.automations.off}
         </span>
       </label>
       {children}
       <div className="rounded-lg bg-gray-100 p-3 text-left">
-        <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Vista previa</p>
+        <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">{m.automations.preview}</p>
         <p className="font-semibold text-gray-900 text-sm">{preview.title}</p>
         <p className="text-sm text-gray-700">{preview.body}</p>
         {preview.coupon ? (
           <p className="mt-2 inline-block border-2 border-dashed border-gray-400 rounded px-2 py-0.5 text-xs font-semibold text-gray-800">
-            Cupón: {preview.coupon}
+            {f(m.automations.couponPreview, { coupon: preview.coupon })}
           </p>
         ) : null}
       </div>

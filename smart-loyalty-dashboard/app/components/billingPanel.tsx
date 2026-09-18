@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
 import { PLAN_PRICE_USD, planState, type Plan, type PlanState } from "../lib/plan";
 
 // Suscripción mensual con los botones de PayPal (PayPal o tarjeta).
@@ -17,7 +18,6 @@ declare global {
   }
 }
 
-const formatDate = (ms: number) => new Date(ms).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 
 function loadPaypalSdk() {
   // Sin "locale": PayPal usa el idioma del navegador (es_XC da error de validación).
@@ -43,6 +43,9 @@ export default function BillingPanel({
   onPlanChange: (plan: PlanState) => void;
 }) {
   const { user } = useAuth();
+  const { m, f, dateLocale } = useI18n();
+  const t = m.billing;
+  const formatDate = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" });
   const buttonsRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -74,30 +77,30 @@ export default function BillingPanel({
                 body: JSON.stringify({ subscriptionId: data.subscriptionID }),
               });
               const body = await res.json();
-              if (!res.ok) throw new Error(body.error ?? "No se pudo activar el plan");
+              if (!res.ok) throw new Error(body.error ?? t.activateFailed);
               onPlanChange(planState(body.plan as Plan));
-              setNotice({ ok: true, text: "¡Listo! Tu plan está activo." });
+              setNotice({ ok: true, text: t.activated });
             } catch (err) {
-              setNotice({ ok: false, text: err instanceof Error ? err.message : "No se pudo activar el plan" });
+              setNotice({ ok: false, text: err instanceof Error ? err.message : t.activateFailed });
             } finally {
               setBusy(false);
             }
           },
-          onError: () => setNotice({ ok: false, text: "PayPal no pudo procesar el pago. Inténtalo de nuevo." }),
+          onError: () => setNotice({ ok: false, text: t.paypalError }),
         });
         return buttons.render(container);
       })
-      .catch(() => setNotice({ ok: false, text: "No se pudo cargar PayPal. Recarga la página." }));
+      .catch(() => setNotice({ ok: false, text: t.sdkError }));
 
     return () => {
       cancelled = true;
       buttons?.close?.().catch(() => {});
       container.innerHTML = "";
     };
-  }, [showButtons, user, onPlanChange]);
+  }, [showButtons, user, onPlanChange, t]);
 
   const cancel = async () => {
-    if (!user || !confirm("¿Cancelar tu suscripción? PayPal dejará de cobrar y conservas el acceso hasta el fin del mes pagado.")) return;
+    if (!user || !confirm(t.confirmCancel)) return;
     setBusy(true);
     setNotice(null);
     try {
@@ -106,11 +109,11 @@ export default function BillingPanel({
         headers: { Authorization: `Bearer ${await user.getIdToken()}` },
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "No se pudo cancelar");
+      if (!res.ok) throw new Error(body.error ?? t.cancelFailed);
       onPlanChange(planState(body.plan as Plan));
-      setNotice({ ok: true, text: "Suscripción cancelada. No se harán más cobros." });
+      setNotice({ ok: true, text: t.canceled });
     } catch (err) {
-      setNotice({ ok: false, text: err instanceof Error ? err.message : "No se pudo cancelar" });
+      setNotice({ ok: false, text: err instanceof Error ? err.message : t.cancelFailed });
     } finally {
       setBusy(false);
     }
@@ -119,19 +122,17 @@ export default function BillingPanel({
   return (
     <div className="grid gap-6 lg:grid-cols-2 items-start">
       <div className="flex flex-col gap-3">
-        {manualActive && <p className="text-gray-800">Tu plan está <b>activo</b>.</p>}
+        {manualActive && <p className="text-gray-800 font-medium">{t.activeManual}</p>}
 
         {paidWithPaypal && !plan.canceled && (
           <>
-            <p className="text-gray-800">
-              Plan <b>activo</b> · {PLAN_PRICE_USD} USD al mes, pagado con PayPal.
-            </p>
+            <p className="text-gray-800 font-medium">{f(t.activePaypal, { price: PLAN_PRICE_USD })}</p>
             {plan.paidUntil && (
-              <p className="text-sm text-gray-600">Próximo cobro: {formatDate(plan.paidUntil)}.</p>
+              <p className="text-sm text-gray-600">{f(t.nextCharge, { date: formatDate(plan.paidUntil) })}</p>
             )}
             {plan.paymentFailed && (
               <p className="text-sm rounded bg-amber-50 text-amber-900 border border-amber-200 p-3">
-                El último cobro falló. PayPal lo va a reintentar; revisa tu método de pago en tu cuenta de PayPal.
+                {t.failedNote}
               </p>
             )}
             <button
@@ -139,32 +140,29 @@ export default function BillingPanel({
               disabled={busy}
               className="self-start text-sm text-red-600 border border-red-200 rounded px-3 py-1.5 disabled:opacity-50"
             >
-              Cancelar suscripción
+              {t.cancel}
             </button>
           </>
         )}
 
         {paidWithPaypal && plan.canceled && plan.paidUntil && (
-          <p className="text-gray-800">
-            Cancelaste tu suscripción. Tienes acceso hasta el <b>{formatDate(plan.paidUntil)}</b>. Puedes volver a
-            suscribirte cuando quieras.
-          </p>
+          <p className="text-gray-800">{f(t.canceledUntil, { date: formatDate(plan.paidUntil) })}</p>
         )}
 
         {!manualActive && !paidWithPaypal && (
           <>
             <p className="text-3xl font-bold text-gray-900 tabular-nums">
-              {PLAN_PRICE_USD} USD <span className="text-base font-normal text-gray-600">al mes</span>
+              {PLAN_PRICE_USD} USD <span className="text-base font-normal text-gray-600">{t.perMonth}</span>
             </p>
             <p className="text-gray-700">
               {plan.status === "trial"
-                ? `Te quedan ${plan.daysLeft} días de prueba. Suscríbete ahora y el primer cobro se hace hoy.`
-                : "Activa tu plan para seguir enviando notificaciones y usar las automatizaciones."}
+                ? f(t.trialLeft, { days: plan.daysLeft })
+                : t.activatePrompt}
             </p>
             <ul className="text-sm text-gray-600 list-disc pl-5">
-              <li>Todas las funciones, sin límite de clientes ni notificaciones.</li>
-              <li>Pagas con PayPal o con tarjeta. PayPal cobra solo cada mes.</li>
-              <li>Cancelas cuando quieras desde aquí.</li>
+              <li>{t.point1}</li>
+              <li>{t.point2}</li>
+              <li>{t.point3}</li>
             </ul>
           </>
         )}
@@ -175,12 +173,12 @@ export default function BillingPanel({
       {showButtons && (
         <div className="flex flex-col gap-2">
           {!CLIENT_ID || !PLAN_ID ? (
-            <p className="text-sm text-red-600">PayPal aún no está configurado.</p>
+            <p className="text-sm text-red-600">{t.notConfigured}</p>
           ) : (
             <>
               <div ref={buttonsRef} className={busy ? "opacity-50 pointer-events-none" : ""} />
               {SANDBOX && (
-                <p className="text-xs text-amber-700">Modo de pruebas de PayPal (Sandbox): no se cobra dinero real.</p>
+                <p className="text-xs text-amber-700">{t.sandbox}</p>
               )}
             </>
           )}

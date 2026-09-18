@@ -1,8 +1,12 @@
+"use client";
+import { useI18n } from "../i18n/client";
 import type { PlanState } from "../lib/plan";
 
-// Aviso del plan arriba del panel: prueba gratis, cobro fallido o plan vencido. "Activar plan" lleva a la sección Tu plan.
+// Aviso del plan arriba del panel: prueba gratis, cobro fallido o plan vencido. "Activar plan" lleva a la sección Plan.
 
 export default function PlanBanner({ plan }: { plan: PlanState }) {
+  const { m, f } = useI18n();
+  const t = m.planBanner;
   const expired = plan.status === "expired";
   const trial = plan.status === "trial";
   const failed = plan.status === "active" && plan.paymentFailed;
@@ -22,17 +26,15 @@ export default function PlanBanner({ plan }: { plan: PlanState }) {
       <p className="text-sm">
         {expired ? (
           <>
-            <b>Tu plan no está activo.</b> Tus clientes siguen viendo su tarjeta y los sellos siguen funcionando, pero no
-            puedes enviar notificaciones ni usar automatizaciones.
+            <b>{t.expiredTitle}</b> {t.expiredText}
           </>
         ) : failed ? (
           <>
-            <b>El último cobro de PayPal falló.</b> PayPal lo va a reintentar; revisa tu método de pago.
+            <b>{t.failedTitle}</b> {t.failedText}
           </>
         ) : (
           <>
-            <b>Te {plan.daysLeft === 1 ? "queda 1 día" : `quedan ${plan.daysLeft} días`} de prueba gratis.</b> Todas las
-            funciones están disponibles.
+            <b>{plan.daysLeft === 1 ? t.trialOne : f(t.trialMany, { days: plan.daysLeft })}</b> {t.trialText}
           </>
         )}
       </p>
@@ -41,7 +43,7 @@ export default function PlanBanner({ plan }: { plan: PlanState }) {
           href="#plan"
           className={`text-sm font-semibold px-3 py-1.5 rounded ${expired ? "bg-red-700 text-white" : "bg-emerald-700 text-white"}`}
         >
-          Activar plan
+          {t.activate}
         </a>
       )}
     </div>

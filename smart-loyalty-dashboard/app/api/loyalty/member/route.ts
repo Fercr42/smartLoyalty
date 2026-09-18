@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
+import { companyLocale } from "../../../i18n/config";
+import { messages } from "../../../i18n/messages";
 import { cleanAutomations } from "../../../lib/automations-config";
 import { memberCoupons } from "../../../lib/coupons";
 import { kickCron } from "../../../lib/cron-kick";
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!company.exists) return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
 
   const rewards = cleanRewards(company.data()?.loyalty?.rewards);
-  const birthdaySettings = cleanAutomations(company.data()?.automations).birthday;
+  const birthdaySettings = cleanAutomations(company.data()?.automations, messages[companyLocale(company.data())].automations.defaults).birthday;
   let coupons = await memberCoupons(companyRef, memberId);
   if (!rewards.length && !coupons.length && !birthdaySettings.enabled) return Response.json({ enabled: false });
 

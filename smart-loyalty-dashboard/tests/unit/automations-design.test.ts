@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { AUTOMATION_DEFAULTS, cleanAutomations, fillTemplate } from "../../app/lib/automations-config";
+import { automationDefaults, cleanAutomations, fillTemplate } from "../../app/lib/automations-config";
+import { messages } from "../../app/i18n/messages";
+
+const defaults = messages.es.automations.defaults;
 import { cleanDesign, encodeDesign, templateDesign } from "../../app/lib/card-design";
 
 describe("automatizaciones", () => {
   it("sin ajustes usa los valores por defecto (todo apagado)", () => {
-    expect(cleanAutomations({})).toEqual(AUTOMATION_DEFAULTS);
+    expect(cleanAutomations({}, defaults)).toEqual(automationDefaults(defaults));
+    expect(cleanAutomations({}, messages.th.automations.defaults).winback.title).toBe("คิดถึงนะ");
   });
 
   it("limita días y limpia textos", () => {
-    const clean = cleanAutomations({ winback: { enabled: true, days: 2, couponDays: 500, coupon: "  10% " } });
+    const clean = cleanAutomations({ winback: { enabled: true, days: 2, couponDays: 500, coupon: "  10% " } }, defaults);
     expect(clean.winback).toMatchObject({ enabled: true, days: 7, couponDays: 60, coupon: "10%" });
   });
 
   it("reemplaza solo las variables conocidas", () => {
-    expect(fillTemplate("Hola desde {restaurante}, {x}", { restaurante: "Rancho" })).toBe("Hola desde Rancho, {x}");
+    expect(fillTemplate("Hola desde {restaurante}, {x}", { business: "Rancho" })).toBe("Hola desde Rancho, {x}");
+    expect(fillTemplate("{business} · {premio} · {days}", { business: "Leo", reward: "Corte", days: 7 })).toBe("Leo · Corte · 7");
   });
 });
 

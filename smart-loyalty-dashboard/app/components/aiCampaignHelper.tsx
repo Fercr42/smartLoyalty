@@ -1,23 +1,17 @@
 "use client";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
 import type { CampaignDraft } from "../lib/ai-context";
 
-const EXAMPLES = ["Llenar los martes en la tarde", "Que vuelvan los clientes inactivos", "Anunciar un platillo nuevo"];
-
-const AUDIENCE_LABELS: Record<CampaignDraft["audience"], string> = {
-  all: "Todos",
-  frequent: "Frecuentes",
-  inactive: "Inactivos",
-  near_reward: "Cerca de un premio",
-};
-
-const formatWhen = (local: string | null) =>
-  local ? new Date(local).toLocaleString("es", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "Enviar ya";
 
 // El dueño escribe su objetivo; la IA propone 3 notificaciones y "Usar esta" llena el formulario.
 export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDraft) => void }) {
   const { user } = useAuth();
+  const { m, f, dateLocale } = useI18n();
+  const t = m.ai;
+  const formatWhen = (local: string | null) =>
+    local ? new Date(local).toLocaleString(dateLocale, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : t.sendNow;
   const [goal, setGoal] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +19,7 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
 
   const generate = async () => {
     if (!user || goal.trim().length < 5) {
-      setError("Cuéntale a la IA qué quieres lograr.");
+      setError(t.goalRequired);
       return;
     }
     setLoading(true);
@@ -37,10 +31,10 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
         body: JSON.stringify({ goal }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudieron crear las ideas");
+      if (!res.ok) throw new Error(data.error ?? t.failed);
       setDrafts(data.drafts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudieron crear las ideas");
+      setError(err instanceof Error ? err.message : t.failed);
     } finally {
       setLoading(false);
     }
@@ -49,9 +43,9 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
   return (
     <section className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 flex flex-col gap-3">
       <div>
-        <h3 className="font-semibold text-gray-900">Crear con IA</h3>
+        <h3 className="font-semibold text-gray-900">{t.title}</h3>
         <p className="text-sm text-gray-600">
-          Escribe lo que quieres lograr. La IA mira tus visitas y tus grupos, y te propone 3 notificaciones.
+          {t.lead}
         </p>
       </div>
       <textarea
@@ -60,11 +54,11 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
         maxLength={400}
         rows={2}
         onChange={(e) => setGoal(e.target.value)}
-        placeholder="Ej. llenar los martes en la tarde"
+        placeholder={t.placeholder}
         className="border p-2 rounded bg-white"
       />
       <div className="flex flex-wrap items-center gap-2">
-        {EXAMPLES.map((example) => (
+        {t.examples.map((example) => (
           <button
             key={example}
             type="button"
@@ -80,7 +74,7 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
           disabled={loading}
           className="ml-auto bg-violet-700 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
         >
-          {loading ? "Pensando... (unos 20 s)" : drafts.length ? "Crear otras ideas" : "Crear ideas"}
+          {loading ? t.thinking : drafts.length ? t.again : t.create}
         </button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -95,8 +89,8 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
                 <p className="text-gray-700">{d.body}</p>
               </div>
               <p className="text-xs text-gray-500">
-                {AUDIENCE_LABELS[d.audience]} · {formatWhen(d.sendAt)}
-                {d.coupon ? ` · Cupón: ${d.coupon.title} (${d.coupon.days} días)` : ""}
+                {m.labels.audiences[d.audience]} · {formatWhen(d.sendAt)}
+                {d.coupon ? ` · ${f(t.coupon, { title: d.coupon.title, days: d.coupon.days })}` : ""}
               </p>
               <p className="text-xs text-gray-600 italic">{d.why}</p>
               <button
@@ -104,14 +98,14 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
                 onClick={() => onUse(d)}
                 className="mt-auto self-start border border-violet-300 text-violet-800 rounded px-3 py-1.5 hover:bg-violet-50"
               >
-                Usar esta
+                {t.use}
               </button>
             </li>
           ))}
         </ul>
       )}
       {drafts.length > 0 && (
-        <p className="text-xs text-gray-500">Revisa el texto antes de enviar: puedes cambiar todo en el formulario.</p>
+        <p className="text-xs text-gray-500">{t.review}</p>
       )}
     </section>
   );

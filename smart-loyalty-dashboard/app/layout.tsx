@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
+import { I18nProvider } from "./i18n/client";
+import { getI18n } from "./i18n/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,23 +15,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Smart Loyalty",
-  description:
-    "Notificaciones, tarjetas de cliente y sellos para que tus clientes vuelvan a tu restaurante.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getI18n();
+  return { title: "Smart Loyalty", description: m.common.appDescription };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, m } = await getI18n();
   return (
-    <html lang="es">
+    <html lang={locale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <I18nProvider locale={locale} messages={m}>
+          <AuthProvider>{children}</AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );

@@ -4,6 +4,8 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, Timest
 import { QRCodeSVG } from "qrcode.react";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
+import { cleanBusinessType, type BusinessType } from "../lib/business-types";
 import { publicOrigin } from "../lib/origin";
 import { cleanRewards, MAX_REWARDS } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
@@ -22,15 +24,14 @@ type Event = {
 type Notice = { ok: boolean; text: string } | null;
 type Feedback = { id: string; rating: number; comment: string; code: string | null; at?: Timestamp };
 
-const HINTS = [
-  ["Bebida gratis", "5"],
-  ["Postre gratis", "8"],
-  ["Platillo gratis", "10"],
-];
+const HINT_STAMPS = ["5", "8", "10"];
 const newRow = (): Row => ({ id: crypto.randomUUID().slice(0, 8), title: "", stamps: "" });
 
 export default function LoyaltyEditor() {
   const { user } = useAuth();
+  const { m, f: tf, dateLocale } = useI18n();
+  const t = m.rewards;
+  const [businessType, setBusinessType] = useState<BusinessType>("other");
   const [rows, setRows] = useState<Row[]>([newRow(), newRow()]);
   const [pinSet, setPinSet] = useState(false);
   const [pin, setPin] = useState("");
@@ -63,6 +64,7 @@ export default function LoyaltyEditor() {
     setScanUrl(`${publicOrigin(window.location.origin)}/scan/${user.uid}`);
     getDoc(doc(db, "companies", user.uid))
       .then((snap) => {
+        setBusinessType(cleanBusinessType(snap.data()?.businessType));
         const loyalty = snap.data()?.loyalty ?? {};
         const saved = cleanRewards(loyalty.rewards);
         if (saved.length) setRows(saved.map((r) => ({ id: r.id, title: r.title, stamps: String(r.stamps) })));
@@ -91,7 +93,7 @@ export default function LoyaltyEditor() {
     if (!user) return;
     const partial = rows.find((r) => (r.title.trim() && !r.stamps) || (!r.title.trim() && r.stamps));
     if (partial) {
-      setRewardsNotice({ ok: false, text: "Cada recompensa necesita nombre y número de sellos." });
+      setRewardsNotice({ ok: false, text: t.incomplete });
       return;
     }
     const rewards = cleanRewards(rows.map((r) => ({ id: r.id, title: r.title, stamps: Number(r.stamps) })));
@@ -103,12 +105,14 @@ export default function LoyaltyEditor() {
       setRewardsNotice({
         ok: true,
         text: rewards.length
-          ? `Guardado${updated ? ` · ${updated} tarjetas de Wallet actualizadas` : ""}.`
-          : "Guardado. Sin recompensas, el programa de sellos queda apagado.",
+          ? updated
+            ? tf(t.savedWallet, { count: updated })
+            : m.common.saved
+          : t.savedOff,
       });
     } catch (err) {
       console.error(err);
-      setRewardsNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
+      setRewardsNotice({ ok: false, text: m.common.networkError });
     } finally {
       setSavingRewards(false);
     }
@@ -118,11 +122,11 @@ export default function LoyaltyEditor() {
     e.preventDefault();
     if (!user) return;
     if (reviewUrl.trim() && !/^https:\/\/\S+$/.test(reviewUrl.trim())) {
-      setReviewNotice({ ok: false, text: "El enlace de reseñas debe empezar con https://" });
+      setReviewNotice({ ok: false, text: t.reviewUrlInvalid });
       return;
     }
     if (reviewEnabled && !reviewSurvey && !reviewUrl.trim()) {
-      setReviewNotice({ ok: false, text: "Sin encuesta, pega el enlace de reseñas de Google." });
+      setReviewNotice({ ok: false, text: t.reviewUrlRequired });
       return;
     }
     setSavingReview(true);
@@ -135,11 +139,11 @@ export default function LoyaltyEditor() {
       );
       setReviewNotice({
         ok: true,
-        text: reviewEnabled ? "Guardado. Se pedirá reseña después del primer sello de cada cliente." : "Guardado. Pedido de reseña apagado.",
+        text: reviewEnabled ? t.reviewOn : t.reviewOff,
       });
     } catch (err) {
       console.error(err);
-      setReviewNotice({ ok: false, text: "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo." });
+      setReviewNotice({ ok: false, text: m.common.networkError });
     } finally {
       setSavingReview(false);
     }
@@ -157,12 +161,12 @@ export default function LoyaltyEditor() {
         body: JSON.stringify({ pin }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo guardar el PIN");
+      if (!res.ok) throw new Error(data.error ?? t.pinFailed);
       setPinSet(true);
       setPin("");
-      setPinNotice({ ok: true, text: "PIN guardado. Las sesiones abiertas de empleados se cerraron." });
+      setPinNotice({ ok: true, text: t.pinSaved });
     } catch (err) {
-      setPinNotice({ ok: false, text: err instanceof Error ? err.message : "No se pudo guardar el PIN" });
+      setPinNotice({ ok: false, text: err instanceof Error ? err.message : t.pinFailed });
     } finally {
       setSavingPin(false);
     }
@@ -173,14 +177,14 @@ export default function LoyaltyEditor() {
       <div className="flex flex-col gap-6">
         <form onSubmit={saveRewards} className="flex flex-col gap-3">
           <div>
-            <h3 className="font-semibold text-gray-900">Premios por sellos</h3>
-            <p className="text-sm text-gray-600">Cada visita suma 1 sello. Al canjear se descuentan los sellos del premio.</p>
+            <h3 className="font-semibold text-gray-900">{t.title}</h3>
+            <p className="text-sm text-gray-600">{t.lead}</p>
           </div>
           {rows.map((row, i) => (
             <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_5.5rem_auto] gap-2 items-center">
               <input
                 id={`reward-title-${row.id}`}
-                placeholder={HINTS[i]?.[0] ?? "Nombre del premio"}
+                placeholder={m.niches.rewardHints[businessType][i] ?? t.rewardName}
                 value={row.title}
                 maxLength={40}
                 onChange={(e) => updateRow(row.id, "title", e.target.value)}
@@ -192,19 +196,19 @@ export default function LoyaltyEditor() {
                 inputMode="numeric"
                 min={1}
                 max={100}
-                placeholder={HINTS[i]?.[1] ?? "10"}
+                placeholder={HINT_STAMPS[i] ?? "10"}
                 value={row.stamps}
                 onChange={(e) => updateRow(row.id, "stamps", e.target.value)}
                 className="border p-2 rounded tabular-nums"
-                aria-label="Sellos necesarios"
+                aria-label={t.stampsNeeded}
               />
               <button
                 type="button"
                 onClick={() => setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== row.id) : [newRow()]))}
                 className="text-sm text-red-600 px-2 py-2"
-                aria-label="Quitar premio"
+                aria-label={t.removeReward}
               >
-                Quitar
+                {m.common.remove}
               </button>
             </div>
           ))}
@@ -214,11 +218,11 @@ export default function LoyaltyEditor() {
               onClick={() => setRows((rs) => [...rs, newRow()])}
               className="self-start text-sm text-blue-700 py-2"
             >
-              + Agregar premio
+              {t.addReward}
             </button>
           )}
           <button disabled={savingRewards} className="bg-green-600 text-white p-2 rounded disabled:opacity-50">
-            {savingRewards ? "Guardando..." : "Guardar premios"}
+            {savingRewards ? m.common.saving : t.saveRewards}
           </button>
           {rewardsNotice && (
             <p className={`text-sm ${rewardsNotice.ok ? "text-green-700" : "text-red-600"}`}>{rewardsNotice.text}</p>
@@ -227,9 +231,9 @@ export default function LoyaltyEditor() {
 
         <form onSubmit={savePin} className="flex flex-col gap-3 border-t pt-6">
           <div>
-            <h3 className="font-semibold text-gray-900">PIN de empleados</h3>
+            <h3 className="font-semibold text-gray-900">{t.pinTitle}</h3>
             <p className="text-sm text-gray-600">
-              {pinSet ? "PIN activo. Escribe uno nuevo para cambiarlo." : "Tus empleados lo usan para abrir el escáner."}
+              {pinSet ? t.pinActive : t.pinHint}
             </p>
           </div>
           <div className="flex gap-2">
@@ -238,7 +242,7 @@ export default function LoyaltyEditor() {
               type="password"
               inputMode="numeric"
               autoComplete="new-password"
-              placeholder="4 a 8 números"
+              placeholder={t.pinPlaceholder}
               maxLength={8}
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
@@ -248,7 +252,7 @@ export default function LoyaltyEditor() {
               disabled={savingPin || pin.length < 4}
               className="bg-gray-900 text-white px-4 rounded whitespace-nowrap disabled:opacity-50"
             >
-              {savingPin ? "Guardando..." : pinSet ? "Cambiar PIN" : "Guardar PIN"}
+              {savingPin ? m.common.saving : pinSet ? t.changePin : t.savePin}
             </button>
           </div>
           {pinNotice && (
@@ -258,10 +262,9 @@ export default function LoyaltyEditor() {
 
         <form onSubmit={saveReview} className="flex flex-col gap-3 border-t pt-6">
           <div>
-            <h3 className="font-semibold text-gray-900">Pedir reseña en Google</h3>
+            <h3 className="font-semibold text-gray-900">{t.reviewTitle}</h3>
             <p className="text-sm text-gray-600">
-              Después del primer sello, el cliente recibe una notificación (una sola vez). Con la encuesta, primero califica
-              de 1 a 5: solo a quien da 4 o 5 estrellas se le pide la reseña en Google, y las opiniones bajas te llegan a ti.
+              {t.reviewLead}
             </p>
           </div>
           <label htmlFor="review-enabled" className="flex items-center gap-2 text-sm text-gray-800">
@@ -271,7 +274,7 @@ export default function LoyaltyEditor() {
               checked={reviewEnabled}
               onChange={(e) => setReviewEnabled(e.target.checked)}
             />
-            Pedir reseña automáticamente
+            {t.reviewAuto}
           </label>
           <label htmlFor="review-survey" className="flex items-center gap-2 text-sm text-gray-800">
             <input
@@ -280,22 +283,20 @@ export default function LoyaltyEditor() {
               checked={reviewSurvey}
               onChange={(e) => setReviewSurvey(e.target.checked)}
             />
-            Enviar primero una encuesta de 1 a 5 estrellas (recomendado)
+            {t.reviewSurvey}
           </label>
           <input
             id="review-url"
             type="url"
-            placeholder="Enlace de reseñas · https://g.page/r/.../review"
+            placeholder={t.reviewUrlPlaceholder}
             value={reviewUrl}
             onChange={(e) => setReviewUrl(e.target.value)}
             className="border p-2 rounded"
           />
-          <p className="text-xs text-gray-500">
-            En tu Perfil de Negocio de Google: <b>Pedir reseñas</b> → copia el enlace.
-          </p>
+          <p className="text-xs text-gray-500">{t.reviewUrlHint}</p>
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor="review-delay" className="text-sm text-gray-700">
-              Enviar
+              {t.send}
             </label>
             <select
               id="review-delay"
@@ -303,24 +304,24 @@ export default function LoyaltyEditor() {
               onChange={(e) => setReviewDelay(e.target.value)}
               className="border p-2 rounded text-sm"
             >
-              <option value="1">1 hora después de la visita</option>
-              <option value="2">2 horas después de la visita</option>
-              <option value="4">4 horas después de la visita</option>
-              <option value="24">Al día siguiente</option>
+              <option value="1">{t.delay1}</option>
+              <option value="2">{t.delay2}</option>
+              <option value="4">{t.delay4}</option>
+              <option value="24">{t.delay24}</option>
             </select>
             <button disabled={savingReview} className="bg-gray-900 text-white px-4 py-2 rounded disabled:opacity-50">
-              {savingReview ? "Guardando..." : "Guardar"}
+              {savingReview ? m.common.saving : m.common.save}
             </button>
           </div>
-          <p className="text-xs text-gray-500 tabular-nums">{reviewClicks} clientes abrieron el enlace de reseña.</p>
+          <p className="text-xs text-gray-500 tabular-nums">{tf(t.reviewClicks, { count: reviewClicks })}</p>
 
           <div className="border-t pt-4 flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
-              <h4 className="font-semibold text-gray-900">Opiniones de la encuesta</h4>
+              <h4 className="font-semibold text-gray-900">{t.feedbackTitle}</h4>
               <span className="text-sm text-gray-600 tabular-nums">
                 {feedbackStats.count
-                  ? `${(feedbackStats.sum / feedbackStats.count).toFixed(1)} ★ · ${feedbackStats.count} opiniones`
-                  : "Aún sin opiniones"}
+                  ? tf(t.feedbackStats, { avg: (feedbackStats.sum / feedbackStats.count).toFixed(1), count: feedbackStats.count })
+                  : t.noFeedback}
               </span>
             </div>
             {feedbackStats.count > 0 && <AiFeedbackSummary />}
@@ -335,7 +336,7 @@ export default function LoyaltyEditor() {
                       </span>
                       <span className="text-xs text-gray-500 whitespace-nowrap tabular-nums">
                         {f.code ? `#${f.code} · ` : ""}
-                        {f.at?.toDate().toLocaleDateString("es", { day: "numeric", month: "short" })}
+                        {f.at?.toDate().toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}
                       </span>
                     </div>
                     {f.comment && <p className="text-gray-700">{f.comment}</p>}
@@ -357,10 +358,10 @@ export default function LoyaltyEditor() {
               <QRCodeSVG value={scanUrl} size={96} />
             </div>
             <div className="min-w-0 flex flex-col gap-1">
-              <p className="font-semibold text-gray-900">Escáner para empleados</p>
-              <p className="text-sm text-gray-600">Escanéalo con el celular del empleado y guárdalo en su pantalla de inicio.</p>
+              <p className="font-semibold text-gray-900">{t.scannerTitle}</p>
+              <p className="text-sm text-gray-600">{t.scannerHint}</p>
               <a href={scanUrl} target="_blank" className="text-sm text-blue-700 break-all">
-                Abrir escáner
+                {t.openScanner}
               </a>
             </div>
           </div>
@@ -368,13 +369,13 @@ export default function LoyaltyEditor() {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-gray-900">Actividad reciente</h3>
+            <h3 className="font-semibold text-gray-900">{t.activity}</h3>
             <button type="button" onClick={() => loadEvents().catch(console.error)} className="text-sm text-blue-700">
-              Actualizar
+              {m.common.refresh}
             </button>
           </div>
           {events.length === 0 ? (
-            <p className="text-sm text-gray-500">Aún no hay sellos ni canjes.</p>
+            <p className="text-sm text-gray-500">{t.noActivity}</p>
           ) : (
             <ul className="divide-y text-sm">
               {events.map((ev) => (
@@ -382,18 +383,18 @@ export default function LoyaltyEditor() {
                   <span className="min-w-0">
                     <b className="text-gray-900">
                       {ev.type === "stamp"
-                        ? "+1 sello"
+                        ? t.stamp
                         : ev.type === "redeem"
-                          ? `Canjeó ${ev.rewardTitle}`
-                          : `Usó cupón ${ev.couponTitle}`}
+                          ? tf(t.redeemed, { reward: ev.rewardTitle ?? "" })
+                          : tf(t.usedCoupon, { coupon: ev.couponTitle ?? "" })}
                     </b>{" "}
                     <span className="font-mono text-gray-500">#{ev.code}</span>
                     {ev.type !== "coupon" && (
-                      <span className="block text-xs text-gray-500">Quedó con {ev.stampsAfter} sellos</span>
+                      <span className="block text-xs text-gray-500">{tf(t.stampsLeft, { count: ev.stampsAfter ?? 0 })}</span>
                     )}
                   </span>
                   <span className="text-gray-500 text-xs whitespace-nowrap tabular-nums">
-                    {ev.at?.toDate().toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}
+                    {ev.at?.toDate().toLocaleString(dateLocale, { dateStyle: "short", timeStyle: "short" })}
                   </span>
                 </li>
               ))}

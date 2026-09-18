@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n/client";
 
 type Stats = {
   days: number;
@@ -20,6 +21,8 @@ const niceMax = (max: number) => (max <= 4 ? 4 : Math.ceil(max / 5) * 5);
 
 export default function StatsPanel() {
   const { user } = useAuth();
+  const { m, f, dateLocale } = useI18n();
+  const t = m.stats;
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -28,14 +31,14 @@ export default function StatsPanel() {
     if (!user) return;
     const res = await fetch("/api/stats", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "No se pudieron cargar las estadísticas");
+    if (!res.ok) throw new Error(data.error ?? t.loadError);
     setStats(data);
     setError("");
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof Error ? e.message : "No se pudieron cargar las estadísticas"));
-  }, [load]);
+    load().catch((e) => setError(e instanceof Error ? e.message : t.loadError));
+  }, [load, t]);
 
   // Agrupar en la zona horaria del dueño (la del navegador).
   const summary = useMemo(() => {
@@ -60,7 +63,7 @@ export default function StatsPanel() {
       hours[date.getHours()]++;
     });
 
-    const plural = (n: number) => `${n} ${n === 1 ? "visita" : "visitas"}`;
+    const plural = (n: number) => f(n === 1 ? t.visitOne : t.visitMany, { count: n });
     return {
       visits: stamps.length,
       visitors: visitsByMember.size,
@@ -68,16 +71,16 @@ export default function StatsPanel() {
       redeems: stats.events.filter((e) => e.type === "redeem").length,
       coupons: stats.events.filter((e) => e.type === "coupon").length,
       byDay: days.map<Bar>((d) => {
-        const label = d.date.toLocaleDateString("es", { day: "numeric", month: "short" });
+        const label = d.date.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
         return { label, value: d.count, tooltip: `${label} · ${plural(d.count)}` };
       }),
       byHour: hours.map<Bar>((count, h) => ({
         label: `${h}h`,
         value: count,
-        tooltip: `${h}:00 a ${h}:59 · ${plural(count)}`,
+        tooltip: `${f(t.hourRange, { hour: h })} · ${plural(count)}`,
       })),
     };
-  }, [stats]);
+  }, [stats, f, t, dateLocale]);
 
   const exportMembers = async () => {
     if (!user) return;
@@ -88,73 +91,73 @@ export default function StatsPanel() {
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `${t.exportFile}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setError("No se pudo exportar. Inténtalo de nuevo.");
+      setError(t.exportError);
     } finally {
       setExporting(false);
     }
   };
 
   if (error && !stats) return <p className="text-sm text-red-600">{error}</p>;
-  if (!stats || !summary) return <p className="text-sm text-gray-500">Cargando estadísticas...</p>;
+  if (!stats || !summary) return <p className="text-sm text-gray-500">{t.loading}</p>;
 
   const tiles = [
-    { label: "Clientes con tarjeta", value: stats.members, note: `+${stats.newMembers} nuevos` },
-    { label: "Visitas", value: summary.visits, note: `${summary.visitors} clientes distintos` },
-    { label: "Clientes que regresaron", value: summary.returning, note: `de ${summary.visitors} que vinieron` },
-    { label: "Premios canjeados", value: summary.redeems, note: "en 30 días" },
-    { label: "Cupones usados", value: summary.coupons, note: "en 30 días" },
-    { label: "Celulares suscritos", value: stats.devices, note: "activos · se revisa a diario" },
+    { label: t.members, value: stats.members, note: f(t.newMembers, { count: stats.newMembers }) },
+    { label: t.visits, value: summary.visits, note: f(t.distinct, { count: summary.visitors }) },
+    { label: t.returning, value: summary.returning, note: f(t.returningNote, { count: summary.visitors }) },
+    { label: t.redeems, value: summary.redeems, note: t.inDays },
+    { label: t.coupons, value: summary.coupons, note: t.inDays },
+    { label: t.devices, value: stats.devices, note: t.devicesNote },
     {
-      label: "Promos abiertas",
+      label: t.opens,
       value: stats.notifications.views,
-      note: `${stats.notifications.walletViews ?? 0} desde Google Wallet · ${stats.notifications.sent} enviadas al navegador`,
+      note: f(t.opensNote, { wallet: stats.notifications.walletViews ?? 0, sent: stats.notifications.sent }),
     },
     {
-      label: "Calificación",
+      label: t.rating,
       value: stats.feedback?.average ? `${stats.feedback.average.toFixed(1)} ★` : "—",
-      note: `${stats.feedback?.count ?? 0} opiniones · ${stats.reviewClicks} fueron a Google`,
+      note: f(t.ratingNote, { count: stats.feedback?.count ?? 0, clicks: stats.reviewClicks }),
     },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">Últimos {stats.days} días</p>
+        <p className="text-sm text-gray-600">{f(t.lastDays, { days: stats.days })}</p>
         <div className="flex gap-2">
           <button
             onClick={() => load().catch(console.error)}
             className="border px-3 py-1.5 rounded text-sm hover:bg-gray-100"
           >
-            Actualizar
+            {m.common.refresh}
           </button>
           <button
             onClick={exportMembers}
             disabled={exporting}
             className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
           >
-            {exporting ? "Exportando..." : "Exportar clientes (Excel)"}
+            {exporting ? t.exporting : t.export}
           </button>
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {tiles.map((t) => (
-          <div key={t.label} className="border rounded-lg p-3">
-            <dt className="text-xs text-gray-500">{t.label}</dt>
-            <dd className="text-2xl font-semibold text-gray-900 tabular-nums">{t.value}</dd>
-            <dd className="text-xs text-gray-500">{t.note}</dd>
+        {tiles.map((tile) => (
+          <div key={tile.label} className="border rounded-lg p-3">
+            <dt className="text-xs text-gray-500">{tile.label}</dt>
+            <dd className="text-2xl font-semibold text-gray-900 tabular-nums">{tile.value}</dd>
+            <dd className="text-xs text-gray-500">{tile.note}</dd>
           </div>
         ))}
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <BarChart title="Visitas por día" bars={summary.byDay} labelEvery={7} />
-        <BarChart title="Visitas por hora del día" bars={summary.byHour} labelEvery={6} />
+        <BarChart title={t.byDay} bars={summary.byDay} labelEvery={7} />
+        <BarChart title={t.byHour} bars={summary.byHour} labelEvery={6} />
       </div>
     </div>
   );
@@ -162,6 +165,7 @@ export default function StatsPanel() {
 
 // Barras de una sola serie: sin leyenda (el título la nombra), tooltip al pasar o enfocar.
 function BarChart({ title, bars, labelEvery }: { title: string; bars: Bar[]; labelEvery: number }) {
+  const { m, f } = useI18n();
   const [active, setActive] = useState<number | null>(null);
   const max = niceMax(Math.max(0, ...bars.map((b) => b.value)));
   const total = bars.reduce((sum, b) => sum + b.value, 0);
@@ -171,12 +175,12 @@ function BarChart({ title, bars, labelEvery }: { title: string; bars: Bar[]; lab
       <figcaption className="flex justify-between gap-2 text-sm">
         <span className="font-semibold text-gray-900">{title}</span>
         <span className="text-gray-600 tabular-nums" aria-live="polite">
-          {active !== null ? bars[active].tooltip : `${total} en total`}
+          {active !== null ? bars[active].tooltip : f(m.stats.total, { count: total })}
         </span>
       </figcaption>
       {total === 0 ? (
         <p className="text-sm text-gray-500 h-40 grid place-items-center border rounded-lg">
-          Aún no hay visitas en este periodo.
+          {m.stats.empty}
         </p>
       ) : (
         <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2">

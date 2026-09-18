@@ -18,29 +18,22 @@ import CardDesigner from "../components/cardDesigner";
 import CampaignResults from "../components/campaignResults";
 import BrandLogo from "../components/brandLogo";
 import { auth, db } from "../firebase/config";
+import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { planState, type PlanState } from "../lib/plan";
 
 // Panel del dueño: una sección a la vez, con menú lateral (computadora) o pestañas (celular).
-const TABS = [
-  { id: "inicio", label: "Inicio", description: "Cómo le va a tu restaurante en los últimos 30 días." },
-  { id: "mensajes", label: "Mensajes", description: "Envía o programa promociones, horarios y eventos." },
-  { id: "resultados", label: "Resultados", description: "Qué pasó después de cada mensaje: aperturas, cupones y clientes que volvieron." },
-  { id: "automatizaciones", label: "Automatizaciones", description: "Mensajes que se envían solos en el momento justo." },
-  { id: "tarjeta", label: "Tarjeta", description: "El diseño de tu tarjeta y lo que muestra en Google Wallet." },
-  { id: "recompensas", label: "Recompensas", description: "Premios por sellos, escáner de empleados y reseñas." },
-  { id: "negocio", label: "Mi negocio", description: "Nombre, logo, colores y el código QR para tus mesas." },
-  { id: "plan", label: "Plan", description: "Tu suscripción a Smart Loyalty." },
-] as const;
-type TabId = (typeof TABS)[number]["id"];
+const TABS = ["inicio", "mensajes", "resultados", "automatizaciones", "tarjeta", "recompensas", "negocio", "plan"] as const;
+type TabId = (typeof TABS)[number];
 
 const tabFromHash = (): TabId => {
   if (typeof window === "undefined") return "inicio";
   const id = window.location.hash.replace("#", "");
-  return (TABS.find((t) => t.id === id)?.id ?? "inicio") as TabId;
+  return TABS.find((t) => t === id) ?? "inicio";
 };
 
 export default function Panel() {
   const { user, loading } = useAuth();
+  const { m } = useI18n();
   const [plan, setPlan] = useState<PlanState | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [tab, setTab] = useState<TabId>(tabFromHash);
@@ -77,7 +70,7 @@ export default function Panel() {
   if (loading || (user && !plan)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">Cargando...</div>
+        <div className="text-lg">{m.common.loading}</div>
       </div>
     );
   }
@@ -90,20 +83,20 @@ export default function Panel() {
     return (
       <div className="flex min-h-screen items-center justify-center px-4 bg-gray-50">
         <div className="bg-white rounded-2xl border p-8 max-w-md w-full text-center flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Termina tu registro</h1>
-          <p className="text-gray-600">Completa los datos de tu restaurante para empezar tu prueba gratis.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{m.panel.finishTitle}</h1>
+          <p className="text-gray-600">{m.panel.finishLead}</p>
           <Link href="/registro" className="bg-[#0e7c66] text-white rounded-xl py-3 font-semibold">
-            Completar registro
+            {m.panel.finishCta}
           </Link>
           <button onClick={handleLogout} className="text-sm text-gray-500">
-            Cerrar sesión ({user.email})
+            {m.common.logout} ({user.email})
           </button>
         </div>
       </div>
     );
   }
 
-  const current = TABS.find((t) => t.id === tab)!;
+  const current = m.panel.tabs[tab];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,29 +106,30 @@ export default function Panel() {
             <BrandLogo size={26} />
             {companyName && <span className="text-sm text-gray-500 truncate hidden sm:inline">· {companyName}</span>}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher />
             <span className="text-sm text-gray-600 hidden md:inline truncate max-w-[16rem]">{user.email}</span>
             <button onClick={handleLogout} className="text-sm border rounded-md px-3 py-1.5 text-gray-700 hover:bg-gray-100">
-              Cerrar sesión
+              {m.common.logout}
             </button>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid gap-6 grid-cols-[minmax(0,1fr)] lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label="Secciones del panel" className="lg:sticky lg:top-24 self-start min-w-0">
+        <nav aria-label={m.panel.sectionsLabel} className="lg:sticky lg:top-24 self-start min-w-0">
           <ul className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-            {TABS.map((t) => (
-              <li key={t.id} className="shrink-0">
+            {TABS.map((id) => (
+              <li key={id} className="shrink-0">
                 <button
-                  onClick={() => go(t.id)}
-                  id={`tab-${t.id}`}
-                  aria-current={tab === t.id ? "page" : undefined}
+                  onClick={() => go(id)}
+                  id={`tab-${id}`}
+                  aria-current={tab === id ? "page" : undefined}
                   className={`w-full text-left whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-                    tab === t.id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-white hover:shadow-sm"
+                    tab === id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-white hover:shadow-sm"
                   }`}
                 >
-                  {t.label}
+                  {m.panel.tabs[id].label}
                 </button>
               </li>
             ))}
@@ -176,10 +170,10 @@ export default function Panel() {
 
           {tab === "tarjeta" && (
             <>
-              <Card title="Diseño de la tarjeta">
+              <Card title={m.panel.cardDesign}>
                 <CardDesigner />
               </Card>
-              <Card title="Datos y botones en Google Wallet">
+              <Card title={m.panel.walletData}>
                 <WalletCardEditor />
               </Card>
             </>
@@ -193,10 +187,10 @@ export default function Panel() {
 
           {tab === "negocio" && (
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card title="Datos del restaurante">
+              <Card title={m.panel.businessData}>
                 <BusinessForm />
               </Card>
-              <Card title="Código QR para tus mesas">
+              <Card title={m.panel.qrTitle}>
                 <CompanyQR />
               </Card>
             </div>

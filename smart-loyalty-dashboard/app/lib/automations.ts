@@ -6,6 +6,8 @@ import {
   fillTemplate,
   NEAR_REWARD_DELAY_MIN,
 } from "./automations-config";
+import { companyLocale } from "../i18n/config";
+import { messages } from "../i18n/messages";
 import { createMemberCoupon } from "./coupons";
 import { walletCardSaved } from "./google-wallet";
 import { planState, type Plan } from "./plan";
@@ -22,6 +24,7 @@ type CompanyData = {
   name?: string;
   plan?: Plan;
   timezone?: string;
+  language?: unknown;
   automations?: unknown;
   loyalty?: { rewards?: unknown };
 };
@@ -40,13 +43,13 @@ export async function maybeNotifyNearReward(
   memberId: string,
   stamps: number
 ) {
-  const settings = cleanAutomations(company.automations).nearReward;
+  const settings = cleanAutomations(company.automations, messages[companyLocale(company)].automations.defaults).nearReward;
   if (!settings.enabled || !planState(company.plan).allowed) return;
   const reward = cleanRewards(company.loyalty?.rewards).find((r) => r.stamps - stamps === 1);
   if (!reward) return;
   try {
     if (!(await canReach(companyRef, memberId))) return;
-    const vars = { premio: reward.title, restaurante: company.name ?? "" };
+    const vars = { reward: reward.title, business: company.name ?? "" };
     await scheduleNotification(
       company.id,
       {
@@ -98,9 +101,9 @@ export async function runAutomations(origin: string) {
 
     const result: (typeof results)[number] = { companyId: snap.id };
     try {
-      const settings = cleanAutomations(company.automations);
+      const settings = cleanAutomations(company.automations, messages[companyLocale(company)].automations.defaults);
       const members = await snap.ref.collection("walletMembers").get();
-      const vars = { restaurante: company.name ?? "" };
+      const vars = { business: company.name ?? "" };
 
       if (settings.birthday.enabled) {
         const { gift, days } = settings.birthday;
@@ -114,7 +117,7 @@ export async function runAutomations(origin: string) {
           .map((d) => d.id);
         if (ids.length) {
           const couponId = await createMemberCoupon(snap.ref, { title: gift, days, memberIds: ids, timezone });
-          const birthdayVars = { ...vars, regalo: gift, dias: days };
+          const birthdayVars = { ...vars, gift, days };
           await sendNotification(
             snap.id,
             {
