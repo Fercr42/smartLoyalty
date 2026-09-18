@@ -92,7 +92,7 @@ export function parseNotificationInput(raw: Record<string, unknown>) {
     schedule = { sendAt, repeat };
   }
 
-  return { type, title, body, imageData, ctaLabel: ctaUrl ? ctaLabel || "Ver más" : "", ctaUrl, audience, coupon, schedule };
+  return { type, title, body, imageData, ctaLabel: ctaUrl ? ctaLabel : "", ctaUrl, audience, coupon, schedule };
 }
 
 export type NotificationInput = ReturnType<typeof parseNotificationInput>;

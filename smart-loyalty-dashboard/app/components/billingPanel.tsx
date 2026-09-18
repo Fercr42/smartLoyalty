@@ -43,7 +43,7 @@ export default function BillingPanel({
   onPlanChange: (plan: PlanState) => void;
 }) {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.billing;
   const formatDate = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" });
   const buttonsRef = useRef<HTMLDivElement>(null);
@@ -77,7 +77,7 @@ export default function BillingPanel({
                 body: JSON.stringify({ subscriptionId: data.subscriptionID }),
               });
               const body = await res.json();
-              if (!res.ok) throw new Error(body.error ?? t.activateFailed);
+              if (!res.ok) throw new Error(te(body.error) ?? t.activateFailed);
               onPlanChange(planState(body.plan as Plan));
               setNotice({ ok: true, text: t.activated });
             } catch (err) {
@@ -97,7 +97,7 @@ export default function BillingPanel({
       buttons?.close?.().catch(() => {});
       container.innerHTML = "";
     };
-  }, [showButtons, user, onPlanChange, t]);
+  }, [showButtons, user, onPlanChange, t, te]);
 
   const cancel = async () => {
     if (!user || !confirm(t.confirmCancel)) return;
@@ -109,7 +109,7 @@ export default function BillingPanel({
         headers: { Authorization: `Bearer ${await user.getIdToken()}` },
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? t.cancelFailed);
+      if (!res.ok) throw new Error(te(body.error) ?? t.cancelFailed);
       onPlanChange(planState(body.plan as Plan));
       setNotice({ ok: true, text: t.canceled });
     } catch (err) {

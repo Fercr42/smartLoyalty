@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../firebase/config";
+import { useI18n } from "../i18n/client";
 import { getMemberId, setMemberId } from "../lib/member-id";
 
 // "Protege tus sellos": liga la tarjeta del cliente a su correo para recuperarla en cualquier celular.
@@ -39,6 +40,8 @@ export default function ProtectCard({
   email: string | null;
   onLinked: () => void;
 }) {
+  const { m, f, locale, te } = useI18n();
+  const t = m.protect;
   const [status, setStatus] = useState<Status>("idle");
   const [emailInput, setEmailInput] = useState("");
   const [share, setShare] = useState(true);
@@ -66,12 +69,12 @@ export default function ProtectCard({
         res = await post(fresh);
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo proteger la tarjeta");
+      if (!res.ok) throw new Error(te(data.error) ?? t.failed);
       setMemberId(companyId, data.memberId);
       onLinked();
       return true;
     },
-    [companyId, onLinked]
+    [companyId, onLinked, t, te]
   );
 
   const createPairCode = useCallback(async () => {
@@ -95,16 +98,16 @@ export default function ProtectCard({
         writeStorage(EMAIL_KEY, null);
         window.history.replaceState(null, "", window.location.pathname);
         await link(readStorage(SHARE_KEY) === "1");
-        setMessage({ ok: true, text: "¡Listo! Tu tarjeta quedó protegida con tu correo." });
+        setMessage({ ok: true, text: t.done });
         await createPairCode();
         setStatus("idle");
       } catch (err) {
         console.error(err);
-        setMessage({ ok: false, text: "El enlace no es válido o ya venció. Pide uno nuevo." });
+        setMessage({ ok: false, text: t.badLink });
         setStatus("idle");
       }
     },
-    [link, createPairCode]
+    [link, createPairCode, t]
   );
 
   // Llegó desde el enlace del correo.
@@ -132,12 +135,13 @@ export default function ProtectCard({
     e.preventDefault();
     const address = emailInput.trim();
     if (!/^\S+@\S+\.\S+$/.test(address)) {
-      setMessage({ ok: false, text: "Escribe un correo válido." });
+      setMessage({ ok: false, text: t.badEmail });
       return;
     }
     setStatus("sending");
     setMessage(null);
     try {
+      auth.languageCode = locale; // el correo del enlace llega en el idioma del cliente
       await sendSignInLinkToEmail(auth, address, {
         url: `${window.location.origin}/join/${companyId}`,
         handleCodeInApp: true,
@@ -147,7 +151,7 @@ export default function ProtectCard({
       setStatus("sent");
     } catch (err) {
       console.error(err);
-      setMessage({ ok: false, text: "No se pudo enviar el enlace. Revisa el correo e inténtalo de nuevo." });
+      setMessage({ ok: false, text: t.sendFailed });
       setStatus("idle");
     }
   };
@@ -162,11 +166,11 @@ export default function ProtectCard({
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage({ ok: false, text: data.error ?? "No se pudo usar el código" });
+      setMessage({ ok: false, text: te(data.error) ?? t.codeFailed });
       return;
     }
     setMemberId(companyId, data.memberId);
-    setMessage({ ok: true, text: "¡Listo! Esta app ya tiene tu tarjeta." });
+    setMessage({ ok: true, text: t.codeDone });
     setStatus("idle");
     onLinked();
   };
@@ -175,17 +179,17 @@ export default function ProtectCard({
     return (
       <div className="w-full text-left rounded-lg bg-gray-50 border px-3 py-2 flex flex-col gap-1">
         <p className="text-xs text-gray-600">
-          Tarjeta protegida{email ? ` con ${maskEmail(email)}` : " con tu correo"}. Si cambias de celular, la recuperas con tu correo.
+          {email ? f(t.protectedWith, { email: maskEmail(email) }) : t.protectedGeneric}
         </p>
         {pairCode ? (
           <p className="text-sm text-gray-900">
-            ¿Usas la app del ícono en iPhone u otro navegador? Escribe ahí este código:{" "}
-            <b className="font-mono tracking-widest">{pairCode}</b> <span className="text-xs text-gray-500">(vence en 10 min)</span>
+            {t.pairPrompt}{" "}
+            <b className="font-mono tracking-widest">{pairCode}</b> <span className="text-xs text-gray-500">{t.pairExpires}</span>
           </p>
         ) : (
           auth.currentUser?.emailVerified && (
             <button onClick={() => createPairCode().catch(console.error)} className="self-start text-xs text-blue-700">
-              Obtener código para otra app o navegador
+              {t.getCode}
             </button>
           )
         )}
@@ -196,13 +200,12 @@ export default function ProtectCard({
 
   return (
     <div className="w-full text-left border rounded-lg p-3 flex flex-col gap-2">
-      <p className="text-sm font-semibold text-gray-900">Protege tus sellos</p>
-      <p className="text-xs text-gray-600">Si cambias de celular o borras los datos, recuperas tu tarjeta con tu correo. Se hace una sola vez.</p>
+      <p className="text-sm font-semibold text-gray-900">{t.title}</p>
+      <p className="text-xs text-gray-600">{t.lead}</p>
 
       {status === "sent" ? (
         <p className="text-sm text-green-800 bg-green-50 rounded p-2">
-          Te enviamos un enlace a <b>{emailInput}</b>. Ábrelo en este celular. Si usas la app del ícono en iPhone, el enlace se
-          abre en Safari: ahí verás un código para escribir en la app.
+          {f(t.linkSent, { email: emailInput })}
         </p>
       ) : status === "confirm" ? (
         <form
@@ -212,35 +215,35 @@ export default function ProtectCard({
           }}
           className="flex flex-col gap-2"
         >
-          <p className="text-xs text-gray-700">Confirma el correo al que te llegó el enlace:</p>
+          <p className="text-xs text-gray-700">{t.confirmEmail}</p>
           <div className="flex gap-2">
-            <input id="protect-confirm-email" type="email" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="tu@correo.com" className="border rounded p-2 text-sm flex-1 min-w-0" />
-            <button className="px-3 rounded bg-gray-900 text-white text-sm">Confirmar</button>
+            <input id="protect-confirm-email" type="email" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t.emailPlaceholder} className="border rounded p-2 text-sm flex-1 min-w-0" />
+            <button className="px-3 rounded bg-gray-900 text-white text-sm">{t.confirm}</button>
           </div>
         </form>
       ) : status === "code" ? (
         <form onSubmit={redeemCode} className="flex gap-2">
-          <input id="protect-code" value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} maxLength={9} placeholder="Código de 8 caracteres" className="border rounded p-2 text-sm flex-1 min-w-0 font-mono tracking-widest" />
-          <button className="px-3 rounded bg-gray-900 text-white text-sm">Usar</button>
+          <input id="protect-code" value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} maxLength={9} placeholder={t.codePlaceholder} className="border rounded p-2 text-sm flex-1 min-w-0 font-mono tracking-widest" />
+          <button className="px-3 rounded bg-gray-900 text-white text-sm">{t.use}</button>
         </form>
       ) : (
         <form onSubmit={sendLink} className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <input id="protect-email" type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="tu@correo.com" className="border rounded p-2 text-sm flex-1 min-w-0" />
+            <input id="protect-email" type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder={t.emailPlaceholder} className="border rounded p-2 text-sm flex-1 min-w-0" />
             <button disabled={status === "sending" || status === "linking"} className="px-3 rounded bg-gray-900 text-white text-sm whitespace-nowrap disabled:opacity-50">
-              {status === "sending" ? "Enviando..." : status === "linking" ? "Protegiendo..." : "Enviar enlace"}
+              {status === "sending" ? t.sending : status === "linking" ? t.linking : t.sendLink}
             </button>
           </div>
           <label htmlFor="protect-share" className="flex items-start gap-2 text-xs text-gray-600">
             <input id="protect-share" type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-0.5" />
-            Compartir mi correo con {companyName} para recibir novedades
+            {f(t.share, { business: companyName })}
           </label>
         </form>
       )}
 
       {status !== "code" && status !== "confirm" && (
         <button onClick={() => setStatus("code")} className="self-start text-sm text-blue-700 py-2">
-          Tengo un código de 8 caracteres
+          {t.haveCode}
         </button>
       )}
       {message && <p className={`text-xs ${message.ok ? "text-green-700" : "text-red-600"}`}>{message.text}</p>}

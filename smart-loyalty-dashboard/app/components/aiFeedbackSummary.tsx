@@ -15,7 +15,7 @@ const LISTS = [
 // Resumen de las opiniones de la encuesta hecho por la IA.
 export default function AiFeedbackSummary() {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.ai;
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ export default function AiFeedbackSummary() {
         headers: { Authorization: `Bearer ${await user.getIdToken()}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.summaryFailed);
+      if (!res.ok) throw new Error(te(data.error) ?? t.summaryFailed);
       setSummary(data.summary);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.summaryFailed);

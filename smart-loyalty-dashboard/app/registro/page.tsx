@@ -13,7 +13,7 @@ import BrandLogo from "../components/brandLogo";
 
 export default function RegistroPage() {
   const { user, loading } = useAuth();
-  const { m, f, locale } = useI18n();
+  const { m, f, locale, te } = useI18n();
   const t = m.signup;
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -70,7 +70,7 @@ export default function RegistroPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.failed);
+      if (!res.ok) throw new Error(te(data.error) ?? t.failed);
       router.push("/panel");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.failed);

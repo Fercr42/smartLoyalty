@@ -27,7 +27,7 @@ const pct = (part: number, total: number) => (total > 0 ? Math.round((part / tot
 
 export default function CampaignResults() {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.results;
   const formatDate = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
@@ -39,14 +39,14 @@ export default function CampaignResults() {
     try {
       const res = await fetch("/api/campaigns", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.loadError);
+      if (!res.ok) throw new Error(te(data.error) ?? t.loadError);
       setCampaigns(data.campaigns);
       setWindowDays(data.windowDays);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : t.loadError);
     }
-  }, [user, t]);
+  }, [user, t, te]);
 
   useEffect(() => {
     load().catch(console.error);

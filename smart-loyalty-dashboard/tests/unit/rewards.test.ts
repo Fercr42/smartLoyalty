@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { cleanRewards, nextRewardText } from "../../app/lib/rewards";
+import { messages } from "../../app/i18n/messages";
+
+const t = messages.es.rewardText;
 
 describe("cleanRewards", () => {
   it("limpia textos, convierte números, ordena por sellos y descarta inválidos", () => {
@@ -34,15 +37,16 @@ describe("nextRewardText", () => {
   ];
 
   it("dice cuánto falta para el próximo premio", () => {
-    expect(nextRewardText(rewards, 3)).toBe("Bebida · faltan 2");
+    expect(nextRewardText(rewards, 3, t)).toBe("Bebida · faltan 2");
   });
 
   it("avisa el premio disponible más alto", () => {
-    expect(nextRewardText(rewards, 7)).toBe("Premio disponible: Bebida");
-    expect(nextRewardText(rewards, 12)).toBe("Premio disponible: Platillo");
+    expect(nextRewardText(rewards, 7, t)).toBe("Premio disponible: Bebida");
+    expect(nextRewardText(rewards, 12, t)).toBe("Premio disponible: Platillo");
+    expect(nextRewardText(rewards, 3, messages.en.rewardText)).toBe("Bebida · 2 to go");
   });
 
   it("sin premios no dice nada", () => {
-    expect(nextRewardText([], 4)).toBe("");
+    expect(nextRewardText([], 4, t)).toBe("");
   });
 });

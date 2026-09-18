@@ -4,6 +4,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../../../lib/colors";
 import { formatDay } from "../../../lib/format";
+import { DATE_LOCALE, fmt } from "../../../i18n/config";
+import { getI18n } from "../../../i18n/server";
 
 export const runtime = "nodejs";
 
@@ -22,8 +24,8 @@ async function load(companyId: string, notificationId: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { companyId, notificationId } = await params;
-  const data = await load(companyId, notificationId);
-  if (!data) return { title: "Promoción" };
+  const [data, { m }] = await Promise.all([load(companyId, notificationId), getI18n()]);
+  if (!data) return { title: m.promo.metaFallback };
   return {
     title: `${data.notification.title} · ${data.company.name}`,
     description: data.notification.body,
@@ -36,8 +38,9 @@ export default async function PromoPage({
 }: Props & { searchParams: Promise<{ src?: string | string[] }> }) {
   const { companyId, notificationId } = await params;
   const { src } = await searchParams;
-  const data = await load(companyId, notificationId);
+  const [data, { m, locale }] = await Promise.all([load(companyId, notificationId), getI18n()]);
   if (!data) notFound();
+  const t = m.promo;
 
   const { company, notification, coupon, couponExpired } = data;
   const brand = safeColor(company.brandColor, DEFAULT_BRAND);
@@ -73,21 +76,21 @@ export default async function PromoPage({
 
           {coupon && (
             <div className="rounded-xl border-2 border-dashed p-4 text-center" style={{ borderColor: brand }}>
-              <p className="text-xs uppercase tracking-wide text-gray-500">Cupón de un solo uso</p>
+              <p className="text-xs uppercase tracking-wide text-gray-500">{t.coupon}</p>
               <p className="text-xl font-bold text-gray-900">{coupon.title}</p>
               {couponExpired ? (
-                <p className="text-sm text-red-600 mt-1">Este cupón ya no está disponible.</p>
+                <p className="text-sm text-red-600 mt-1">{t.couponGone}</p>
               ) : (
                 <>
                   <p className="text-sm text-gray-600 mt-1">
-                    Válido hasta el {formatDay(coupon.expiresDate ?? "")}. Muestra tu tarjeta de cliente en caja.
+                    {fmt(t.couponValid, { date: formatDay(coupon.expiresDate ?? "", DATE_LOCALE[locale]) })}
                   </p>
                   <a
                     href={`/join/${companyId}`}
                     className="inline-block mt-3 px-4 py-2 rounded-lg font-semibold hover:opacity-90"
                     style={{ background: brand, color: textOn(brand) }}
                   >
-                    Ver mi tarjeta
+                    {t.viewCard}
                   </a>
                 </>
               )}
@@ -100,7 +103,7 @@ export default async function PromoPage({
               className="block text-center py-3 rounded-xl font-semibold hover:opacity-90"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {notification.ctaLabel || "Ver más"}
+              {notification.ctaLabel || t.more}
             </a>
           ) : null}
         </div>

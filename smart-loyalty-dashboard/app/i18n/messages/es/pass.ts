@@ -1,0 +1,24 @@
+// Textos que genera el servidor en el idioma del negocio: tarjeta de Google Wallet, imagen de la tarjeta,
+// botones de enlace y la notificación de reseña.
+
+export const pass = {
+  business: "Mi negocio",
+  stamps: "Sellos",
+  reward: "Premio",
+  about: "Sobre nosotros",
+  promotions: "Promociones",
+  member: "Cliente frecuente",
+  membership: "Membresía",
+  stampOne: "{count} sello",
+  stampMany: "{count} sellos",
+  rewardReady: "Premio listo: {reward}",
+  progress: "{filled} de {goal} · {reward}",
+  call: "Llamar",
+  email: "Correo",
+  location: "Ver ubicación",
+  more: "Ver más",
+  reviewTitle: "¿Cómo te fue en {business}?",
+  reviewFallback: "tu visita",
+  reviewSurveyBody: "Califica tu visita en 10 segundos. Tu opinión nos ayuda a mejorar.",
+  reviewDirectBody: "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
+};

@@ -1,20 +1,23 @@
 // Texto visible de un botón de enlace en la tarjeta: muestra el dato (número, correo, página)
 // para que el cliente lo vea sin tener que tocarlo. Se usa en el navegador y en el servidor.
 
-export function describeLink(label: string, url: string) {
-  const detail = linkDetail(url);
+type LinkLabels = { call: string; email: string; location: string };
+const ES_LABELS: LinkLabels = { call: "Llamar", email: "Correo", location: "Ver ubicación" };
+
+export function describeLink(label: string, url: string, t: LinkLabels = ES_LABELS) {
+  const detail = linkDetail(url, t);
   if (!label) return detail.text;
   return detail.value && !label.includes(detail.value) ? `${label}: ${detail.value}` : label;
 }
 
-function linkDetail(url: string): { text: string; value: string } {
+function linkDetail(url: string, t: LinkLabels): { text: string; value: string } {
   if (url.startsWith("tel:")) {
     const number = url.slice(4);
-    return { text: `Llamar: ${number}`, value: number };
+    return { text: `${t.call}: ${number}`, value: number };
   }
   if (url.startsWith("mailto:")) {
     const email = url.slice(7).split("?")[0];
-    return { text: `Correo: ${email}`, value: email };
+    return { text: `${t.email}: ${email}`, value: email };
   }
   try {
     const u = new URL(url);
@@ -32,7 +35,7 @@ function linkDetail(url: string): { text: string; value: string } {
     }
     if (host.endsWith("facebook.com")) return { text: "Facebook", value: "" };
     if ((host.includes("google.") && path.startsWith("/maps")) || host === "maps.app.goo.gl") {
-      return { text: "Ver ubicación", value: "" };
+      return { text: t.location, value: "" };
     }
     // Página web: sin texto se muestra la dirección; con texto, solo el texto.
     return { text: `${host}${path}`.slice(0, 60), value: "" };

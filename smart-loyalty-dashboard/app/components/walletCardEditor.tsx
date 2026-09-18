@@ -448,7 +448,7 @@ export default function WalletCardEditor() {
               </div>
             ))}
           {[
-            ...links.filter((l) => l.url.trim()).map((l) => describeLink(l.label.trim(), l.url.trim())),
+            ...links.filter((l) => l.url.trim()).map((l) => describeLink(l.label.trim(), l.url.trim(), m.pass)),
             t.promotions,
           ].map((label, i) => (
             <p key={`l${i}`} className="px-4 py-2 text-blue-700">{label}</p>

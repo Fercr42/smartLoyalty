@@ -1,6 +1,7 @@
 "use client";
-import { createContext, useCallback, useContext } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { translateError } from "./errors";
 import { DATE_LOCALE, fmt, LOCALE_COOKIE, LOCALE_NAMES, LOCALES, type Locale } from "./config";
 import type { Messages } from "./messages/es";
 
@@ -8,13 +9,21 @@ type I18n = { locale: Locale; m: Messages };
 const I18nContext = createContext<I18n | null>(null);
 
 export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: Messages; children: React.ReactNode }) {
-  return <I18nContext.Provider value={{ locale, m: messages }}>{children}</I18nContext.Provider>;
+  const value = useMemo(() => ({ locale, m: messages }), [locale, messages]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error("useI18n needs I18nProvider");
-  return { ...ctx, f: fmt, dateLocale: DATE_LOCALE[ctx.locale] };
+  // Mismo objeto mientras no cambie el idioma: se puede usar en dependencias de hooks.
+  return useMemo(() => ({
+    ...ctx,
+    f: fmt,
+    dateLocale: DATE_LOCALE[ctx.locale],
+    // Traduce los mensajes de error que manda el servidor (en español).
+    te: (message?: string | null) => translateError(ctx.locale, message),
+  }), [ctx]);
 }
 
 export function useSetLocale() {

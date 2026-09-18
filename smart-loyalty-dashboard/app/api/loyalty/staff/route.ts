@@ -11,6 +11,8 @@ import {
   WALLET_TEMPLATE_VERSION,
   type WalletCompany,
 } from "../../../lib/google-wallet";
+import { companyLocale, fmt } from "../../../i18n/config";
+import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
 import { planState, type Plan } from "../../../lib/plan";
 import { cleanRewards } from "../../../lib/rewards";
@@ -79,16 +81,15 @@ async function maybeRequestReview(
     // Sin celular ligado ni tarjeta guardada en Wallet no hay cómo avisarle: no se marca y se intenta en otra visita.
     if (!(await canReach(companyRef, memberId))) return;
     const delayHours = Math.min(Math.max(Number(reviews.delayHours) || 2, 1), 48);
+    const pass = messages[companyLocale(company as { language?: unknown })].pass;
     await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp() });
     await scheduleNotification(
       company.id,
       {
         type: "aviso",
         kind: "review",
-        title: `¿Cómo te fue en ${company.name ?? "tu visita"}?`.slice(0, 65),
-        body: survey
-          ? "Califica tu visita en 10 segundos. Tu opinión nos ayuda a mejorar."
-          : "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
+        title: fmt(pass.reviewTitle, { business: company.name || pass.reviewFallback }).slice(0, 65),
+        body: survey ? pass.reviewSurveyBody : pass.reviewDirectBody,
         audience: "all",
         ctaLabel: "",
         ctaUrl: "",

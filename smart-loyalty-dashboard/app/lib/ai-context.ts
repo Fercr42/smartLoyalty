@@ -6,6 +6,9 @@ import { validTimezone } from "./time";
 
 export const AI_DAILY_LIMIT = 20;
 
+// Nombre del idioma para pedirle a la IA que escriba en él.
+export const AI_LANGUAGE = { es: "español", en: "inglés (English)", th: "tailandés (ภาษาไทย)" } as const;
+
 export const CampaignDraftSchema = z.object({
   name: z.string(),
   type: z.enum(["promo", "horario", "evento", "aviso"]),

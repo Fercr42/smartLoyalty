@@ -1,6 +1,8 @@
 import { createSign } from "crypto";
 import { cleanDesign } from "./card-design";
 import { DEFAULT_BRAND, safeColor } from "./colors";
+import { companyLocale } from "../i18n/config";
+import { messages } from "../i18n/messages";
 import { describeLink } from "./links";
 import { validLocation } from "./location";
 import { cleanRewards, nextRewardText } from "./rewards";
@@ -16,7 +18,7 @@ const serviceAccount = (): ServiceAccount => JSON.parse(process.env.FIREBASE_SER
 export const walletIssuerId = () => process.env.GOOGLE_WALLET_ISSUER_ID?.trim() ?? "";
 const classId = (companyId: string) => `${walletIssuerId()}.company_${companyId}`;
 const objectId = (companyId: string, memberId: string) => `${walletIssuerId()}.${companyId}_${memberId}`;
-const text = (value: string) => ({ defaultValue: { language: "es", value } });
+const text = (value: string, language = "es") => ({ defaultValue: { language, value } });
 
 export type WalletCard = {
   color?: string;
@@ -38,6 +40,7 @@ export type WalletCompany = {
   loyalty?: { rewards?: unknown; walletTemplate?: number };
   location?: unknown;
   cardDesign?: unknown;
+  language?: unknown;
 };
 
 // Sube este número si cambia LOYALTY_TEMPLATE, para que se vuelva a aplicar a las clases.
@@ -103,17 +106,20 @@ async function walletApi(path: string, init: RequestInit = {}) {
 // Lo que se ve en la tarjeta. Lo usan la creación y la actualización, así siempre coinciden.
 function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   const card = company.walletCard ?? {};
-  const name = clip(company.name, 60) || "Restaurante";
+  const locale = companyLocale(company);
+  const m = messages[locale];
+  const p = m.pass;
+  const name = clip(company.name, 60) || p.business;
   const rewards = cleanRewards(company.loyalty?.rewards);
 
   const modules = [
     ...(rewards.length
       ? [
-          { id: "stamps", header: "Sellos", body: String(stamps) },
-          { id: "next_reward", header: "Premio", body: nextRewardText(rewards, stamps) || "Sigue sumando" },
+          { id: "stamps", header: p.stamps, body: String(stamps) },
+          { id: "next_reward", header: p.reward, body: nextRewardText(rewards, stamps, m.rewardText) || m.rewardText.keepGoing },
         ]
       : []),
-    ...(company.description ? [{ id: "about", header: "Sobre nosotros", body: clip(company.description, 500) }] : []),
+    ...(company.description ? [{ id: "about", header: p.about, body: clip(company.description, 500) }] : []),
     ...(card.info ?? [])
       .map((row, i) => ({ id: `info_${i}`, header: clip(row.label, 40), body: clip(row.value, 200) }))
       .filter((m) => m.header && m.body),
@@ -122,12 +128,12 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
     ...(card.links ?? [])
       .map((row, i) => ({
         id: `link_${i}`,
-        description: describeLink(clip(row.label, 40), clip(row.url, 500)),
+        description: describeLink(clip(row.label, 40), clip(row.url, 500), p),
         uri: clip(row.url, 500),
       }))
       .filter((l) => LINK.test(l.uri)),
     ...(origin.startsWith("https://")
-      ? [{ id: "promos", description: "Promociones", uri: `${origin}/join/${company.id}` }]
+      ? [{ id: "promos", description: p.promotions, uri: `${origin}/join/${company.id}` }]
       : []),
   ];
 
@@ -136,9 +142,9 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   const drawn = design?.useInWallet ? design : null;
 
   return {
-    cardTitle: text(name),
-    header: text(clip(card.header, 40) || "Cliente frecuente"),
-    subheader: text(clip(card.subheader, 40) || "Membresía"),
+    cardTitle: text(name, locale),
+    header: text(clip(card.header, 40) || p.member, locale),
+    subheader: text(clip(card.subheader, 40) || p.membership, locale),
     hexBackgroundColor: drawn ? drawn.bgColor : safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
     logo: image(absolute(company.logoUrl, origin), name),
     // Logo ancho: Google lo muestra en grande arriba, en lugar del logo pequeño.

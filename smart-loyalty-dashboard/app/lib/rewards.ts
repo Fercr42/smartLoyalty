@@ -17,9 +17,13 @@ export function cleanRewards(raw: unknown): Reward[] {
     .sort((a, b) => a.stamps - b.stamps);
 }
 
-export function nextRewardText(rewards: Reward[], stamps: number) {
+type RewardLabels = { ready: string; next: string };
+const fill = (text: string, vars: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+
+// Texto del próximo premio en el idioma dado (m.rewardText).
+export function nextRewardText(rewards: Reward[], stamps: number, t: RewardLabels) {
   const ready = rewards.filter((r) => r.stamps <= stamps);
-  if (ready.length) return `Premio disponible: ${ready[ready.length - 1].title}`;
+  if (ready.length) return fill(t.ready, { reward: ready[ready.length - 1].title });
   const next = rewards.find((r) => r.stamps > stamps);
-  return next ? `${next.title} · faltan ${next.stamps - stamps}` : "";
+  return next ? fill(t.next, { reward: next.title, count: next.stamps - stamps }) : "";
 }

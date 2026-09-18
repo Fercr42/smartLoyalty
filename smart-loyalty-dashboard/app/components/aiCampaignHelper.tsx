@@ -8,7 +8,7 @@ import type { CampaignDraft } from "../lib/ai-context";
 // El dueño escribe su objetivo; la IA propone 3 notificaciones y "Usar esta" llena el formulario.
 export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDraft) => void }) {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.ai;
   const formatWhen = (local: string | null) =>
     local ? new Date(local).toLocaleString(dateLocale, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : t.sendNow;
@@ -31,7 +31,7 @@ export default function AiCampaignHelper({ onUse }: { onUse: (draft: CampaignDra
         body: JSON.stringify({ goal }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.failed);
+      if (!res.ok) throw new Error(te(data.error) ?? t.failed);
       setDrafts(data.drafts);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.failed);

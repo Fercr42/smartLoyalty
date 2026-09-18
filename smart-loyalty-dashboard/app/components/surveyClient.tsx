@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { textOn } from "../lib/colors";
+import { useI18n } from "../i18n/client";
 
 // Encuesta de 1 a 5 estrellas después de la visita.
 
-const LABELS = ["", "Muy mal", "Mal", "Regular", "Bien", "¡Excelente!"];
 
 export default function SurveyClient({
   companyId,
@@ -21,6 +21,9 @@ export default function SurveyClient({
   bg: string;
   memberId: string;
 }) {
+  const { m, f, te } = useI18n();
+  const t = m.survey;
+  const LABELS = t.labels;
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
@@ -31,7 +34,7 @@ export default function SurveyClient({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rating) {
-      setError("Toca las estrellas para calificar.");
+      setError(t.tapStars);
       return;
     }
     setStatus("sending");
@@ -43,11 +46,11 @@ export default function SurveyClient({
         body: JSON.stringify({ companyId, memberId, rating, comment }),
       });
       const data = await res.json();
-      if (!res.ok && res.status !== 409) throw new Error(data.error ?? "No se pudo enviar");
+      if (!res.ok && res.status !== 409) throw new Error(te(data.error) ?? t.sendFailed);
       setAskReview(Boolean(data.askReview));
       setStatus("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo enviar. Inténtalo de nuevo.");
+      setError(err instanceof Error ? err.message : t.sendFailed);
       setStatus("idle");
     }
   };
@@ -64,35 +67,35 @@ export default function SurveyClient({
 
         {status === "done" ? (
           <>
-            <h1 className="text-2xl font-bold text-gray-900 text-balance">¡Gracias por tu opinión!</h1>
+            <h1 className="text-2xl font-bold text-gray-900 text-balance">{t.thanks}</h1>
             {askReview ? (
               <>
                 <p className="text-gray-700">
-                  Nos alegra que te haya gustado. ¿Nos ayudas con una reseña en Google? Toma menos de un minuto.
+                  {t.askReview}
                 </p>
                 <a
                   href={`/r/${companyId}`}
                   className="w-full py-3 rounded-xl font-semibold hover:opacity-90"
                   style={{ background: brand, color: textOn(brand) }}
                 >
-                  Dejar reseña en Google
+                  {t.leaveReview}
                 </a>
               </>
             ) : (
-              <p className="text-gray-700">{companyName} leerá tu comentario para mejorar. ¡Te esperamos pronto!</p>
+              <p className="text-gray-700">{f(t.willRead, { business: companyName })}</p>
             )}
           </>
         ) : (
           <form onSubmit={submit} className="w-full flex flex-col items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900 text-balance">¿Cómo te fue en {companyName}?</h1>
-            <div className="flex gap-1" role="radiogroup" aria-label="Calificación" onMouseLeave={() => setHover(0)}>
+            <h1 className="text-2xl font-bold text-gray-900 text-balance">{f(t.question, { business: companyName })}</h1>
+            <div className="flex gap-1" role="radiogroup" aria-label={t.rating} onMouseLeave={() => setHover(0)}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
                   type="button"
                   role="radio"
                   aria-checked={rating === n}
-                  aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"}`}
+                  aria-label={f(n === 1 ? t.starOne : t.starMany, { count: n })}
                   onClick={() => setRating(n)}
                   onMouseEnter={() => setHover(n)}
                   className="p-1 rounded-lg focus-visible:outline focus-visible:outline-2"
@@ -114,7 +117,7 @@ export default function SurveyClient({
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={500}
                 rows={3}
-                placeholder={rating <= 3 ? "¿Qué podemos mejorar?" : "¿Qué fue lo que más te gustó? (opcional)"}
+                placeholder={rating <= 3 ? t.improve : t.liked}
                 className="w-full border rounded-lg p-2 text-sm"
               />
             )}
@@ -123,7 +126,7 @@ export default function SurveyClient({
               className="w-full py-3 rounded-xl font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {status === "sending" ? "Enviando..." : "Enviar"}
+              {status === "sending" ? t.sending : t.send}
             </button>
             {error && <p className="text-sm text-red-600">{error}</p>}
           </form>

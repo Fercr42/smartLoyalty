@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 import { adminDb } from "../../firebase/admin";
 import { CARD_FONTS, cleanDesign, type CardDesign, type CardSize } from "../../lib/card-design";
 import { cleanRewards, type Reward } from "../../lib/rewards";
+import { companyLocale, fmt } from "../../i18n/config";
+import { messages, type Messages } from "../../i18n/messages";
 
 export const runtime = "nodejs";
 
@@ -21,6 +23,7 @@ type Company = {
   header: string;
   rewards: Reward[];
   cardDesign?: unknown;
+  pass: Messages["pass"];
 };
 
 // Datos del restaurante en memoria unos segundos: la misma tarjeta se pide muchas veces.
@@ -35,9 +38,10 @@ async function loadCompany(companyId: string): Promise<Company | null> {
         name: d.name ?? "",
         logoUrl: d.logoUrl ?? "",
         brandColor: d.brandColor,
-        header: d.walletCard?.header || "Cliente frecuente",
+        header: d.walletCard?.header || messages[companyLocale(d)].pass.member,
         rewards: cleanRewards(d.loyalty?.rewards),
         cardDesign: d.cardDesign,
+        pass: messages[companyLocale(d)].pass,
       }
     : null;
   companyCache.set(companyId, { at: Date.now(), data });
@@ -120,10 +124,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   const goal = Math.min(Math.max(next?.stamps ?? 10, 1), 20);
   const filled = Math.min(stamps, goal);
   const progress = !next
-    ? `${stamps} ${stamps === 1 ? "sello" : "sellos"}`
+    ? fmt(stamps === 1 ? company.pass.stampOne : company.pass.stampMany, { count: stamps })
     : stamps >= next.stamps
-      ? `Premio listo: ${next.title}`
-      : `${filled} de ${goal} · ${next.title}`;
+      ? fmt(company.pass.rewardReady, { reward: next.title })
+      : fmt(company.pass.progress, { filled, goal, reward: next.title });
 
   const title = design.font && CARD_FONTS.find((f) => f.id === design.font);
   const allText = `${company.name}${company.header}${progress}#${code}0123456789 de·`;
@@ -135,6 +139,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
     title
       ? loadFont(title.family, title.weight, allText)
           .then((data) => fonts.push({ name: "Title", data, weight: 700, style: "normal" }))
+          .catch(() => {})
+      : Promise.resolve(),
+    // Tailandés: las fuentes de la marca no traen esas letras; Satori usa esta como respaldo.
+    /[\u0E00-\u0E7F]/.test(allText)
+      ? loadFont("Noto Sans Thai", 700, allText)
+          .then((data) => fonts.push({ name: "Thai", data, weight: 700, style: "normal" }))
           .catch(() => {})
       : Promise.resolve(),
   ]);

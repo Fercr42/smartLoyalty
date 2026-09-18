@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { adminDb } from "../../firebase/admin";
 import SurveyClient from "../../components/surveyClient";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor } from "../../lib/colors";
+import { fmt } from "../../i18n/config";
+import { getI18n } from "../../i18n/server";
 
 export const runtime = "nodejs";
 
@@ -21,9 +23,9 @@ async function loadCompany(companyId: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { companyId } = await params;
-  const company = await loadCompany(companyId);
+  const [company, { m }] = await Promise.all([loadCompany(companyId), getI18n()]);
   return {
-    title: company ? `¿Cómo te fue? · ${company.name}` : "Encuesta",
+    title: company ? fmt(m.survey.metaTitle, { business: company.name }) : m.survey.metaFallback,
     robots: { index: false, follow: false },
   };
 }

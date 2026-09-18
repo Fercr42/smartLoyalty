@@ -8,6 +8,7 @@ import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
+import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
@@ -42,10 +43,12 @@ type MemberCard = {
   email: string | null;
 };
 
-const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const formatBirthday = (mmdd: string) => {
+// Nombres de los meses y fecha de cumpleaños en el idioma del cliente.
+const monthNames = (dateLocale: string) =>
+  Array.from({ length: 12 }, (_, i) => new Date(2024, i, 1).toLocaleDateString(dateLocale, { month: "long" }));
+const formatBirthday = (mmdd: string, dateLocale: string) => {
   const [month, day] = mmdd.split("-").map(Number);
-  return `${day} de ${MONTHS[month - 1]}`;
+  return new Date(2024, month - 1, day).toLocaleDateString(dateLocale, { day: "numeric", month: "long" });
 };
 
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -80,6 +83,8 @@ export default function JoinClient({
   companyId: string;
   walletEnabled: boolean;
 }) {
+  const { m, f, dateLocale, te } = useI18n();
+  const t = m.join;
   const [company, setCompany] = useState<Company | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [walletState, setWalletState] = useState<"idle" | "loading" | "error">("idle");
@@ -131,12 +136,12 @@ export default function JoinClient({
   const saveBirthday = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!birthdayDay || !birthdayMonth) {
-      setBirthdayError("Elige el día y el mes.");
+      setBirthdayError(t.pickDate);
       return;
     }
     setBirthdayError("");
     const { ok, error } = await loadMemberCard(`${birthdayMonth.padStart(2, "0")}-${birthdayDay.padStart(2, "0")}`);
-    if (!ok) setBirthdayError(error ?? "No se pudo guardar. Inténtalo de nuevo.");
+    if (!ok) setBirthdayError(error ?? t.saveFailed);
   };
 
   const addToGoogleWallet = async () => {
@@ -148,7 +153,7 @@ export default function JoinClient({
         body: JSON.stringify({ companyId, memberId: getMemberId(companyId) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(te(data.error));
       setWalletState("idle");
       window.location.href = data.url;
     } catch (e) {
@@ -231,10 +236,10 @@ export default function JoinClient({
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
 
   if (status === "loading") {
-    return <Shell bg={bg}><p className="text-gray-500">Cargando...</p></Shell>;
+    return <Shell bg={bg}><p className="text-gray-500">{m.common.loading}</p></Shell>;
   }
   if (status === "notfound" || !company) {
-    return <Shell bg={bg}><p className="text-gray-700">Este código QR no es válido.</p></Shell>;
+    return <Shell bg={bg}><p className="text-gray-700">{t.invalid}</p></Shell>;
   }
 
   return (
@@ -250,65 +255,65 @@ export default function JoinClient({
         {(status === "ready" || status === "error") && (
           <>
             <p className="text-gray-700 mb-4">
-              Recibe promociones, horarios y eventos directo en tu celular.
+              {t.lead}
             </p>
             <button
               onClick={() => subscribe(company.name)}
               className="w-full py-3 rounded-xl font-semibold hover:opacity-90"
               style={{ background: brand, color: textOn(brand) }}
             >
-              Activar notificaciones
+              {t.enable}
             </button>
             {status === "error" && (
               <p className="text-red-600 text-sm mt-3">
-                No se pudo activar. Revisa tu conexión e inténtalo de nuevo.
+                {t.enableFailed}
               </p>
             )}
           </>
         )}
 
-        {status === "subscribing" && <p className="text-gray-600">Activando...</p>}
+        {status === "subscribing" && <p className="text-gray-600">{t.enabling}</p>}
 
         {status === "subscribed" && (
           <div className="bg-green-50 text-green-800 rounded-xl p-4">
-            <p className="font-semibold">¡Listo! Ya estás suscrito.</p>
-            <p className="text-sm">Te avisaremos de promociones y novedades.</p>
+            <p className="font-semibold">{t.subscribedTitle}</p>
+            <p className="text-sm">{t.subscribedText}</p>
           </div>
         )}
 
         {status === "ios-install" && (
           <div className="bg-gray-100 rounded-xl p-4 text-left text-gray-800">
-            <p className="font-semibold mb-2">En iPhone, un paso más:</p>
+            <p className="font-semibold mb-2">{t.iosTitle}</p>
             <ol className="list-decimal pl-5 space-y-1 text-sm">
-              <li>Toca el botón <b>Compartir</b> de Safari (cuadro con flecha).</li>
-              <li>Elige <b>Agregar a pantalla de inicio</b>.</li>
-              <li>Abre el ícono nuevo y toca <b>Activar notificaciones</b>.</li>
+              <li>{t.iosStep1}</li>
+              <li>{t.iosStep2}</li>
+              <li>{t.iosStep3}</li>
             </ol>
-            <p className="text-xs text-gray-500 mt-2">Requiere iOS 16.4 o más reciente.</p>
+            <p className="text-xs text-gray-500 mt-2">{t.iosVersion}</p>
           </div>
         )}
 
         {status === "denied" && (
           <p className="text-gray-700">
-            Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para este sitio y recarga la página.
+            {t.blocked}
           </p>
         )}
 
         {status === "unsupported" && (
           <p className="text-gray-700">
-            Este navegador no admite notificaciones. Abre este enlace en Chrome (Android) o Safari (iPhone).
+            {t.unsupported}
           </p>
         )}
       </div>
 
       {memberCard && (
         <div className="w-full border-t pt-4 mt-2 flex flex-col items-center gap-2">
-          <p className="font-semibold text-gray-900">Tu tarjeta de cliente</p>
+          <p className="font-semibold text-gray-900">{t.cardTitle}</p>
           {company.cardDesign && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`/card-image/${companyId}?variant=card&s=${memberCard.stamps}&code=${memberCard.code}&v=${company.cardDesign.version ?? 0}`}
-              alt={`Tarjeta de ${company.name} con ${memberCard.stamps} sellos`}
+              alt={`${company.name} · ${memberCard.stamps} ${t.stamps}`}
               className="w-full aspect-[1012/638] rounded-2xl shadow-lg bg-gray-100"
             />
           )}
@@ -319,10 +324,10 @@ export default function JoinClient({
           {memberCard.rewards.length > 0 && (
             <>
               <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-                {memberCard.stamps} <span className="text-base font-normal text-gray-600">sellos</span>
+                {memberCard.stamps} <span className="text-base font-normal text-gray-600">{t.stamps}</span>
               </p>
               <p className="text-sm text-gray-700">
-                {nextRewardText(memberCard.rewards, memberCard.stamps) || "Muestra este código en caja para sumar sellos."}
+                {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText) || t.showCode}
               </p>
               <ul className="w-full text-sm text-left divide-y border rounded-lg">
                 {memberCard.rewards.map((r) => (
@@ -338,7 +343,7 @@ export default function JoinClient({
           )}
           {memberCard.coupons.length > 0 && (
             <div className="w-full text-left">
-              <p className="text-sm font-semibold text-gray-900 mb-1">Tus cupones</p>
+              <p className="text-sm font-semibold text-gray-900 mb-1">{t.coupons}</p>
               <ul className="flex flex-col gap-2">
                 {memberCard.coupons.map((c) => (
                   <li
@@ -348,7 +353,7 @@ export default function JoinClient({
                   >
                     <p className="font-semibold text-gray-900">{c.title}</p>
                     <p className="text-xs text-gray-500">
-                      {c.used ? "Ya lo usaste" : `Válido hasta el ${formatDay(c.expiresDate)} · muestra tu código en caja`}
+                      {c.used ? t.couponUsed : f(t.couponValid, { date: formatDay(c.expiresDate, dateLocale) })}
                     </p>
                   </li>
                 ))}
@@ -357,20 +362,20 @@ export default function JoinClient({
           )}
           {memberCard.birthdayEnabled &&
             (memberCard.birthday ? (
-              <p className="text-xs text-gray-500">Tu cumpleaños: {formatBirthday(memberCard.birthday)}</p>
+              <p className="text-xs text-gray-500">{f(t.birthday, { date: formatBirthday(memberCard.birthday, dateLocale) })}</p>
             ) : (
               <form onSubmit={saveBirthday} className="w-full text-left border rounded-lg p-3 flex flex-col gap-2">
-                <p className="text-sm font-semibold text-gray-900">¿Cuándo es tu cumpleaños?</p>
-                <p className="text-xs text-gray-600">Ese día te regalamos: {memberCard.birthdayGift}.</p>
+                <p className="text-sm font-semibold text-gray-900">{t.birthdayQuestion}</p>
+                <p className="text-xs text-gray-600">{f(t.birthdayGift, { gift: memberCard.birthdayGift ?? "" })}</p>
                 <div className="flex gap-2">
                   <select
                     id="birthday-day"
-                    aria-label="Día"
+                    aria-label={t.day}
                     value={birthdayDay}
                     onChange={(e) => setBirthdayDay(e.target.value)}
                     className="border rounded p-2 text-sm"
                   >
-                    <option value="">Día</option>
+                    <option value="">{t.day}</option>
                     {Array.from({ length: 31 }, (_, i) => (
                       <option key={i + 1} value={String(i + 1)}>
                         {i + 1}
@@ -379,13 +384,13 @@ export default function JoinClient({
                   </select>
                   <select
                     id="birthday-month"
-                    aria-label="Mes"
+                    aria-label={t.month}
                     value={birthdayMonth}
                     onChange={(e) => setBirthdayMonth(e.target.value)}
                     className="border rounded p-2 text-sm flex-1 min-w-0"
                   >
-                    <option value="">Mes</option>
-                    {MONTHS.map((name, i) => (
+                    <option value="">{t.month}</option>
+                    {monthNames(dateLocale).map((name, i) => (
                       <option key={name} value={String(i + 1)}>
                         {name}
                       </option>
@@ -395,7 +400,7 @@ export default function JoinClient({
                     className="px-3 rounded text-sm font-semibold"
                     style={{ background: brand, color: textOn(brand) }}
                   >
-                    Guardar
+                    {m.common.save}
                   </button>
                 </div>
                 {birthdayError && <p className="text-xs text-red-600">{birthdayError}</p>}
@@ -409,7 +414,7 @@ export default function JoinClient({
             onLinked={refreshCard}
           />
           <button onClick={refreshCard} className="text-sm text-blue-700 py-2 px-3">
-            Actualizar
+            {m.common.refresh}
           </button>
         </div>
       )}
@@ -417,16 +422,16 @@ export default function JoinClient({
       {/* Google Wallet no existe en iPhone; ahí irá Apple Wallet más adelante. */}
       {walletEnabled && !isIOS() && (
         <div className="w-full border-t pt-4 mt-2">
-          <p className="text-sm text-gray-600 mb-3">Guarda tu tarjeta de cliente en el celular.</p>
+          <p className="text-sm text-gray-600 mb-3">{t.walletLead}</p>
           <button
             onClick={addToGoogleWallet}
             disabled={walletState === "loading"}
             className="w-full bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800 disabled:opacity-60"
           >
-            {walletState === "loading" ? "Abriendo..." : "Agregar a Google Wallet"}
+            {walletState === "loading" ? t.walletOpening : t.walletAdd}
           </button>
           {walletState === "error" && (
-            <p className="text-red-600 text-sm mt-2">No se pudo crear la tarjeta. Inténtalo de nuevo.</p>
+            <p className="text-red-600 text-sm mt-2">{t.walletFailed}</p>
           )}
         </div>
       )}
@@ -436,10 +441,11 @@ export default function JoinClient({
 
 function Shell({ bg, children }: { bg: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-10" style={{ background: bg }}>
+    <main className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 py-10" style={{ background: bg }}>
       <div className="bg-white shadow-sm border rounded-2xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-3">
         {children}
       </div>
+      <LanguageSwitcher className="bg-white" />
     </main>
   );
 }

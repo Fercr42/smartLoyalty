@@ -10,9 +10,9 @@ describe("validación de notificaciones", () => {
     expect(input).toMatchObject({ type: "promo", title: "2x1 hoy", audience: "all", ctaLabel: "", ctaUrl: "" });
   });
 
-  it("botón con enlace sin texto usa 'Ver más'; grupo desconocido cae a 'todos'", () => {
+  it("botón con enlace sin texto queda vacío (la página muestra 'Ver más' en su idioma); grupo desconocido cae a 'todos'", () => {
     const input = parseNotificationInput({ ...base, ctaUrl: "https://ejemplo.com", audience: "vip" });
-    expect(input.ctaLabel).toBe("Ver más");
+    expect(input.ctaLabel).toBe("");
     expect(input.audience).toBe("all");
   });
 

@@ -4,6 +4,7 @@ import jsQR from "jsqr";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
 import { nextRewardText, type Reward } from "../lib/rewards";
+import { useI18n } from "../i18n/client";
 
 type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[] };
 type Member = { memberId: string; code: string; stamps: number; totalVisits: number };
@@ -11,6 +12,8 @@ type Notice = { ok: boolean; text: string } | null;
 type Coupon = { id: string; title: string; expiresDate: string; used: boolean };
 
 export default function StaffScanner({ companyId }: { companyId: string }) {
+  const { m, f, dateLocale, te } = useI18n();
+  const t = m.scanner;
   const sessionKey = `staff-session:${companyId}`;
   const [token, setToken] = useState<string | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -75,14 +78,14 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       const { ok, data } = await call({ action: "scan", code });
       setBusy(false);
       if (!ok) {
-        setNotice({ ok: false, text: data.error ?? "No se encontró la tarjeta." });
+        setNotice({ ok: false, text: te(data.error) ?? t.notFound });
         return;
       }
       setMember(data.member);
       setCoupons(data.coupons ?? []);
       setCompany((c) => (c ? { ...c, rewards: data.rewards } : c));
     },
-    [call]
+    [call, t, te]
   );
 
   const startCamera = async () => {
@@ -123,7 +126,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     } catch (e) {
       console.error(e);
       stopCamera();
-      setNotice({ ok: false, text: "No se pudo abrir la cámara. Dale permiso o escribe el código de la tarjeta." });
+      setNotice({ ok: false, text: t.cameraFailed });
     }
   };
 
@@ -134,7 +137,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     const { ok, data } = await call({ action: "login", pin });
     setBusy(false);
     if (!ok) {
-      setNotice({ ok: false, text: data.error ?? "No se pudo entrar." });
+      setNotice({ ok: false, text: te(data.error) ?? t.loginFailed });
       return;
     }
     setToken(data.token);
@@ -152,11 +155,11 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     const { ok, status, data } = await call({ action: "stamp", memberId: member.memberId, force });
     setBusy(false);
     if (status === 409 && !force) {
-      if (confirm(`${data.error} ¿Sumar otro de todos modos?`)) addStamp(true);
+      if (confirm(f(t.stampAgain, { error: te(data.error) ?? "" }))) addStamp(true);
       return;
     }
     if (!ok) {
-      setNotice({ ok: false, text: data.error ?? "No se pudo sumar el sello." });
+      setNotice({ ok: false, text: te(data.error) ?? t.stampFailed });
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps, totalVisits: m.totalVisits + 1 });
@@ -164,13 +167,13 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   };
 
   const redeem = async (reward: Reward) => {
-    if (!member || !confirm(`¿Canjear "${reward.title}" por ${reward.stamps} sellos?`)) return;
+    if (!member || !confirm(f(t.confirmRedeem, { reward: reward.title, count: reward.stamps }))) return;
     setBusy(true);
     setNotice(null);
     const { ok, data } = await call({ action: "redeem", memberId: member.memberId, rewardId: reward.id });
     setBusy(false);
     if (!ok) {
-      setNotice({ ok: false, text: data.error ?? "No se pudo canjear." });
+      setNotice({ ok: false, text: te(data.error) ?? t.redeemFailed });
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps });
@@ -178,7 +181,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   };
 
   const applyCoupon = async (coupon: Coupon) => {
-    if (!member || !confirm(`¿Usar el cupón "${coupon.title}"? Solo se puede usar una vez.`)) return;
+    if (!member || !confirm(f(t.confirmCoupon, { coupon: coupon.title }))) return;
     setBusy(true);
     setNotice(null);
     const { ok, status, data } = await call({ action: "coupon", memberId: member.memberId, couponId: coupon.id });
@@ -186,7 +189,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     if (ok || status === 409) {
       setCoupons((cs) => cs.map((c) => (c.id === coupon.id ? { ...c, used: true } : c)));
     }
-    setNotice(ok ? { ok: true, text: `Cupón aplicado: ${coupon.title}.` } : { ok: false, text: data.error ?? "No se pudo usar el cupón." });
+    setNotice(ok ? { ok: true, text: f(t.couponApplied, { coupon: coupon.title }) } : { ok: false, text: te(data.error) ?? t.couponFailed });
   };
 
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
@@ -202,13 +205,13 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <img src={company.logoUrl} alt="" className="w-10 h-10 rounded-lg object-cover border" />
             ) : null}
             <div className="min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{company?.name || "Escáner de sellos"}</p>
-              <p className="text-xs text-gray-500">Escáner de empleados</p>
+              <p className="font-semibold text-gray-900 truncate">{company?.name || t.title}</p>
+              <p className="text-xs text-gray-500">{t.subtitle}</p>
             </div>
           </div>
           {token && (
             <button onClick={logout} className="text-sm text-gray-600 border rounded px-3 py-1.5">
-              Salir
+              {t.exit}
             </button>
           )}
         </header>
@@ -216,7 +219,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
         {!token ? (
           <form onSubmit={login} className="bg-white rounded-2xl border p-6 flex flex-col gap-3">
             <label htmlFor="staff-pin" className="font-semibold text-gray-900">
-              PIN de empleados
+              {t.pin}
             </label>
             <input
               id="staff-pin"
@@ -234,15 +237,15 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               className="py-3 rounded-xl font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {busy ? "Entrando..." : "Entrar"}
+              {busy ? t.entering : t.enter}
             </button>
-            <p className="text-xs text-gray-500">El dueño define el PIN en su panel, sección Recompensas.</p>
+            <p className="text-xs text-gray-500">{t.pinHint}</p>
           </form>
         ) : member ? (
           <section className="bg-white rounded-2xl border p-5 flex flex-col gap-4">
             <div className="flex justify-between items-baseline">
               <span className="font-mono text-sm text-gray-500">#{member.code}</span>
-              <span className="text-xs text-gray-500 tabular-nums">{member.totalVisits} visitas</span>
+              <span className="text-xs text-gray-500 tabular-nums">{f(t.visits, { count: member.totalVisits })}</span>
             </div>
             {rewards.length > 0 && (
             <>
@@ -250,8 +253,8 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
                 {member.stamps}
               </p>
-              <p className="text-gray-600">sellos</p>
-              <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps)}</p>
+              <p className="text-gray-600">{t.stamps}</p>
+              <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
             </div>
             <button
               onClick={() => addStamp()}
@@ -259,14 +262,14 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               className="py-4 rounded-xl text-lg font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              +1 sello
+              {t.addStamp}
             </button>
             </>
             )}
 
             {rewards.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">Canjear premio</p>
+                <p className="text-sm font-semibold text-gray-900 mb-2">{t.redeemTitle}</p>
                 <ul className="flex flex-col gap-2">
                   {rewards.map((r) => (
                     <li key={r.id} className="flex items-center justify-between gap-3 border rounded-lg p-3">
@@ -279,7 +282,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                         onClick={() => redeem(r)}
                         className="px-3 py-1.5 rounded-lg border text-sm font-medium disabled:opacity-40"
                       >
-                        Canjear
+                        {t.redeem}
                       </button>
                     </li>
                   ))}
@@ -289,20 +292,20 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
 
             {coupons.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">Cupones</p>
+                <p className="text-sm font-semibold text-gray-900 mb-2">{t.coupons}</p>
                 <ul className="flex flex-col gap-2">
                   {coupons.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-3 border-2 border-dashed rounded-lg p-3">
                       <span className="min-w-0">
                         <b className="text-gray-900">{c.title}</b>
-                        <span className="block text-xs text-gray-500">Vence el {formatDay(c.expiresDate)}</span>
+                        <span className="block text-xs text-gray-500">{f(t.expires, { date: formatDay(c.expiresDate, dateLocale) })}</span>
                       </span>
                       <button
                         disabled={busy || c.used}
                         onClick={() => applyCoupon(c)}
                         className="px-3 py-1.5 rounded-lg border text-sm font-medium disabled:opacity-40"
                       >
-                        {c.used ? "Usado" : "Usar"}
+                        {c.used ? t.used : t.use}
                       </button>
                     </li>
                   ))}
@@ -311,7 +314,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             )}
 
             <button onClick={startCamera} className="text-blue-700 py-2 font-medium">
-              Escanear otra tarjeta
+              {t.scanAnother}
             </button>
           </section>
         ) : (
@@ -321,7 +324,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             </div>
             {scanning ? (
               <button onClick={stopCamera} className="py-3 rounded-xl border font-medium">
-                Cancelar
+                {m.common.cancel}
               </button>
             ) : (
               <button
@@ -330,7 +333,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                 className="py-4 rounded-xl text-lg font-semibold disabled:opacity-50"
                 style={{ background: brand, color: textOn(brand) }}
               >
-                {busy ? "Buscando..." : "Escanear tarjeta"}
+                {busy ? t.searching : t.scan}
               </button>
             )}
             <form
@@ -342,14 +345,14 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             >
               <input
                 id="staff-manual-code"
-                placeholder="O escribe el código, ej. 3F9A12BC"
+                placeholder={t.codePlaceholder}
                 value={manualCode}
                 maxLength={8}
                 onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                 className="border rounded-lg p-2 flex-1 min-w-0 font-mono"
               />
               <button disabled={busy} className="border rounded-lg px-4 font-medium disabled:opacity-50">
-                Buscar
+                {t.search}
               </button>
             </form>
           </section>

@@ -29,7 +29,7 @@ const newRow = (): Row => ({ id: crypto.randomUUID().slice(0, 8), title: "", sta
 
 export default function LoyaltyEditor() {
   const { user } = useAuth();
-  const { m, f: tf, dateLocale } = useI18n();
+  const { m, f: tf, dateLocale, te } = useI18n();
   const t = m.rewards;
   const [businessType, setBusinessType] = useState<BusinessType>("other");
   const [rows, setRows] = useState<Row[]>([newRow(), newRow()]);
@@ -161,7 +161,7 @@ export default function LoyaltyEditor() {
         body: JSON.stringify({ pin }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.pinFailed);
+      if (!res.ok) throw new Error(te(data.error) ?? t.pinFailed);
       setPinSet(true);
       setPin("");
       setPinNotice({ ok: true, text: t.pinSaved });

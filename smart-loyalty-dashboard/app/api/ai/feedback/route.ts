@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { aiErrorResponse, aiOwner, askAi, takeAiCredit } from "../../../lib/ai";
-import { AI_DAILY_LIMIT, cleanSummary, FeedbackSummarySchema } from "../../../lib/ai-context";
+import { requestI18n } from "../../../i18n/server";
+import { AI_DAILY_LIMIT, AI_LANGUAGE, cleanSummary, FeedbackSummarySchema } from "../../../lib/ai-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -9,9 +10,9 @@ export const maxDuration = 60;
 const DAYS = 90;
 const MIN_OPINIONS = 3;
 
-const SYSTEM = `Analizas las opiniones de los clientes de un restaurante. Vienen de una encuesta después de la visita: de 1 a 5 estrellas y un comentario opcional.
+const SYSTEM = `Analizas las opiniones de los clientes de un negocio. Vienen de una encuesta después de la visita: de 1 a 5 estrellas y un comentario opcional.
 
-Escribe para el dueño, en español sencillo y directo:
+Escribe para el dueño, en lenguaje sencillo y directo, en el idioma que se indica al final:
 - summary: 2 o 3 frases con el panorama general (cómo va la calificación y qué se repite).
 - positives: hasta 3 cosas que más gustan.
 - problems: hasta 3 quejas que se repiten, de la más a la menos mencionada, diciendo más o menos cuántas veces aparece cada una.
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const result = await askAi(
       FeedbackSummarySchema,
       SYSTEM,
-      `${opinions.length} opiniones de los últimos ${DAYS} días (promedio ${average.toFixed(1)}★), de la más reciente a la más antigua:\n<opiniones>\n${lines.join("\n")}\n</opiniones>`
+      `${opinions.length} opiniones de los últimos ${DAYS} días (promedio ${average.toFixed(1)}★), de la más reciente a la más antigua:\n<opiniones>\n${lines.join("\n")}\n</opiniones>\n\nEscribe el resumen en ${AI_LANGUAGE[requestI18n(req).locale]}.`
     );
     const stored = { summary: cleanSummary(result), count: opinions.length, average };
     await companyRef.collection("private").doc("aiFeedback").set({ ...stored, generatedAt: FieldValue.serverTimestamp() });

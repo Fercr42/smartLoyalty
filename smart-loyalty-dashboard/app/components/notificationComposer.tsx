@@ -61,7 +61,7 @@ const toLocalInput = (d: Date) =>
 
 export default function NotificationComposer() {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.composer;
   const formatDateTime = (ms: number) => new Date(ms).toLocaleString(dateLocale, { dateStyle: "medium", timeStyle: "short" });
   const audienceLabel = (id?: string) => campaignAudience(m.labels, undefined, id ?? "members");
@@ -168,7 +168,7 @@ export default function NotificationComposer() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t.sendError);
+      if (!res.ok) throw new Error(te(data.error) ?? t.sendError);
       setResult(
         data.scheduled
           ? { ok: true, text: f(t.scheduledFor, { date: formatDateTime(data.sendAt) }) }

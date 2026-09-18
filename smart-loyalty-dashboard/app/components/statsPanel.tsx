@@ -21,7 +21,7 @@ const niceMax = (max: number) => (max <= 4 ? 4 : Math.ceil(max / 5) * 5);
 
 export default function StatsPanel() {
   const { user } = useAuth();
-  const { m, f, dateLocale } = useI18n();
+  const { m, f, dateLocale, te } = useI18n();
   const t = m.stats;
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
@@ -31,10 +31,10 @@ export default function StatsPanel() {
     if (!user) return;
     const res = await fetch("/api/stats", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? t.loadError);
+    if (!res.ok) throw new Error(te(data.error) ?? t.loadError);
     setStats(data);
     setError("");
-  }, [user, t]);
+  }, [user, t, te]);
 
   useEffect(() => {
     load().catch((e) => setError(e instanceof Error ? e.message : t.loadError));

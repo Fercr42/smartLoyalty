@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import JoinClient from "../../components/joinClient";
+import { getI18n } from "../../i18n/server";
 
 type Props = { params: Promise<{ companyId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { companyId } = await params;
+  const [{ companyId }, { m }] = await Promise.all([params, getI18n()]);
   return {
-    title: "Recibe nuestras promociones",
+    title: m.join.metaTitle,
     manifest: `/join/${companyId}/manifest.webmanifest`,
-    appleWebApp: { capable: true, title: "Promociones", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: m.join.appName, statusBarStyle: "default" },
   };
 }
 
