@@ -109,6 +109,7 @@ async function askGemini<T extends z.ZodType>(schema: T, system: string, content
         throw new AiError(BUSY, 429);
       }
       if (e instanceof GeminiApiError) {
+        console.error("Gemini API", model, e.status, e.message.slice(0, 300));
         // Un modelo que no acepta el nivel de razonamiento: se reintenta sin él.
         if (e.status === 400 && lowThinking && /thinking/i.test(e.message)) {
           attempts.splice(i + 1, 0, { model, lowThinking: false });
@@ -117,7 +118,6 @@ async function askGemini<T extends z.ZodType>(schema: T, system: string, content
         // Modelo retirado o saturado (pasa seguido en el plan gratis): se prueba el siguiente.
         if ((e.status === 404 || e.status >= 500) && !last) continue;
         if (e.status === 429 || e.status === 503) throw new AiError(BUSY, 429);
-        console.error("Gemini API", model, e.status, e.message);
         throw new AiError(RETRY);
       }
       throw e;
