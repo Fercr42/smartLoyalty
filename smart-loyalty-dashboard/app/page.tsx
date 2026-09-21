@@ -193,8 +193,14 @@ export default async function Landing() {
       <footer className="border-t border-[#e6ece9]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-sm text-[#6b7580]">
           <BrandLogo size={22} />
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <LanguageSwitcher className="border-[#cfd8d4]" />
+            <Link href="/privacidad" className="hover:text-[#111418]">
+              {m.legal.privacyLink}
+            </Link>
+            <Link href="/terminos" className="hover:text-[#111418]">
+              {m.legal.termsLink}
+            </Link>
             <Link href="/panel" className="hover:text-[#111418]">
               {t.footerPanel}
             </Link>
