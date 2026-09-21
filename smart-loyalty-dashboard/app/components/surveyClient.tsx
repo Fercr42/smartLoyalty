@@ -88,7 +88,7 @@ export default function SurveyClient({
         ) : (
           <form onSubmit={submit} className="w-full flex flex-col items-center gap-4">
             <h1 className="text-2xl font-bold text-gray-900 text-balance">{f(t.question, { business: companyName })}</h1>
-            <div className="flex gap-1" role="radiogroup" aria-label={t.rating} onMouseLeave={() => setHover(0)}>
+            <div className="flex gap-1" role="radiogroup" aria-label={t.rating} onPointerLeave={() => setHover(0)}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
@@ -97,7 +97,8 @@ export default function SurveyClient({
                   aria-checked={rating === n}
                   aria-label={f(n === 1 ? t.starOne : t.starMany, { count: n })}
                   onClick={() => setRating(n)}
-                  onMouseEnter={() => setHover(n)}
+                  // Solo con mouse: en iPhone un cambio al "pasar por encima" se come el primer toque y la estrella no queda marcada.
+                  onPointerEnter={(e) => e.pointerType === "mouse" && setHover(n)}
                   className="p-1 rounded-lg focus-visible:outline focus-visible:outline-2"
                 >
                   <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden>
