@@ -12,9 +12,9 @@ import {
   type CardDesign,
   type CardSize,
 } from "../lib/card-design";
-import { compressImage, resizeImage } from "../lib/image";
+import { compressImage } from "../lib/image";
 import { useI18n } from "../i18n/client";
-import { cleanRewards } from "../lib/rewards";
+import { cleanRewards, formatPoints } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
 
 type Notice = { ok: boolean; text: string } | null;
@@ -23,12 +23,12 @@ const ASSET_MAX_CHARS = 900_000; // un documento de Firestore admite máx. 1 MB
 
 export default function CardDesigner() {
   const { user } = useAuth();
-  const { m, f: tf } = useI18n();
+  const { m, f: tf, locale } = useI18n();
   const t = m.cardDesign;
   const [design, setDesign] = useState<CardDesign | null>(null);
   const [brandColor, setBrandColor] = useState<string | undefined>();
-  const [goal, setGoal] = useState(10);
-  const [previewStamps, setPreviewStamps] = useState(6);
+  const [goal, setGoal] = useState(5000);
+  const [previewStamps, setPreviewStamps] = useState(3000);
   const [previewParam, setPreviewParam] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,10 +39,10 @@ export default function CardDesigner() {
     getDoc(doc(db, "companies", user.uid))
       .then((snap) => {
         const data = snap.data() ?? {};
-        const rewardGoal = cleanRewards(data.loyalty?.rewards)[0]?.stamps ?? 10;
+        const rewardGoal = cleanRewards(data.loyalty?.rewards)[0]?.stamps ?? 5000;
         setBrandColor(data.brandColor);
-        setGoal(Math.min(rewardGoal, 20));
-        setPreviewStamps(Math.max(1, Math.round(Math.min(rewardGoal, 20) * 0.6)));
+        setGoal(rewardGoal);
+        setPreviewStamps(Math.round(rewardGoal * 0.6));
         setDesign(data.cardDesign ? cleanDesign(data.cardDesign, data.brandColor) : templateDesign("classic", {}, data.brandColor));
       })
       .catch(console.error);
@@ -61,20 +61,17 @@ export default function CardDesigner() {
   const imageUrl = (variant: "card" | "hero", p: string, stamps = previewStamps) =>
     `/card-image/${user.uid}?variant=${variant}&s=${stamps}&code=DEMO1234&p=${encodeURIComponent(p)}`;
 
-  const upload = async (file: File | undefined, kind: "background" | "icon") => {
+  const upload = async (file: File | undefined) => {
     if (!file) return;
     setUploading(true);
     setNotice(null);
     try {
-      const data =
-        kind === "background"
-          ? await compressImage(file, 1400, ASSET_MAX_CHARS)
-          : await resizeImage(file, 256, "image/png");
+      const data = await compressImage(file, 1400, ASSET_MAX_CHARS);
       if (data.length > ASSET_MAX_CHARS) throw new Error(t.tooHeavy);
-      const assetId = kind === "background" ? "cardBackground" : "stampIcon";
+      const assetId = "cardBackground";
       await setDoc(doc(db, "companies", user.uid, "assets", assetId), { data });
-      const path = `/wallet-asset/${user.uid}/${kind === "background" ? "card-background" : "stamp-icon"}?v=${Date.now()}`;
-      update(kind === "background" ? { bgImageUrl: path, bgType: "image" } : { stampIconUrl: path, stampIcon: "custom" });
+      const path = `/wallet-asset/${user.uid}/card-background?v=${Date.now()}`;
+      update({ bgImageUrl: path, bgType: "image" });
     } catch (err) {
       setNotice({ ok: false, text: err instanceof Error ? err.message : t.uploadFailed });
     } finally {
@@ -182,7 +179,7 @@ export default function CardDesigner() {
                     className="sr-only"
                     disabled={uploading}
                     onChange={(e) => {
-                      upload(e.target.files?.[0], "background");
+                      upload(e.target.files?.[0]);
                       e.target.value = "";
                     }}
                   />
@@ -220,8 +217,8 @@ export default function CardDesigner() {
           <fieldset className="border rounded-lg p-4 flex flex-col gap-3">
             <legend className="text-sm font-semibold text-gray-800 px-1">{t.stamps}</legend>
             <label htmlFor="design-preview-stamps" className="flex flex-col gap-1 text-xs text-gray-600">
-              {tf(t.tryStamps, { count: previewStamps, goal })}
-              <input id="design-preview-stamps" type="range" min={0} max={goal} value={previewStamps} onChange={(e) => setPreviewStamps(Number(e.target.value))} />
+              {tf(t.tryStamps, { count: formatPoints(previewStamps, locale), goal: formatPoints(goal, locale) })}
+              <input id="design-preview-stamps" type="range" min={0} max={goal} step={Math.max(1, Math.round(goal / 20))} value={previewStamps} onChange={(e) => setPreviewStamps(Number(e.target.value))} />
             </label>
           </fieldset>
 

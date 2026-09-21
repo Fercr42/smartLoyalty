@@ -1,4 +1,4 @@
-// Recompensas por puntos o por puntos (el campo stamps guarda la meta en las dos formas).
+// Recompensas por puntos (el campo stamps guarda la meta de puntos).
 // Se usa en el navegador y en el servidor.
 
 export type Reward = { id: string; title: string; stamps: number };
@@ -18,13 +18,18 @@ export function cleanRewards(raw: unknown): Reward[] {
     .sort((a, b) => a.stamps - b.stamps);
 }
 
+const LOCALES: Record<string, string> = { es: "es-ES", en: "en-US", th: "th-TH" };
+
+// Puntos con separador de miles: 5000 -> 5.000
+export const formatPoints = (value: number, locale = "es") => value.toLocaleString(LOCALES[locale] ?? "es-ES");
+
 type RewardLabels = { ready: string; next: string };
 const fill = (text: string, vars: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 
 // Texto del próximo premio en el idioma dado (m.rewardText).
-export function nextRewardText(rewards: Reward[], stamps: number, t: RewardLabels) {
+export function nextRewardText(rewards: Reward[], stamps: number, t: RewardLabels, locale = "es") {
   const ready = rewards.filter((r) => r.stamps <= stamps);
   if (ready.length) return fill(t.ready, { reward: ready[ready.length - 1].title });
   const next = rewards.find((r) => r.stamps > stamps);
-  return next ? fill(t.next, { reward: next.title, count: next.stamps - stamps }) : "";
+  return next ? fill(t.next, { reward: next.title, count: formatPoints(next.stamps - stamps, locale) }) : "";
 }

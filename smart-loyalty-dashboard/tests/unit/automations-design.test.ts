@@ -24,8 +24,8 @@ describe("automatizaciones", () => {
 
 describe("diseño de tarjeta", () => {
   it("corrige valores inválidos", () => {
-    const design = cleanDesign({ bgColor: "red", font: "comic-sans", bgOverlay: 2, stampIcon: "x", bgImageUrl: "javascript:alert(1)" }, "#123456");
-    expect(design).toMatchObject({ bgColor: "#123456", font: "poppins", bgOverlay: 0.8, stampIcon: "circle", bgImageUrl: "" });
+    const design = cleanDesign({ bgColor: "red", font: "comic-sans", bgOverlay: 2, bgImageUrl: "javascript:alert(1)" }, "#123456");
+    expect(design).toMatchObject({ bgColor: "#123456", font: "poppins", bgOverlay: 0.8, bgImageUrl: "" });
   });
 
   it("las plantillas conservan lo que la marca subió", () => {

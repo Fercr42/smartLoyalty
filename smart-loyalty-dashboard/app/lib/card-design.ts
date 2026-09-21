@@ -16,8 +16,6 @@ export type CardDesign = {
   font: string;
   logoSize: CardSize;
   titleSize: CardSize;
-  stampIcon: string;
-  stampIconUrl: string;
   useInWallet: boolean;
   version?: number;
 };
@@ -35,19 +33,6 @@ export const CARD_FONTS = [
   { id: "bricolage", label: "Bricolage Grotesque", family: "Bricolage Grotesque", weight: 700 },
 ] as const;
 
-export const STAMP_ICONS = [
-  { id: "circle", label: "Círculo" },
-  { id: "star", label: "Estrella" },
-  { id: "heart", label: "Corazón" },
-  { id: "check", label: "Check" },
-  { id: "crown", label: "Corona" },
-  { id: "coffee", label: "Café" },
-  { id: "burger", label: "Hamburguesa" },
-  { id: "pizza", label: "Pizza" },
-  { id: "logo", label: "Tu logo" },
-  { id: "custom", label: "Tu ícono" },
-] as const;
-
 const BASE: CardDesign = {
   template: "classic",
   bgType: "solid",
@@ -61,18 +46,16 @@ const BASE: CardDesign = {
   font: "poppins",
   logoSize: "md",
   titleSize: "md",
-  stampIcon: "circle",
-  stampIconUrl: "",
   useInWallet: true,
 };
 
 export const CARD_TEMPLATES: { id: string; label: string; design: Partial<CardDesign> }[] = [
-  { id: "classic", label: "Clásica", design: { bgType: "solid", textColor: "#ffffff", accentColor: "#f2b134", font: "poppins", logoSize: "md", titleSize: "md", stampIcon: "circle" } },
-  { id: "modern", label: "Moderna", design: { bgType: "gradient", bgColor: "#111827", bgColor2: "#4f46e5", bgAngle: 135, textColor: "#ffffff", accentColor: "#a5b4fc", font: "montserrat", logoSize: "md", titleSize: "md", stampIcon: "star" } },
-  { id: "elegant", label: "Elegante", design: { bgType: "solid", bgColor: "#1c1917", textColor: "#f5f0e6", accentColor: "#d4a24c", font: "playfair", logoSize: "md", titleSize: "lg", stampIcon: "crown" } },
-  { id: "fun", label: "Divertida", design: { bgType: "gradient", bgColor: "#ff7a18", bgColor2: "#ff3d77", bgAngle: 120, textColor: "#ffffff", accentColor: "#fff7ad", font: "pacifico", logoSize: "md", titleSize: "lg", stampIcon: "heart" } },
-  { id: "minimal", label: "Minimalista", design: { bgType: "solid", bgColor: "#ffffff", textColor: "#111418", accentColor: "#111418", font: "nunito", logoSize: "sm", titleSize: "md", stampIcon: "check" } },
-  { id: "photo", label: "Con foto", design: { bgType: "image", bgColor: "#222222", bgOverlay: 0.5, textColor: "#ffffff", accentColor: "#ffd166", font: "bebas", logoSize: "md", titleSize: "lg", stampIcon: "burger" } },
+  { id: "classic", label: "Clásica", design: { bgType: "solid", textColor: "#ffffff", accentColor: "#f2b134", font: "poppins", logoSize: "md", titleSize: "md" } },
+  { id: "modern", label: "Moderna", design: { bgType: "gradient", bgColor: "#111827", bgColor2: "#4f46e5", bgAngle: 135, textColor: "#ffffff", accentColor: "#a5b4fc", font: "montserrat", logoSize: "md", titleSize: "md" } },
+  { id: "elegant", label: "Elegante", design: { bgType: "solid", bgColor: "#1c1917", textColor: "#f5f0e6", accentColor: "#d4a24c", font: "playfair", logoSize: "md", titleSize: "lg" } },
+  { id: "fun", label: "Divertida", design: { bgType: "gradient", bgColor: "#ff7a18", bgColor2: "#ff3d77", bgAngle: 120, textColor: "#ffffff", accentColor: "#fff7ad", font: "pacifico", logoSize: "md", titleSize: "lg" } },
+  { id: "minimal", label: "Minimalista", design: { bgType: "solid", bgColor: "#ffffff", textColor: "#111418", accentColor: "#111418", font: "nunito", logoSize: "sm", titleSize: "md" } },
+  { id: "photo", label: "Con foto", design: { bgType: "image", bgColor: "#222222", bgOverlay: 0.5, textColor: "#ffffff", accentColor: "#ffd166", font: "bebas", logoSize: "md", titleSize: "lg" } },
 ];
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -92,7 +75,6 @@ export function templateDesign(templateId: string, current: Partial<CardDesign> 
     template: template.id,
     // Conservar lo que la marca subió.
     bgImageUrl: current.bgImageUrl ?? "",
-    stampIconUrl: current.stampIconUrl ?? "",
     useInWallet: current.useInWallet ?? true,
   });
 }
@@ -100,7 +82,6 @@ export function templateDesign(templateId: string, current: Partial<CardDesign> 
 export function cleanDesign(raw: unknown, brandColor?: string): CardDesign {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const fonts = CARD_FONTS.map((f) => f.id);
-  const icons = STAMP_ICONS.map((i) => i.id);
   const angle = Number(r.bgAngle);
   const overlay = Number(r.bgOverlay);
   return {
@@ -116,8 +97,6 @@ export function cleanDesign(raw: unknown, brandColor?: string): CardDesign {
     font: oneOf(r.font, fonts, "poppins"),
     logoSize: oneOf(r.logoSize, ["sm", "md", "lg"] as const, "md"),
     titleSize: oneOf(r.titleSize, ["sm", "md", "lg"] as const, "md"),
-    stampIcon: oneOf(r.stampIcon, icons, "circle"),
-    stampIconUrl: url(r.stampIconUrl),
     useInWallet: r.useInWallet !== false,
     ...(Number.isFinite(Number(r.version)) && r.version ? { version: Number(r.version) } : {}),
   };

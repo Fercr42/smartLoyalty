@@ -9,7 +9,7 @@ import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
-import { nextRewardText, type Reward } from "../lib/rewards";
+import { formatPoints, nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
   name: string;
@@ -83,7 +83,7 @@ export default function JoinClient({
   companyId: string;
   walletEnabled: boolean;
 }) {
-  const { m, f, dateLocale, te } = useI18n();
+  const { m, f, dateLocale, locale, te } = useI18n();
   const t = m.join;
   const [company, setCompany] = useState<Company | null>(null);
   const [status, setStatus] = useState<Status>("loading");
@@ -327,14 +327,14 @@ export default function JoinClient({
                 {memberCard.stamps.toLocaleString(dateLocale)} <span className="text-base font-normal text-gray-600">{t.points}</span>
               </p>
               <p className="text-sm text-gray-700">
-                {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText) || t.showCode}
+                {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText, locale) || t.showCode}
               </p>
               <ul className="w-full text-sm text-left divide-y border rounded-lg">
                 {memberCard.rewards.map((r) => (
                   <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
                     <span className="text-gray-900">{r.title}</span>
                     <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                      {Math.min(memberCard.stamps, r.stamps)}/{r.stamps}
+                      {formatPoints(Math.min(memberCard.stamps, r.stamps), locale)}/{formatPoints(r.stamps, locale)}
                     </span>
                   </li>
                 ))}
