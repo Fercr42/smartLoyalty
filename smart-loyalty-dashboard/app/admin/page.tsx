@@ -4,6 +4,8 @@ import { signOut } from "firebase/auth";
 import { useAuth } from "../contexts/AuthContext";
 import Auth from "../components/auth";
 import BrandLogo from "../components/brandLogo";
+import CampaignResults from "../components/campaignResults";
+import StatsPanel from "../components/statsPanel";
 import { auth } from "../firebase/config";
 
 // Administrador de Smart Loyalty: todos los restaurantes, planes, pruebas por vencer e ingresos.
@@ -27,6 +29,7 @@ type Restaurant = {
   };
   usage: { members: number; devices: number; activity30: number; sends30: number };
 };
+type Feedback = { id: string; rating: number; comment: string; code: string | null; at: number | null };
 type Overview = {
   summary: { total: number; trial: number; trialEndingSoon: number; paying: number; manual: number; expired: number; none: number; monthlyRevenueUsd: number };
   restaurants: Restaurant[];
@@ -77,6 +80,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<FilterId>("all");
   const [actions, setActions] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
+  const [openId, setOpenId] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -143,6 +147,7 @@ export default function AdminPage() {
     if (filter === "expired") return r.plan.status === "expired";
     return true;
   });
+  const openRestaurant = data.restaurants.find((r) => r.id === openId) ?? null;
   const s = data.summary;
   const tiles = [
     { label: "Restaurantes", value: s.total, note: s.none ? `${s.none} sin terminar registro` : "registrados" },
@@ -217,9 +222,17 @@ export default function AdminPage() {
                       <p className="text-xs text-gray-500">
                         {r.city || "—"} · desde {formatDate(r.createdAt)}
                       </p>
-                      <a href={`/join/${r.id}`} target="_blank" className="text-xs text-blue-700">
-                        Ver página del QR
-                      </a>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <a href={`/join/${r.id}`} target="_blank" className="text-xs text-blue-700">
+                          Ver página del QR
+                        </a>
+                        <button
+                          onClick={() => setOpenId((id) => (id === r.id ? "" : r.id))}
+                          className="text-xs font-medium text-gray-900 underline"
+                        >
+                          {openId === r.id ? "Ocultar datos" : "Ver datos"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-gray-900">{r.ownerName || "—"}</p>
@@ -281,7 +294,85 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        {openRestaurant && (
+          <section className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="text-xl font-bold text-gray-900">Datos de {openRestaurant.name}</h2>
+              <button onClick={() => setOpenId("")} className="text-sm text-gray-600 border rounded-md px-3 py-1.5 hover:bg-gray-100">
+                Cerrar
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 -mt-4">
+              Solo lectura. El dueño ve lo mismo en su panel; desde aquí no se envían mensajes ni se cambia su configuración.
+            </p>
+            <div className="bg-white border rounded-xl p-5">
+              <StatsPanel companyId={openRestaurant.id} />
+            </div>
+            <div className="bg-white border rounded-xl p-5">
+              <CampaignResults companyId={openRestaurant.id} />
+            </div>
+            <AdminFeedback companyId={openRestaurant.id} />
+          </section>
+        )}
       </main>
+    </div>
+  );
+}
+
+// Opiniones de la encuesta de un restaurante (solo administrador).
+function AdminFeedback({ companyId }: { companyId: string }) {
+  const { user } = useAuth();
+  const [data, setData] = useState<{ average: number | null; count: number; feedback: Feedback[] } | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    user
+      .getIdToken()
+      .then((token) => fetch(`/api/admin/feedback?companyId=${companyId}`, { headers: { Authorization: `Bearer ${token}` } }))
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error ?? "No se pudieron cargar las opiniones");
+        if (alive) setData(body);
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "No se pudieron cargar las opiniones"));
+    return () => {
+      alive = false;
+    };
+  }, [user, companyId]);
+
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (!data) return <p className="text-sm text-gray-500">Cargando opiniones...</p>;
+
+  return (
+    <div className="bg-white border rounded-xl p-5 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-semibold text-gray-900">Opiniones de la encuesta</h3>
+        <span className="text-sm text-gray-600 tabular-nums">
+          {data.count ? `${(data.average ?? 0).toFixed(1)} ★ · ${data.count} opiniones` : "Aún sin opiniones"}
+        </span>
+      </div>
+      {data.feedback.length > 0 && (
+        <ul className="divide-y text-sm">
+          {data.feedback.map((f) => (
+            <li key={f.id} className="py-2">
+              <div className="flex justify-between gap-3">
+                <span className={f.rating <= 3 ? "text-red-700 font-medium" : "text-gray-900 font-medium"}>
+                  {"★".repeat(f.rating)}
+                  <span className="text-gray-300">{"★".repeat(5 - f.rating)}</span>
+                </span>
+                <span className="text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                  {f.code ? `#${f.code} · ` : ""}
+                  {formatDate(f.at)}
+                </span>
+              </div>
+              {f.comment && <p className="text-gray-700">{f.comment}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

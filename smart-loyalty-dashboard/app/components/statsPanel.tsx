@@ -19,7 +19,8 @@ const BAR_COLOR = "#2563eb"; // una sola serie: un solo tono
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 const niceMax = (max: number) => (max <= 4 ? 4 : Math.ceil(max / 5) * 5);
 
-export default function StatsPanel() {
+// companyId: solo lo usa el administrador para ver los datos de un restaurante.
+export default function StatsPanel({ companyId }: { companyId?: string }) {
   const { user } = useAuth();
   const { m, f, dateLocale, te } = useI18n();
   const t = m.stats;
@@ -29,12 +30,13 @@ export default function StatsPanel() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const res = await fetch("/api/stats", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+    const query = companyId ? `?companyId=${companyId}` : "";
+    const res = await fetch(`/api/stats${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
     const data = await res.json();
     if (!res.ok) throw new Error(te(data.error) ?? t.loadError);
     setStats(data);
     setError("");
-  }, [user, t, te]);
+  }, [user, t, te, companyId]);
 
   useEffect(() => {
     load().catch((e) => setError(e instanceof Error ? e.message : t.loadError));
@@ -134,13 +136,15 @@ export default function StatsPanel() {
           >
             {m.common.refresh}
           </button>
-          <button
-            onClick={exportMembers}
-            disabled={exporting}
-            className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
-          >
-            {exporting ? t.exporting : t.export}
-          </button>
+          {!companyId && (
+            <button
+              onClick={exportMembers}
+              disabled={exporting}
+              className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
+            >
+              {exporting ? t.exporting : t.export}
+            </button>
+          )}
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

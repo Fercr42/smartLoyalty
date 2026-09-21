@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "../../firebase/admin";
+import { adminDb } from "../../firebase/admin";
+import { resolveCompanyId } from "../../lib/api-company";
 
 export const runtime = "nodejs";
 
@@ -10,16 +11,10 @@ const RETURN_WINDOW_DAYS = 7;
 // Resultados de las últimas 20 campañas: alcance, aperturas, cupones usados
 // y clientes que recibieron el mensaje y volvieron (con sello) en los 7 días siguientes.
 export async function GET(req: NextRequest) {
-  const idToken = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!idToken) return Response.json({ error: "No autorizado" }, { status: 401 });
-  let uid: string;
-  try {
-    uid = (await adminAuth().verifyIdToken(idToken)).uid;
-  } catch {
-    return Response.json({ error: "Sesión inválida" }, { status: 401 });
-  }
+  const companyId = await resolveCompanyId(req);
+  if (companyId instanceof Response) return companyId;
 
-  const companyRef = adminDb().collection("companies").doc(uid);
+  const companyRef = adminDb().collection("companies").doc(companyId);
   const notifications = await companyRef.collection("notifications").orderBy("createdAt", "desc").limit(20).get();
   if (notifications.empty) return Response.json({ campaigns: [], windowDays: RETURN_WINDOW_DAYS });
 

@@ -44,6 +44,7 @@ export const legal = {
           "Para que funcione la tarjeta de sellos, los cupones y las notificaciones que el negocio envía.",
           "Para mostrarle al negocio estadísticas de visitas y resultados de sus campañas.",
           "Para cobrar la suscripción del negocio y darle soporte.",
+          "Para calcular estadísticas agregadas y anónimas que nos ayudan a mejorar el producto.",
           "No vendemos datos personales ni los usamos para publicidad de terceros.",
         ],
       },
@@ -155,6 +156,7 @@ export const legal = {
         p: [
           "Los datos de tus clientes son tuyos. Puedes descargarlos en Excel desde el panel cuando quieras.",
           "El tratamiento de datos personales se explica en la política de privacidad.",
+          "Podemos usar información agregada y anónima (por ejemplo, promedio de visitas o de clientes que regresan) para mejorar el producto y en material de venta, sin identificar a tu negocio ni a tus clientes, salvo que nos des permiso por escrito.",
         ],
       },
       {

@@ -44,6 +44,7 @@ export const legal: Messages["legal"] = {
           "To run the stamp card, the coupons and the notifications the business sends.",
           "To show the business its visit statistics and campaign results.",
           "To charge the business's subscription and provide support.",
+          "To calculate aggregated, anonymous statistics that help us improve the product.",
           "We do not sell personal data and do not use it for third-party advertising.",
         ],
       },
@@ -155,6 +156,7 @@ export const legal: Messages["legal"] = {
         p: [
           "Your customers' data is yours. You can download it as a spreadsheet from the dashboard anytime.",
           "How personal data is handled is explained in the privacy policy.",
+          "We may use aggregated, anonymous information (for example, average visits or returning-customer rates) to improve the product and in sales material, without identifying your business or your customers, unless you give us written permission.",
         ],
       },
       {

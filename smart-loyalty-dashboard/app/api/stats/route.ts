@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "../../firebase/admin";
+import { adminDb } from "../../firebase/admin";
+import { resolveCompanyId } from "../../lib/api-company";
 
 export const runtime = "nodejs";
 
@@ -9,16 +10,10 @@ const DAYS = 30;
 // Datos de los últimos 30 días para el panel de estadísticas.
 // Las fechas van en milisegundos: el navegador las agrupa por día y hora en la zona del dueño.
 export async function GET(req: NextRequest) {
-  const idToken = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!idToken) return Response.json({ error: "No autorizado" }, { status: 401 });
-  let uid: string;
-  try {
-    uid = (await adminAuth().verifyIdToken(idToken)).uid;
-  } catch {
-    return Response.json({ error: "Sesión inválida" }, { status: 401 });
-  }
+  const companyId = await resolveCompanyId(req);
+  if (companyId instanceof Response) return companyId;
 
-  const companyRef = adminDb().collection("companies").doc(uid);
+  const companyRef = adminDb().collection("companies").doc(companyId);
   const since = Timestamp.fromMillis(Date.now() - DAYS * 86_400_000);
   const [company, members, newMembers, devices, events, notifications] = await Promise.all([
     companyRef.get(),

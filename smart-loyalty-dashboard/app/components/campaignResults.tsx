@@ -25,7 +25,8 @@ type Campaign = {
 const BAR = "#0e7c66";
 const pct = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
 
-export default function CampaignResults() {
+// companyId: solo lo usa el administrador para ver los datos de un restaurante.
+export default function CampaignResults({ companyId }: { companyId?: string }) {
   const { user } = useAuth();
   const { m, f, dateLocale, te } = useI18n();
   const t = m.results;
@@ -37,7 +38,8 @@ export default function CampaignResults() {
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch("/api/campaigns", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+      const query = companyId ? `?companyId=${companyId}` : "";
+      const res = await fetch(`/api/campaigns${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(te(data.error) ?? t.loadError);
       setCampaigns(data.campaigns);
@@ -46,7 +48,7 @@ export default function CampaignResults() {
     } catch (e) {
       setError(e instanceof Error ? e.message : t.loadError);
     }
-  }, [user, t, te]);
+  }, [user, t, te, companyId]);
 
   useEffect(() => {
     load().catch(console.error);

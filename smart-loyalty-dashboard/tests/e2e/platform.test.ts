@@ -58,6 +58,16 @@ describe.skipIf(!hasCredentials)("Registro, planes, administrador, pagos y pági
     expect((await api("/api/billing/paypal/activate", { body: { subscriptionId: "I-FAKE123456" } })).status).toBe(401);
   });
 
+  it("un dueño no puede ver los datos de otro restaurante", async () => {
+    const [mine, other] = await Promise.all([createCompany(), createCompany()]);
+    const owner = bearer(await idTokenFor(mine));
+    for (const path of ["/api/stats", "/api/campaigns"]) {
+      expect((await api(`${path}?companyId=${other}`, { method: "GET", headers: owner })).status, path).toBe(403);
+      expect((await api(`${path}?companyId=${mine}`, { method: "GET", headers: owner })).status, path).toBe(200);
+    }
+    expect((await api(`/api/admin/feedback?companyId=${other}`, { method: "GET", headers: owner })).status).toBe(403);
+  });
+
   it("IA: no deja usarla sin sesión", async () => {
     expect((await api("/api/ai/campaign", { body: { goal: "Llenar los martes" } })).status).toBe(401);
     expect((await api("/api/ai/feedback", { body: {} })).status).toBe(401);
