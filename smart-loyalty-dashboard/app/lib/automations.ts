@@ -11,6 +11,7 @@ import { messages } from "../i18n/messages";
 import { createMemberCoupon } from "./coupons";
 import { walletCardSaved } from "./google-wallet";
 import { planState, type Plan } from "./plan";
+import { cleanLoyalty } from "./loyalty-mode";
 import { cleanRewards } from "./rewards";
 import { scheduleNotification, sendNotification } from "./send-notification";
 import { isLeapYear, localParts, validTimezone } from "./time";
@@ -45,11 +46,17 @@ export async function maybeNotifyNearReward(
 ) {
   const settings = cleanAutomations(company.automations, messages[companyLocale(company)].automations.defaults).nearReward;
   if (!settings.enabled || !planState(company.plan).allowed) return;
-  const reward = cleanRewards(company.loyalty?.rewards).find((r) => r.stamps - stamps === 1);
+  // Por sellos: le falta exactamente 1. Por puntos: está al 80% o más de la meta.
+  const mode = cleanLoyalty(company.loyalty).mode;
+  const rewards = cleanRewards(company.loyalty?.rewards);
+  const reward =
+    mode === "points"
+      ? rewards.find((r) => stamps < r.stamps && stamps >= r.stamps * 0.8)
+      : rewards.find((r) => r.stamps - stamps === 1);
   if (!reward) return;
   try {
     if (!(await canReach(companyRef, memberId))) return;
-    const vars = { reward: reward.title, business: company.name ?? "" };
+    const vars = { reward: reward.title, business: company.name ?? "", points: reward.stamps - stamps };
     await scheduleNotification(
       company.id,
       {

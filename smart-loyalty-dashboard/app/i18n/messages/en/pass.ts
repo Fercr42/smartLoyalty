@@ -3,6 +3,7 @@ import type { Messages } from "../es";
 export const pass: Messages["pass"] = {
   business: "My business",
   stamps: "Stamps",
+  points: "Points",
   reward: "Reward",
   about: "About us",
   promotions: "Promotions",

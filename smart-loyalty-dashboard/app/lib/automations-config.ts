@@ -53,7 +53,7 @@ export function cleanAutomations(raw: unknown, defaults: DefaultTexts): Automati
 }
 
 // Variables de los textos. Se aceptan en español y en inglés: {negocio} = {restaurante} = {business}, etc.
-export type TemplateVars = { business?: string; reward?: string; gift?: string; days?: number };
+export type TemplateVars = { business?: string; reward?: string; gift?: string; days?: number; points?: number };
 const ALIASES: Record<string, keyof TemplateVars> = {
   business: "business",
   negocio: "business",
@@ -64,6 +64,8 @@ const ALIASES: Record<string, keyof TemplateVars> = {
   regalo: "gift",
   days: "days",
   dias: "days",
+  points: "points",
+  puntos: "points",
 };
 
 export const fillTemplate = (template: string, vars: TemplateVars) =>

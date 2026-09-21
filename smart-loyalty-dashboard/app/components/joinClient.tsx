@@ -9,6 +9,7 @@ import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
+import { cleanLoyalty } from "../lib/loyalty-mode";
 import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
@@ -17,7 +18,7 @@ type Company = {
   logoUrl?: string;
   brandColor?: string;
   bgColor?: string;
-  loyalty?: { rewards?: unknown };
+  loyalty?: { rewards?: unknown; mode?: unknown; rule?: unknown; currency?: unknown };
   cardDesign?: { version?: number };
 };
 type Status =
@@ -232,6 +233,7 @@ export default function JoinClient({
     });
   }, [companyId, subscribe, loadMemberCard]);
 
+  const points = cleanLoyalty(company?.loyalty).mode === "points";
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
 
@@ -324,7 +326,7 @@ export default function JoinClient({
           {memberCard.rewards.length > 0 && (
             <>
               <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-                {memberCard.stamps} <span className="text-base font-normal text-gray-600">{t.stamps}</span>
+                {memberCard.stamps.toLocaleString(dateLocale)} <span className="text-base font-normal text-gray-600">{points ? t.points : t.stamps}</span>
               </p>
               <p className="text-sm text-gray-700">
                 {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText) || t.showCode}

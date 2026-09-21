@@ -3,10 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
+import { cleanLoyalty, pointsFor, type LoyaltyConfig } from "../lib/loyalty-mode";
 import { nextRewardText, type Reward } from "../lib/rewards";
 import { useI18n } from "../i18n/client";
 
-type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[] };
+type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[]; loyalty?: unknown };
 type Member = { memberId: string; code: string; stamps: number; totalVisits: number };
 type Notice = { ok: boolean; text: string } | null;
 type Coupon = { id: string; title: string; expiresDate: string; used: boolean };
@@ -22,6 +23,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [sale, setSale] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -83,7 +85,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       }
       setMember(data.member);
       setCoupons(data.coupons ?? []);
-      setCompany((c) => (c ? { ...c, rewards: data.rewards } : c));
+      setCompany((c) => (c ? { ...c, rewards: data.rewards, loyalty: data.loyalty ?? c.loyalty } : c));
     },
     [call, t, te]
   );
@@ -152,8 +154,9 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
     if (!member) return;
     setBusy(true);
     setNotice(null);
-    const { ok, status, data } = await call({ action: "stamp", memberId: member.memberId, force });
+    const { ok, status, data } = await call({ action: "stamp", memberId: member.memberId, force, sale: Number(sale) || 0 });
     setBusy(false);
+    if (ok) setSale("");
     if (status === 409 && !force) {
       if (confirm(f(t.stampAgain, { error: te(data.error) ?? "" }))) addStamp(true);
       return;
@@ -194,6 +197,8 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
 
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const rewards = company?.rewards ?? [];
+  const loyalty: LoyaltyConfig = cleanLoyalty(company?.loyalty);
+  const addedPoints = pointsFor(Number(sale), loyalty.rule);
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-6 flex justify-center">
@@ -253,16 +258,34 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
                 {member.stamps}
               </p>
-              <p className="text-gray-600">{t.stamps}</p>
+              <p className="text-gray-600">{loyalty.mode === "points" ? t.points : t.stamps}</p>
               <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
             </div>
+            {loyalty.mode === "points" && (
+              <label htmlFor="staff-sale" className="flex flex-col gap-1 text-sm text-gray-700">
+                {t.amount}
+                <span className="flex items-center gap-2 border rounded-lg p-2">
+                  <span className="text-gray-500">{loyalty.currency}</span>
+                  <input
+                    id="staff-sale"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={sale}
+                    onChange={(e) => setSale(e.target.value)}
+                    className="flex-1 min-w-0 text-xl tabular-nums outline-none"
+                  />
+                </span>
+                <span className="text-xs text-gray-500 tabular-nums">{f(t.willAdd, { points: addedPoints })}</span>
+              </label>
+            )}
             <button
               onClick={() => addStamp()}
-              disabled={busy}
+              disabled={busy || (loyalty.mode === "points" && addedPoints <= 0)}
               className="py-4 rounded-xl text-lg font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {t.addStamp}
+              {loyalty.mode === "points" ? t.addPoints : t.addStamp}
             </button>
             </>
             )}

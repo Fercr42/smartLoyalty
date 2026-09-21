@@ -2,13 +2,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n/client";
+import { cleanLoyalty } from "../lib/loyalty-mode";
 
 type Stats = {
   days: number;
   members: number;
   newMembers: number;
   devices: number;
-  events: { type: string; at: number; memberId: string }[];
+  events: { type: string; at: number; memberId: string; amount?: number; sale?: number }[];
+  loyalty?: unknown;
   notifications: { count: number; sent: number; views: number; walletViews?: number };
   reviewClicks: number;
   feedback?: { count: number; average: number | null };
@@ -66,11 +68,15 @@ export default function StatsPanel({ companyId }: { companyId?: string }) {
     });
 
     const plural = (n: number) => f(n === 1 ? t.visitOne : t.visitMany, { count: n });
+    const sales = stamps.filter((e) => (e.sale ?? 0) > 0);
     return {
       visits: stamps.length,
       visitors: visitsByMember.size,
       returning: [...visitsByMember.values()].filter((n) => n >= 2).length,
       redeems: stats.events.filter((e) => e.type === "redeem").length,
+      sales: sales.reduce((sum, e) => sum + (e.sale ?? 0), 0),
+      salesCount: sales.length,
+      points: stamps.reduce((sum, e) => sum + (e.amount ?? 0), 0),
       coupons: stats.events.filter((e) => e.type === "coupon").length,
       byDay: days.map<Bar>((d) => {
         const label = d.date.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
@@ -106,10 +112,27 @@ export default function StatsPanel({ companyId }: { companyId?: string }) {
   if (error && !stats) return <p className="text-sm text-red-600">{error}</p>;
   if (!stats || !summary) return <p className="text-sm text-gray-500">{t.loading}</p>;
 
+  const loyalty = cleanLoyalty(stats.loyalty);
+
   const tiles = [
     { label: t.members, value: stats.members, note: f(t.newMembers, { count: stats.newMembers }) },
     { label: t.visits, value: summary.visits, note: f(t.distinct, { count: summary.visitors }) },
     { label: t.returning, value: summary.returning, note: f(t.returningNote, { count: summary.visitors }) },
+    ...(loyalty.mode === "points"
+      ? [
+          {
+            label: t.sales,
+            value: `${loyalty.currency}${summary.sales.toLocaleString(dateLocale)}`,
+            note: f(t.salesNote, { count: summary.salesCount }),
+          },
+          {
+            label: t.ticket,
+            value: summary.salesCount ? `${loyalty.currency}${Math.round(summary.sales / summary.salesCount).toLocaleString(dateLocale)}` : "—",
+            note: t.inDays,
+          },
+          { label: t.pointsGiven, value: summary.points.toLocaleString(dateLocale), note: t.inDays },
+        ]
+      : []),
     { label: t.redeems, value: summary.redeems, note: t.inDays },
     { label: t.coupons, value: summary.coupons, note: t.inDays },
     { label: t.devices, value: stats.devices, note: t.devicesNote },

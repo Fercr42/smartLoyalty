@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { adminDb } from "../../firebase/admin";
 import { CARD_FONTS, cleanDesign, type CardDesign, type CardSize } from "../../lib/card-design";
+import { cleanLoyalty } from "../../lib/loyalty-mode";
 import { cleanRewards, type Reward } from "../../lib/rewards";
 import { companyLocale, fmt } from "../../i18n/config";
 import { messages, type Messages } from "../../i18n/messages";
@@ -24,6 +25,8 @@ type Company = {
   rewards: Reward[];
   cardDesign?: unknown;
   pass: Messages["pass"];
+  points: boolean;
+  locale: string;
 };
 
 // Datos del restaurante en memoria unos segundos: la misma tarjeta se pide muchas veces.
@@ -42,6 +45,8 @@ async function loadCompany(companyId: string): Promise<Company | null> {
         rewards: cleanRewards(d.loyalty?.rewards),
         cardDesign: d.cardDesign,
         pass: messages[companyLocale(d)].pass,
+        points: cleanLoyalty(d.loyalty).mode === "points",
+        locale: companyLocale(d),
       }
     : null;
   companyCache.set(companyId, { at: Date.now(), data });
@@ -121,16 +126,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
 
   // Meta: el primer premio que todavía no alcanza (o el último).
   const next = company.rewards.find((r) => r.stamps > stamps) ?? company.rewards[company.rewards.length - 1];
-  const goal = Math.min(Math.max(next?.stamps ?? 10, 1), 20);
+  // Por puntos la meta puede ser grande: se muestra un número, no círculos.
+  const goal = company.points ? Math.max(next?.stamps ?? 1000, 1) : Math.min(Math.max(next?.stamps ?? 10, 1), 20);
   const filled = Math.min(stamps, goal);
+  const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-CR" : company.locale);
   const progress = !next
-    ? fmt(stamps === 1 ? company.pass.stampOne : company.pass.stampMany, { count: stamps })
+    ? company.points
+      ? `${number(stamps)} ${company.pass.points}`
+      : fmt(stamps === 1 ? company.pass.stampOne : company.pass.stampMany, { count: stamps })
     : stamps >= next.stamps
       ? fmt(company.pass.rewardReady, { reward: next.title })
-      : fmt(company.pass.progress, { filled, goal, reward: next.title });
+      : fmt(company.pass.progress, { filled: number(filled), goal: number(goal), reward: next.title });
 
   const title = design.font && CARD_FONTS.find((f) => f.id === design.font);
-  const allText = `${company.name}${company.header}${progress}#${code}0123456789 de·`;
+  const allText = `${company.name}${company.header}${progress}${company.pass.points}#${code}0123456789 de·,.`;
   const fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }[] = [];
   await Promise.all([
     loadFont("Nunito", 700, allText)
@@ -255,18 +264,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          alignSelf: "center",
-          gap,
-          width: cols * stampSize + (cols - 1) * gap,
-        }}
-      >
-        {stampNodes}
-      </div>
+      {company.points ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "center", gap: variant === "card" ? 16 : 10 }}>
+          <div
+            style={{
+              fontFamily: hasTitleFont ? "Title" : undefined,
+              fontSize: variant === "card" ? 150 : 92,
+              lineHeight: 1,
+              color: design.accentColor,
+            }}
+          >
+            {number(stamps)}
+          </div>
+          <div style={{ display: "flex", width: areaWidth, height: variant === "card" ? 22 : 16, borderRadius: 11, backgroundColor: rgba(design.textColor, 0.25), overflow: "hidden" }}>
+            <div style={{ display: "flex", width: Math.round((filled / goal) * areaWidth), backgroundColor: design.accentColor }} />
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignSelf: "center",
+            gap,
+            width: cols * stampSize + (cols - 1) * gap,
+          }}
+        >
+          {stampNodes}
+        </div>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div style={{ fontSize: variant === "card" ? 30 : 24, color: design.accentColor }}>{progress}</div>

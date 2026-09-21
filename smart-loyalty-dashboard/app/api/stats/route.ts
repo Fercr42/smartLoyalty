@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "../../firebase/admin";
+import { cleanLoyalty } from "../../lib/loyalty-mode";
 import { resolveCompanyId } from "../../lib/api-company";
 
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     companyRef.collection("walletMembers").count().get(),
     companyRef.collection("walletMembers").where("createdAt", ">=", since).count().get(),
     companyRef.collection("subscribers").count().get(),
-    companyRef.collection("loyaltyEvents").where("at", ">=", since).select("type", "at", "memberId").get(),
+    companyRef.collection("loyaltyEvents").where("at", ">=", since).select("type", "at", "memberId", "amount", "sale").get(),
     companyRef.collection("notifications").where("createdAt", ">=", since).select("sent", "views", "walletViews").get(),
   ]);
 
@@ -35,11 +36,18 @@ export async function GET(req: NextRequest) {
 
   return Response.json({
     days: DAYS,
+    loyalty: cleanLoyalty(company.data()?.loyalty),
     members: members.data().count,
     newMembers: newMembers.data().count,
     devices: devices.data().count,
     events: events.docs
-      .map((d) => ({ type: d.data().type, at: d.data().at?.toMillis?.() ?? 0, memberId: d.data().memberId }))
+      .map((d) => ({
+        type: d.data().type,
+        at: d.data().at?.toMillis?.() ?? 0,
+        memberId: d.data().memberId,
+        amount: d.data().amount ?? 0,
+        sale: d.data().sale ?? 0,
+      }))
       .filter((e) => e.at),
     notifications: { count: notifications.size, sent, views, walletViews },
     reviewClicks: company.data()?.reviews?.clicks ?? 0,

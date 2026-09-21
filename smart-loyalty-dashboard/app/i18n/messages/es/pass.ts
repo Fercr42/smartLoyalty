@@ -4,6 +4,7 @@
 export const pass = {
   business: "Mi negocio",
   stamps: "Sellos",
+  points: "Puntos",
   reward: "Premio",
   about: "Sobre nosotros",
   promotions: "Promociones",

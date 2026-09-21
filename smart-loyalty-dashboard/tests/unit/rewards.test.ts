@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cleanRewards, nextRewardText } from "../../app/lib/rewards";
 import { messages } from "../../app/i18n/messages";
+import { cleanLoyalty, DEFAULT_RULE, pointsFor } from "../../app/lib/loyalty-mode";
 
 const t = messages.es.rewardText;
 
@@ -11,7 +12,7 @@ describe("cleanRewards", () => {
       { id: "a", title: "  Bebida ", stamps: "5" },
       { title: "", stamps: 3 },
       { title: "Cero", stamps: 0 },
-      { title: "Demasiado", stamps: 101 },
+      { title: "Demasiado", stamps: 1_000_001 },
     ]);
     expect(rewards).toEqual([
       { id: "a", title: "Bebida", stamps: 5 },
@@ -48,5 +49,26 @@ describe("nextRewardText", () => {
 
   it("sin premios no dice nada", () => {
     expect(nextRewardText([], 4, t)).toBe("");
+  });
+});
+
+describe("puntos por monto de compra", () => {
+  const rule = { points: 1000, per: 5000 };
+
+  it("da puntos proporcionales al monto", () => {
+    expect(pointsFor(5000, rule)).toBe(1000);
+    expect(pointsFor(12000, rule)).toBe(2400);
+    expect(pointsFor(2500, rule)).toBe(500);
+    expect(pointsFor(0, rule)).toBe(0);
+    expect(pointsFor(-100, rule)).toBe(0);
+  });
+
+  it("corrige una configuración inválida y guarda el modo", () => {
+    expect(cleanLoyalty({})).toEqual({ mode: "stamps", rule: DEFAULT_RULE, currency: "$" });
+    expect(cleanLoyalty({ mode: "points", rule: { points: 0, per: -3 }, currency: " ₡ " })).toEqual({
+      mode: "points",
+      rule: DEFAULT_RULE,
+      currency: "₡",
+    });
   });
 });

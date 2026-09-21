@@ -74,3 +74,34 @@ describe.skipIf(!hasCredentials)("Sellos, premios y cupones", () => {
     expect(r.status).toBe(409);
   });
 });
+
+describe.skipIf(!hasCredentials)("Puntos por monto de compra", () => {
+  afterAll(cleanup);
+
+  it("suma puntos según el monto y descuenta al canjear", async () => {
+    const companyId = await createCompany({
+      loyalty: {
+        mode: "points",
+        rule: { points: 1000, per: 5000 },
+        currency: "₡",
+        rewards: [{ id: "a", title: "Postre", stamps: 8000 }],
+      },
+    });
+    const staff = await staffHeaders(companyId);
+    const member = crypto.randomUUID();
+    await api("/api/loyalty/member", { body: { companyId, memberId: member } });
+
+    let r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, sale: 12000 }, headers: staff });
+    expect(r.data).toMatchObject({ stamps: 2400, mode: "points" });
+
+    // Sin monto no suma nada.
+    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true }, headers: staff });
+    expect(r.status).toBe(400);
+
+    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, sale: 30000, force: true }, headers: staff });
+    expect(r.data.stamps).toBe(8400);
+
+    r = await api("/api/loyalty/staff", { body: { action: "redeem", companyId, memberId: member, rewardId: "a" }, headers: staff });
+    expect(r.data.stamps).toBe(400);
+  });
+});

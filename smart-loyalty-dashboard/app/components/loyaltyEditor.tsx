@@ -6,6 +6,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n/client";
 import { cleanBusinessType, type BusinessType } from "../lib/business-types";
+import { cleanLoyalty, DEFAULT_RULE, pointsFor, type LoyaltyMode } from "../lib/loyalty-mode";
 import { publicOrigin } from "../lib/origin";
 import { cleanRewards, MAX_REWARDS } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
@@ -25,6 +26,7 @@ type Notice = { ok: boolean; text: string } | null;
 type Feedback = { id: string; rating: number; comment: string; code: string | null; at?: Timestamp };
 
 const HINT_STAMPS = ["5", "8", "10"];
+const HINT_POINTS = ["4000", "8000", "20000"];
 const newRow = (): Row => ({ id: crypto.randomUUID().slice(0, 8), title: "", stamps: "" });
 
 export default function LoyaltyEditor() {
@@ -32,6 +34,10 @@ export default function LoyaltyEditor() {
   const { m, f: tf, dateLocale, te } = useI18n();
   const t = m.rewards;
   const [businessType, setBusinessType] = useState<BusinessType>("other");
+  const [mode, setMode] = useState<LoyaltyMode>("stamps");
+  const [rulePoints, setRulePoints] = useState(String(DEFAULT_RULE.points));
+  const [rulePer, setRulePer] = useState(String(DEFAULT_RULE.per));
+  const [currency, setCurrency] = useState("$");
   const [rows, setRows] = useState<Row[]>([newRow(), newRow()]);
   const [pinSet, setPinSet] = useState(false);
   const [pin, setPin] = useState("");
@@ -66,6 +72,11 @@ export default function LoyaltyEditor() {
       .then((snap) => {
         setBusinessType(cleanBusinessType(snap.data()?.businessType));
         const loyalty = snap.data()?.loyalty ?? {};
+        const config = cleanLoyalty(loyalty);
+        setMode(config.mode);
+        setRulePoints(String(config.rule.points));
+        setRulePer(String(config.rule.per));
+        setCurrency(config.currency);
         const saved = cleanRewards(loyalty.rewards);
         if (saved.length) setRows(saved.map((r) => ({ id: r.id, title: r.title, stamps: String(r.stamps) })));
         setPinSet(Boolean(loyalty.pinSet));
@@ -100,7 +111,18 @@ export default function LoyaltyEditor() {
     setSavingRewards(true);
     setRewardsNotice(null);
     try {
-      await setDoc(doc(db, "companies", user.uid), { loyalty: { rewards } }, { merge: true });
+      await setDoc(
+        doc(db, "companies", user.uid),
+        {
+          loyalty: {
+            rewards,
+            mode,
+            rule: { points: Number(rulePoints) || DEFAULT_RULE.points, per: Number(rulePer) || DEFAULT_RULE.per },
+            currency: currency.trim() || "$",
+          },
+        },
+        { merge: true }
+      );
       const updated = await syncWalletCards(user);
       setRewardsNotice({
         ok: true,
@@ -172,16 +194,82 @@ export default function LoyaltyEditor() {
     }
   };
 
+  const points = mode === "points";
+  const exampleSale = (Number(rulePer) || DEFAULT_RULE.per) * 2.4;
+  const examplePoints = pointsFor(exampleSale, {
+    points: Number(rulePoints) || DEFAULT_RULE.points,
+    per: Number(rulePer) || DEFAULT_RULE.per,
+  });
+
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <div className="flex flex-col gap-6">
         <form onSubmit={saveRewards} className="flex flex-col gap-3">
           <div>
             <h3 className="font-semibold text-gray-900">{t.title}</h3>
-            <p className="text-sm text-gray-600">{t.lead}</p>
+            <p className="text-sm text-gray-600">{points ? t.leadPoints : t.lead}</p>
           </div>
+
+          <fieldset className="border rounded-lg p-3 flex flex-col gap-2">
+            <legend className="text-sm text-gray-600 px-1">{t.modeTitle}</legend>
+            {(["stamps", "points"] as const).map((id) => (
+              <label key={id} htmlFor={`loyalty-mode-${id}`} className="flex items-center gap-2 text-sm text-gray-800">
+                <input
+                  id={`loyalty-mode-${id}`}
+                  type="radio"
+                  name="loyalty-mode"
+                  checked={mode === id}
+                  onChange={() => setMode(id)}
+                />
+                {id === "points" ? t.modePoints : t.modeStamps}
+              </label>
+            ))}
+            {points && (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  <label htmlFor="rule-points" className="flex flex-col gap-1 text-xs text-gray-600">
+                    {t.rulePoints}
+                    <input
+                      id="rule-points"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={rulePoints}
+                      onChange={(e) => setRulePoints(e.target.value)}
+                      className="border p-2 rounded text-sm tabular-nums min-w-0"
+                    />
+                  </label>
+                  <label htmlFor="rule-per" className="flex flex-col gap-1 text-xs text-gray-600">
+                    {t.rulePer}
+                    <input
+                      id="rule-per"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={rulePer}
+                      onChange={(e) => setRulePer(e.target.value)}
+                      className="border p-2 rounded text-sm tabular-nums min-w-0"
+                    />
+                  </label>
+                  <label htmlFor="rule-currency" className="flex flex-col gap-1 text-xs text-gray-600">
+                    {t.currency}
+                    <input
+                      id="rule-currency"
+                      maxLength={5}
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="border p-2 rounded text-sm min-w-0"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 tabular-nums">
+                  {tf(t.ruleExample, { sale: `${currency}${exampleSale.toLocaleString(dateLocale)}`, points: examplePoints.toLocaleString(dateLocale) })}
+                </p>
+              </>
+            )}
+          </fieldset>
           {rows.map((row, i) => (
-            <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_5.5rem_auto] gap-2 items-center">
+            <div key={row.id} className={`grid ${points ? "grid-cols-[minmax(0,1fr)_7rem_auto]" : "grid-cols-[minmax(0,1fr)_5.5rem_auto]"} gap-2 items-center`}>
               <input
                 id={`reward-title-${row.id}`}
                 placeholder={m.niches.rewardHints[businessType][i] ?? t.rewardName}
@@ -195,12 +283,12 @@ export default function LoyaltyEditor() {
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={100}
-                placeholder={HINT_STAMPS[i] ?? "10"}
+                max={points ? 1_000_000 : 100}
+                placeholder={(points ? HINT_POINTS[i] : HINT_STAMPS[i]) ?? (points ? "10000" : "10")}
                 value={row.stamps}
                 onChange={(e) => updateRow(row.id, "stamps", e.target.value)}
                 className="border p-2 rounded tabular-nums"
-                aria-label={t.stampsNeeded}
+                aria-label={points ? t.pointsNeeded : t.stampsNeeded}
               />
               <button
                 type="button"

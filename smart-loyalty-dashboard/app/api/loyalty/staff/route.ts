@@ -15,6 +15,7 @@ import { companyLocale, fmt } from "../../../i18n/config";
 import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
 import { planState, type Plan } from "../../../lib/plan";
+import { cleanLoyalty, MAX_SALE, pointsFor } from "../../../lib/loyalty-mode";
 import { cleanRewards } from "../../../lib/rewards";
 import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
   if (!company.exists) return bad("Restaurante no encontrado", 404);
   const companyData = { ...company.data(), id: companyId } as WalletCompany & { logoUrl?: string };
   const rewards = cleanRewards(companyData.loyalty?.rewards);
+  const loyalty = cleanLoyalty(companyData.loyalty);
   const pin = staff.data() ?? {};
 
   if (action === "login") {
@@ -135,6 +137,7 @@ export async function POST(req: NextRequest) {
         logoUrl: companyData.logoUrl ?? "",
         brandColor: companyData.brandColor ?? "",
         rewards,
+        loyalty,
       },
     });
   }
@@ -174,7 +177,7 @@ export async function POST(req: NextRequest) {
       const main = await members.doc(mainId).get();
       if (main.exists) found = main;
     }
-    return Response.json({ member: memberView(found), rewards, coupons: await memberCoupons(companyRef, found.id) });
+    return Response.json({ member: memberView(found), rewards, loyalty, coupons: await memberCoupons(companyRef, found.id) });
   }
 
   if (!["stamp", "redeem", "coupon"].includes(action)) return bad("Acción inválida");
@@ -221,6 +224,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ couponId, used: true });
   }
 
+  const sale = Math.min(Math.max(Math.round(Number(body.sale) || 0), 0), MAX_SALE);
   const reward = action === "redeem" ? rewards.find((r) => r.id === body.rewardId) : undefined;
   if (action === "redeem" && !reward) return bad("Recompensa no encontrada");
 
@@ -237,16 +241,25 @@ export async function POST(req: NextRequest) {
         if (!body.force && Date.now() - last < STAMP_COOLDOWN_MS) {
           throw new LoyaltyError("A esta tarjeta ya se le sumó un sello hace menos de 1 minuto.", 409);
         }
-        stamps = current + 1;
+        // Por puntos: el monto de la compra decide cuántos suma. Por sellos: siempre 1.
+        const added = loyalty.mode === "points" ? pointsFor(sale, loyalty.rule) : 1;
+        if (loyalty.mode === "points" && added <= 0) throw new LoyaltyError("Escribe el monto de la compra.", 400);
+        stamps = current + added;
         tx.update(memberRef, {
           stamps,
           totalVisits: FieldValue.increment(1),
           lastStampAt: FieldValue.serverTimestamp(),
         });
-        tx.set(events.doc(), { ...event, type: "stamp", amount: 1, stampsAfter: stamps });
+        tx.set(events.doc(), { ...event, type: "stamp", amount: added, stampsAfter: stamps, ...(sale ? { sale } : {}) });
       } else {
         if (current < reward!.stamps) {
-          throw new LoyaltyError(`Le faltan ${reward!.stamps - current} sellos para "${reward!.title}".`, 400);
+          const missing = reward!.stamps - current;
+          throw new LoyaltyError(
+            loyalty.mode === "points"
+              ? `Le faltan ${missing} puntos para "${reward!.title}".`
+              : `Le faltan ${missing} sellos para "${reward!.title}".`,
+            400
+          );
         }
         stamps = current - reward!.stamps;
         tx.update(memberRef, { stamps, lastRedeemAt: FieldValue.serverTimestamp() });
@@ -271,5 +284,5 @@ export async function POST(req: NextRequest) {
     await maybeRequestReview(companyRef, companyData, memberId, origin);
     await maybeNotifyNearReward(companyRef, companyData, memberId, stamps);
   }
-  return Response.json({ stamps });
+  return Response.json({ stamps, mode: loyalty.mode });
 }

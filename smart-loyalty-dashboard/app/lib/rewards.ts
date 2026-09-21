@@ -1,4 +1,5 @@
-// Recompensas por sellos. Se usa en el navegador y en el servidor.
+// Recompensas por sellos o por puntos (el campo stamps guarda la meta en las dos formas).
+// Se usa en el navegador y en el servidor.
 
 export type Reward = { id: string; title: string; stamps: number };
 
@@ -12,7 +13,7 @@ export function cleanRewards(raw: unknown): Reward[] {
       title: typeof r?.title === "string" ? r.title.trim().slice(0, 40) : "",
       stamps: Math.round(Number(r?.stamps)),
     }))
-    .filter((r) => r.title && Number.isFinite(r.stamps) && r.stamps >= 1 && r.stamps <= 100)
+    .filter((r) => r.title && Number.isFinite(r.stamps) && r.stamps >= 1 && r.stamps <= 1_000_000)
     .slice(0, MAX_REWARDS)
     .sort((a, b) => a.stamps - b.stamps);
 }

@@ -5,6 +5,7 @@ import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
 import { describeLink } from "./links";
 import { validLocation } from "./location";
+import { cleanLoyalty } from "./loyalty-mode";
 import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
@@ -37,7 +38,7 @@ export type WalletCompany = {
   logoUrl?: string;
   brandColor?: string;
   walletCard?: WalletCard;
-  loyalty?: { rewards?: unknown; walletTemplate?: number };
+  loyalty?: { rewards?: unknown; walletTemplate?: number; mode?: unknown; rule?: unknown; currency?: unknown };
   location?: unknown;
   cardDesign?: unknown;
   language?: unknown;
@@ -115,7 +116,7 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   const modules = [
     ...(rewards.length
       ? [
-          { id: "stamps", header: p.stamps, body: String(stamps) },
+          { id: "stamps", header: cleanLoyalty(company.loyalty).mode === "points" ? p.points : p.stamps, body: String(stamps) },
           { id: "next_reward", header: p.reward, body: nextRewardText(rewards, stamps, m.rewardText) || m.rewardText.keepGoing },
         ]
       : []),

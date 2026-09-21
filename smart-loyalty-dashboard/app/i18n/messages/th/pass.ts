@@ -3,6 +3,7 @@ import type { Messages } from "../es";
 export const pass: Messages["pass"] = {
   business: "ร้านของฉัน",
   stamps: "แต้ม",
+  points: "คะแนน",
   reward: "รางวัล",
   about: "เกี่ยวกับเรา",
   promotions: "โปรโมชัน",
