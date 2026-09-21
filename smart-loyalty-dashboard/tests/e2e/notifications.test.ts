@@ -49,7 +49,7 @@ describe.skipIf(!hasCredentials)("Notificaciones, grupos, programadas y resultad
 
   it("los resultados muestran quién volvió y el cupón usado", async () => {
     const staff = await staffHeaders(companyId);
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: frequent, force: true }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: frequent, force: true, sale: 5000 }, headers: staff });
     const couponId = (await db().collection("companies").doc(companyId).collection("coupons").get()).docs[0].id;
     await api("/api/loyalty/staff", { body: { action: "coupon", companyId, memberId: frequent, couponId }, headers: staff });
 

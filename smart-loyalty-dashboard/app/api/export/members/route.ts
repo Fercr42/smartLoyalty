@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const withPush = new Set(subscribers.docs.map((d) => d.data().memberId).filter(Boolean));
 
   const rows: unknown[][] = [
-    ["Código", "Tipo de tarjeta", "Sellos", "Visitas", "Cliente desde", "Última visita", "Último canje", "Recibe notificaciones"],
+    ["Código", "Tipo de tarjeta", "Puntos", "Visitas", "Cliente desde", "Última visita", "Último canje", "Recibe notificaciones"],
     ...members.docs.map((d) => {
       const m = d.data();
       return [

@@ -34,7 +34,7 @@ export const panel: Messages["panel"] = {
     resultados: { label: "Results", description: "What happened after each message: opens, coupons and customers who came back." },
     automatizaciones: { label: "Automations", description: "Messages that send themselves at the right moment." },
     tarjeta: { label: "Card", description: "Your card design and what it shows in Google Wallet." },
-    recompensas: { label: "Rewards", description: "Stamp rewards, staff scanner and reviews." },
+    recompensas: { label: "Rewards", description: "Point rewards, staff scanner and reviews." },
     negocio: { label: "My business", description: "Name, type, language, logo, colors and your QR code." },
     plan: { label: "Plan", description: "Your Smart Loyalty subscription." },
   },
@@ -50,7 +50,7 @@ export const panel: Messages["panel"] = {
 
 export const planBanner: Messages["planBanner"] = {
   expiredTitle: "Your plan isn't active.",
-  expiredText: "Your customers still see their card and stamps still work, but you can't send notifications or use automations.",
+  expiredText: "Your customers still see their card and points still work, but you can't send notifications or use automations.",
   failedTitle: "The last PayPal payment failed.",
   failedText: "PayPal will retry it; please check your payment method.",
   trialOne: "1 day left in your free trial.",
@@ -64,7 +64,7 @@ export const business: Messages["business"] = {
   description: "Description (what you offer)",
   type: "Type of business",
   language: "Language of automatic messages",
-  languageHint: "Birthday, “1 stamp to go”, review request and Google Wallet texts.",
+  languageHint: "Birthday, “Almost there”, review request and Google Wallet texts.",
   logo: "Logo",
   changeLogo: "Change logo",
   uploadLogo: "Upload logo",
@@ -78,7 +78,7 @@ export const business: Messages["business"] = {
 };
 
 export const qr: Messages["qr"] = {
-  hint: "Customers scan it to join, collect stamps and get your promotions",
+  hint: "Customers scan it to join, collect points and get your promotions",
   download: "Download PNG",
   fileName: "smart-loyalty-qr.png",
 };
@@ -93,7 +93,7 @@ export const labels: Messages["labels"] = {
   },
   automatic: {
     review: "Review request (automatic)",
-    near_reward: "1 stamp to go (automatic)",
+    near_reward: "Almost there (automatic)",
     birthday: "Birthday (automatic)",
     winback: "We miss you (automatic)",
   },

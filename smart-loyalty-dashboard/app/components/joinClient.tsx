@@ -9,7 +9,6 @@ import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
-import { cleanLoyalty } from "../lib/loyalty-mode";
 import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
@@ -112,7 +111,7 @@ export default function JoinClient({
     [companyId]
   );
 
-  // Vuelve a leer el diseño y los sellos (el ícono de inicio en iPhone se reanuda sin recargar la página).
+  // Vuelve a leer el diseño y los puntos (el ícono de inicio en iPhone se reanuda sin recargar la página).
   const refreshCard = useCallback(() => {
     getDoc(doc(db, "companies", companyId))
       .then((snap) => {
@@ -214,7 +213,7 @@ export default function JoinClient({
       if (!snap.exists()) return setStatus("notfound");
       const data = snap.data() as Company;
       setCompany(data);
-      // Sellos y cupones; la API responde enabled:false si el restaurante no usa ninguno.
+      // Puntos y cupones; la API responde enabled:false si el restaurante no usa ninguno.
       loadMemberCard().catch(console.error);
       if (isIOS() && !isStandalone()) return setStatus("ios-install");
       if (!(await isSupported())) return setStatus("unsupported");
@@ -233,7 +232,6 @@ export default function JoinClient({
     });
   }, [companyId, subscribe, loadMemberCard]);
 
-  const points = cleanLoyalty(company?.loyalty).mode === "points";
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
 
@@ -326,7 +324,7 @@ export default function JoinClient({
           {memberCard.rewards.length > 0 && (
             <>
               <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-                {memberCard.stamps.toLocaleString(dateLocale)} <span className="text-base font-normal text-gray-600">{points ? t.points : t.stamps}</span>
+                {memberCard.stamps.toLocaleString(dateLocale)} <span className="text-base font-normal text-gray-600">{t.points}</span>
               </p>
               <p className="text-sm text-gray-700">
                 {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText) || t.showCode}

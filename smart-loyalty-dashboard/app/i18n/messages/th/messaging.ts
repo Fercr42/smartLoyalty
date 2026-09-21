@@ -11,7 +11,7 @@ export const composer: Messages["composer"] = {
     all: "ผู้ติดตามทุกคน",
     frequent: "มา 5 ครั้งขึ้นไป",
     inactive: "ไม่ได้มา 30 วัน",
-    near_reward: "อีก 1 แต้ม",
+    near_reward: "ใกล้ได้รางวัล",
   },
   repeats: { none: "ครั้งเดียว", daily: "ทุกวัน", weekly: "ทุกสัปดาห์" },
   invalidImage: "รูปภาพไม่ถูกต้อง",

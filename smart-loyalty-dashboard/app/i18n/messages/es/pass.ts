@@ -3,15 +3,15 @@
 
 export const pass = {
   business: "Mi negocio",
-  stamps: "Sellos",
+  stamps: "Puntos",
   points: "Puntos",
   reward: "Premio",
   about: "Sobre nosotros",
   promotions: "Promociones",
   member: "Cliente frecuente",
   membership: "Membresía",
-  stampOne: "{count} sello",
-  stampMany: "{count} sellos",
+  stampOne: "{count} punto",
+  stampMany: "{count} puntos",
   rewardReady: "Premio listo: {reward}",
   progress: "{filled} de {goal} · {reward}",
   call: "Llamar",

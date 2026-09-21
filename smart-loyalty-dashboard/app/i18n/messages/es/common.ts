@@ -1,6 +1,6 @@
 export const common = {
   language: "Idioma",
-  appDescription: "Tarjeta de sellos, cupones y notificaciones para que tus clientes vuelvan a tu negocio.",
+  appDescription: "Tarjeta de puntos, cupones y notificaciones para que tus clientes vuelvan a tu negocio.",
   save: "Guardar",
   saving: "Guardando...",
   saved: "Guardado.",

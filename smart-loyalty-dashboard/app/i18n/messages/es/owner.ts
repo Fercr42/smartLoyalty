@@ -34,7 +34,7 @@ export const panel = {
     resultados: { label: "Resultados", description: "Qué pasó después de cada mensaje: aperturas, cupones y clientes que volvieron." },
     automatizaciones: { label: "Automatizaciones", description: "Mensajes que se envían solos en el momento justo." },
     tarjeta: { label: "Tarjeta", description: "El diseño de tu tarjeta y lo que muestra en Google Wallet." },
-    recompensas: { label: "Recompensas", description: "Premios por sellos, escáner de empleados y reseñas." },
+    recompensas: { label: "Recompensas", description: "Premios por puntos, escáner de empleados y reseñas." },
     negocio: { label: "Mi negocio", description: "Nombre, tipo, idioma, logo, colores y tu código QR." },
     plan: { label: "Plan", description: "Tu suscripción a Smart Loyalty." },
   },
@@ -50,7 +50,7 @@ export const panel = {
 
 export const planBanner = {
   expiredTitle: "Tu plan no está activo.",
-  expiredText: "Tus clientes siguen viendo su tarjeta y los sellos siguen funcionando, pero no puedes enviar notificaciones ni usar automatizaciones.",
+  expiredText: "Tus clientes siguen viendo su tarjeta y los puntos siguen funcionando, pero no puedes enviar notificaciones ni usar automatizaciones.",
   failedTitle: "El último cobro de PayPal falló.",
   failedText: "PayPal lo va a reintentar; revisa tu método de pago.",
   trialOne: "Te queda 1 día de prueba gratis.",
@@ -64,7 +64,7 @@ export const business = {
   description: "Descripción (qué ofreces)",
   type: "Tipo de negocio",
   language: "Idioma de los mensajes automáticos",
-  languageHint: "Cumpleaños, “te falta 1 sello”, pedido de reseña y textos de Google Wallet.",
+  languageHint: "Cumpleaños, “ya casi”, pedido de reseña y textos de Google Wallet.",
   logo: "Logo",
   changeLogo: "Cambiar logo",
   uploadLogo: "Subir logo",
@@ -78,7 +78,7 @@ export const business = {
 };
 
 export const qr = {
-  hint: "Tus clientes lo escanean para unirse, juntar sellos y recibir tus promociones",
+  hint: "Tus clientes lo escanean para unirse, juntar puntos y recibir tus promociones",
   download: "Descargar PNG",
   fileName: "qr-smart-loyalty.png",
 };
@@ -93,7 +93,7 @@ export const labels = {
   },
   automatic: {
     review: "Pedido de reseña (automático)",
-    near_reward: "Te falta 1 sello (automático)",
+    near_reward: "Ya casi (automático)",
     birthday: "Cumpleaños (automático)",
     winback: "Te extrañamos (automático)",
   },

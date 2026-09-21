@@ -5,7 +5,7 @@ import { auth } from "../firebase/config";
 import { useI18n } from "../i18n/client";
 import { getMemberId, setMemberId } from "../lib/member-id";
 
-// "Protege tus sellos": liga la tarjeta del cliente a su correo para recuperarla en cualquier celular.
+// "Protege tus puntos": liga la tarjeta del cliente a su correo para recuperarla en cualquier celular.
 // Se hace una vez por celular; después el navegador queda recordado.
 
 const EMAIL_KEY = "sl-email-for-signin";

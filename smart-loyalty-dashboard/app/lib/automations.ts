@@ -11,12 +11,11 @@ import { messages } from "../i18n/messages";
 import { createMemberCoupon } from "./coupons";
 import { walletCardSaved } from "./google-wallet";
 import { planState, type Plan } from "./plan";
-import { cleanLoyalty } from "./loyalty-mode";
 import { cleanRewards } from "./rewards";
 import { scheduleNotification, sendNotification } from "./send-notification";
 import { isLeapYear, localParts, validTimezone } from "./time";
 
-// Automatizaciones para que los clientes vuelvan: "te falta 1 sello", cumpleaños y "te extrañamos".
+// Automatizaciones para que los clientes vuelvan: "casi lo logras", cumpleaños y "te extrañamos".
 
 const DAY = 86_400_000;
 
@@ -37,7 +36,7 @@ export async function canReach(companyRef: DocumentReference, memberId: string) 
   return walletCardSaved(companyRef.id, memberId).catch(() => false);
 }
 
-// Después de un sello: si al cliente le falta 1 para un premio, avisarle en 30 minutos.
+// Después de una compra: si al cliente le faltan pocos puntos para un premio, avisarle en 30 minutos.
 export async function maybeNotifyNearReward(
   companyRef: DocumentReference,
   company: CompanyData,
@@ -46,13 +45,8 @@ export async function maybeNotifyNearReward(
 ) {
   const settings = cleanAutomations(company.automations, messages[companyLocale(company)].automations.defaults).nearReward;
   if (!settings.enabled || !planState(company.plan).allowed) return;
-  // Por sellos: le falta exactamente 1. Por puntos: está al 80% o más de la meta.
-  const mode = cleanLoyalty(company.loyalty).mode;
-  const rewards = cleanRewards(company.loyalty?.rewards);
-  const reward =
-    mode === "points"
-      ? rewards.find((r) => stamps < r.stamps && stamps >= r.stamps * 0.8)
-      : rewards.find((r) => r.stamps - stamps === 1);
+  // Avisa cuando el cliente llega al 80% de un premio.
+  const reward = cleanRewards(company.loyalty?.rewards).find((r) => stamps < r.stamps && stamps >= r.stamps * 0.8);
   if (!reward) return;
   try {
     if (!(await canReach(companyRef, memberId))) return;
@@ -73,7 +67,7 @@ export async function maybeNotifyNearReward(
       "none"
     );
   } catch (e) {
-    console.error("Te falta 1 sello", e); // el sello ya quedó guardado
+    console.error("Casi lo logras", e); // el punto ya quedó guardado
   }
 }
 

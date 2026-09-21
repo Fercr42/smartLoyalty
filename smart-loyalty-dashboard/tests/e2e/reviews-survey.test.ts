@@ -17,10 +17,10 @@ describe.skipIf(!hasCredentials)("Pedido de reseña y encuesta", () => {
   });
   afterAll(cleanup);
 
-  it("después del primer sello programa la encuesta solo si hay cómo avisarle", async () => {
+  it("después de la primera compra programa la encuesta solo si hay cómo avisarle", async () => {
     const staff = await staffHeaders(companyId);
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: unreachable }, headers: staff });
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: reachable }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: unreachable, sale: 5000 }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: reachable, sale: 5000 }, headers: staff });
 
     const jobs = (await db().collection("scheduledJobs").where("companyId", "==", companyId).get()).docs.map((d) => d.data());
     expect(jobs).toHaveLength(1);

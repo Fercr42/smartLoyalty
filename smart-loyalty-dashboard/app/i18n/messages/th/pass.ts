@@ -2,15 +2,15 @@ import type { Messages } from "../es";
 
 export const pass: Messages["pass"] = {
   business: "ร้านของฉัน",
-  stamps: "แต้ม",
+  stamps: "คะแนน",
   points: "คะแนน",
   reward: "รางวัล",
   about: "เกี่ยวกับเรา",
   promotions: "โปรโมชัน",
   member: "ลูกค้าประจำ",
   membership: "สมาชิก",
-  stampOne: "{count} แต้ม",
-  stampMany: "{count} แต้ม",
+  stampOne: "{count} คะแนน",
+  stampMany: "{count} คะแนน",
   rewardReady: "รับรางวัลได้แล้ว: {reward}",
   progress: "{filled} จาก {goal} · {reward}",
   call: "โทร",

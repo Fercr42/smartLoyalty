@@ -22,25 +22,25 @@ describe.skipIf(!hasCredentials)("Tarjeta protegida por correo", () => {
 
   it("protege la tarjeta con el correo y comparte el correo si el cliente acepta", async () => {
     await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone1 } });
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone1 }, headers: staff });
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone1, force: true }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone1, sale: 5000 }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone1, force: true, sale: 5000 }, headers: staff });
 
     const r = await api("/api/loyalty/link", { headers: customer, body: { companyId: restaurantA, memberId: phone1, shareEmail: true } });
     expect(r.status).toBe(200);
     expect(r.data.memberId).toBe(phone1);
     const card = await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone1 } });
-    expect(card.data).toMatchObject({ linked: true, stamps: 2 });
+    expect(card.data).toMatchObject({ linked: true, stamps: 2000 });
     expect(card.data.email).toContain("@example.com");
   });
 
-  it("en un celular nuevo recupera la tarjeta y suma los sellos", async () => {
+  it("en un celular nuevo recupera la tarjeta y suma los puntos", async () => {
     await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone2 } });
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone2 }, headers: staff });
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId: restaurantA, memberId: phone2, sale: 5000 }, headers: staff });
 
     const r = await api("/api/loyalty/link", { headers: customer, body: { companyId: restaurantA, memberId: phone2 } });
     expect(r.data).toMatchObject({ memberId: phone1, merged: true });
     const main = await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone2 } });
-    expect(main.data).toMatchObject({ memberId: phone1, stamps: 3 });
+    expect(main.data).toMatchObject({ memberId: phone1, stamps: 3000 });
   });
 
   it("el escáner con el QR viejo usa la tarjeta principal", async () => {

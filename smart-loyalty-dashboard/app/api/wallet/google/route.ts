@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const company = await companyRef.get();
   if (!company.exists) return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
 
-  // Registro del cliente (para el conteo del dueño y los sellos).
+  // Registro del cliente (para el conteo del dueño y los puntos).
   const memberRef = companyRef.collection("walletMembers").doc(memberId);
   await memberRef
     .create({ platform: "google", stamps: 0, totalVisits: 0, createdAt: FieldValue.serverTimestamp() })

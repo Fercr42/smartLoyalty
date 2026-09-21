@@ -211,7 +211,7 @@ export default async function Landing() {
   );
 }
 
-// Ilustración: pantalla bloqueada con una notificación y la tarjeta de sellos (ejemplo).
+// Ilustración: pantalla bloqueada con una notificación y la tarjeta de puntos (ejemplo).
 function PhoneMockup({ t }: { t: Messages["landing"]["mock"] }) {
   return (
     <div className="mx-auto w-full max-w-[300px]" aria-hidden>

@@ -1,4 +1,4 @@
-// Recompensas por sellos o por puntos (el campo stamps guarda la meta en las dos formas).
+// Recompensas por puntos o por puntos (el campo stamps guarda la meta en las dos formas).
 // Se usa en el navegador y en el servidor.
 
 export type Reward = { id: string; title: string; stamps: number };

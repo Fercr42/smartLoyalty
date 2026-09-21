@@ -9,7 +9,7 @@ const DAY = 86_400_000;
 const RETURN_WINDOW_DAYS = 7;
 
 // Resultados de las últimas 20 campañas: alcance, aperturas, cupones usados
-// y clientes que recibieron el mensaje y volvieron (con sello) en los 7 días siguientes.
+// y clientes que recibieron el mensaje y volvieron (con punto) en los 7 días siguientes.
 export async function GET(req: NextRequest) {
   const companyId = await resolveCompanyId(req);
   if (companyId instanceof Response) return companyId;
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     })(),
   ]);
 
-  // Visitas (sellos) por cliente.
+  // Visitas (puntos) por cliente.
   const visitsByMember = new Map<string, number[]>();
   events.docs.forEach((e) => {
     if (e.data().type !== "stamp") return;

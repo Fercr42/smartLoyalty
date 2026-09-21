@@ -3,7 +3,7 @@ import { adminDb } from "../firebase/admin";
 
 // Liga la tarjeta de un navegador con la cuenta del cliente (correo verificado).
 // Una cuenta tiene una tarjeta por restaurante: si ya había una ligada, la de este navegador se une a ella
-// (sus sellos y visitas se suman) y se marca con mergedInto para que el escáner use la principal.
+// (sus puntos y visitas se suman) y se marca con mergedInto para que el escáner use la principal.
 
 export class LinkConflict extends Error {}
 

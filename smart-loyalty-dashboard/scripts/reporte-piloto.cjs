@@ -80,7 +80,7 @@ async function report(companyId) {
     return {
       cliente: codeOf.get(d.id),
       alta: day(ms(m.createdAt)),
-      sellos: m.stamps ?? 0,
+      puntos: m.stamps ?? 0,
       visitas: m.totalVisits ?? 0,
       ultima_visita: day(ms(m.lastStampAt)),
       cumple: m.birthday ?? "",
@@ -100,7 +100,8 @@ async function report(companyId) {
         cliente: e.memberId ? codeOf.get(e.memberId) ?? e.code ?? "" : e.code ?? "",
         premio: e.rewardTitle ?? "",
         cupon: e.couponTitle ?? "",
-        sellos_despues: e.stampsAfter ?? "",
+        monto: e.sale ?? "",
+        puntos_despues: e.stampsAfter ?? "",
         _at: at ?? 0,
       };
     })

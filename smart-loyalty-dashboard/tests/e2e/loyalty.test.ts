@@ -3,20 +3,20 @@ import { Timestamp } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { api, cleanup, createCompany, db, hasCredentials, staffHeaders } from "./helpers";
 
-describe.skipIf(!hasCredentials)("Sellos, premios y cupones", () => {
+describe.skipIf(!hasCredentials)("Puntos, premios y cupones", () => {
   let companyId = "";
   let staff: Record<string, string> = {};
   const member = crypto.randomUUID();
 
   beforeAll(async () => {
     companyId = await createCompany({
-      loyalty: { rewards: [{ id: "a", title: "Bebida", stamps: 2 }, { id: "b", title: "Platillo", stamps: 3 }] },
+      loyalty: { rewards: [{ id: "a", title: "Bebida", stamps: 2000 }, { id: "b", title: "Platillo", stamps: 3000 }], rule: { points: 1000, per: 5000 }, currency: "C" },
     });
     staff = await staffHeaders(companyId);
   });
   afterAll(cleanup);
 
-  it("crea la tarjeta del cliente con 0 sellos", async () => {
+  it("crea la tarjeta del cliente con 0 puntos", async () => {
     const r = await api("/api/loyalty/member", { body: { companyId, memberId: member } });
     expect(r.status).toBe(200);
     expect(r.data).toMatchObject({ enabled: true, stamps: 0, code: member.slice(0, 8).toUpperCase() });
@@ -34,17 +34,17 @@ describe.skipIf(!hasCredentials)("Sellos, premios y cupones", () => {
     expect(byQr.data.member?.memberId).toBe(member);
   });
 
-  it("suma sellos y bloquea un segundo sello inmediato", async () => {
-    let r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member }, headers: staff });
-    expect(r.data.stamps).toBe(1);
-    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member }, headers: staff });
+  it("suma puntos por monto y bloquea un segundo cobro inmediato", async () => {
+    let r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, sale: 5000 }, headers: staff });
+    expect(r.data.stamps).toBe(1000);
+    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, sale: 5000 }, headers: staff });
     expect(r.status).toBe(409);
-    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true }, headers: staff });
-    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true }, headers: staff });
-    expect(r.data.stamps).toBe(3);
+    await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true, sale: 5000 }, headers: staff });
+    r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true, sale: 5000 }, headers: staff });
+    expect(r.data.stamps).toBe(3000);
   });
 
-  it("canjea un premio y rechaza si no alcanzan los sellos", async () => {
+  it("canjea un premio y rechaza si no alcanzan los puntos", async () => {
     let r = await api("/api/loyalty/staff", { body: { action: "redeem", companyId, memberId: member, rewardId: "b" }, headers: staff });
     expect(r.data.stamps).toBe(0);
     r = await api("/api/loyalty/staff", { body: { action: "redeem", companyId, memberId: member, rewardId: "a" }, headers: staff });
@@ -81,7 +81,6 @@ describe.skipIf(!hasCredentials)("Puntos por monto de compra", () => {
   it("suma puntos según el monto y descuenta al canjear", async () => {
     const companyId = await createCompany({
       loyalty: {
-        mode: "points",
         rule: { points: 1000, per: 5000 },
         currency: "₡",
         rewards: [{ id: "a", title: "Postre", stamps: 8000 }],
@@ -92,7 +91,7 @@ describe.skipIf(!hasCredentials)("Puntos por monto de compra", () => {
     await api("/api/loyalty/member", { body: { companyId, memberId: member } });
 
     let r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, sale: 12000 }, headers: staff });
-    expect(r.data).toMatchObject({ stamps: 2400, mode: "points" });
+    expect(r.data.stamps).toBe(2400);
 
     // Sin monto no suma nada.
     r = await api("/api/loyalty/staff", { body: { action: "stamp", companyId, memberId: member, force: true }, headers: staff });

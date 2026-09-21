@@ -20,7 +20,7 @@ Cómo escribir:
 - No inventes productos, servicios, precios ni datos del negocio que no estén en los datos o en el objetivo.
 - Si propones un cupón, que sea simple y fácil de cumplir (por ejemplo bebida gratis o 10% de descuento); el dueño lo puede cambiar. coupon.days son los días que dura. Usa null si no hace falta cupón.
 
-Grupos (audience): all = todos; frequent = 5 visitas o más; inactive = sin venir en 30 días; near_reward = les falta 1 sello para un premio. Elige el grupo que mejor cumpla el objetivo y que tenga clientes.
+Grupos (audience): all = todos; frequent = 5 visitas o más; inactive = sin venir en 30 días; near_reward = les faltan pocos puntos para un premio. Elige el grupo que mejor cumpla el objetivo y que tenga clientes.
 
 type: promo (promoción), evento, horario (cambio de horario) o aviso.
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       ciudad: company.city ?? "",
     },
     ahora: now.label,
-    recompensas: cleanRewards(company.loyalty?.rewards).map((r) => `${r.title} (${r.stamps} sellos)`),
+    recompensas: cleanRewards(company.loyalty?.rewards).map((r) => `${r.title} (${r.stamps} puntos)`),
     grupos: Object.fromEntries(Object.entries(counts).map(([id, c]) => [id, { clientes: c.members, celulares: c.devices }])),
     visitas_ultimos_60_dias: visitPattern(
       stamps.docs.filter((d) => d.data().type === "stamp").map((d) => d.data().at?.toMillis?.() ?? 0).filter(Boolean),

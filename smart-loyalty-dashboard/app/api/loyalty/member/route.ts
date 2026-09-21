@@ -21,7 +21,7 @@ function validBirthday(value: unknown) {
   return month >= 1 && month <= 12 && day >= 1 && day <= DAYS_IN_MONTH[month - 1] ? value : null;
 }
 
-// Tarjeta del cliente en la página del QR: sellos, cupones, cumpleaños y si está protegida con correo.
+// Tarjeta del cliente en la página del QR: puntos, cupones, cumpleaños y si está protegida con correo.
 // Crea el registro la primera vez. Si llega "birthday" (MM-DD) se guarda, solo una vez.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));

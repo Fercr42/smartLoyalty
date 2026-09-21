@@ -2,16 +2,15 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { adminDb } from "../../firebase/admin";
 import { CARD_FONTS, cleanDesign, type CardDesign, type CardSize } from "../../lib/card-design";
-import { cleanLoyalty } from "../../lib/loyalty-mode";
 import { cleanRewards, type Reward } from "../../lib/rewards";
 import { companyLocale, fmt } from "../../i18n/config";
 import { messages, type Messages } from "../../i18n/messages";
 
 export const runtime = "nodejs";
 
-// Tarjeta de cliente dibujada con el diseño de la marca y los sellos.
+// Tarjeta de cliente dibujada con el diseño de la marca y los puntos.
 // ?variant=card (1012x638, página del QR) | hero (1032x336, portada de Google Wallet)
-// ?s=sellos &code=código &p=diseño sin guardar (vista previa del panel) &v=versión (solo para caché)
+// ?s=puntos &code=código &p=diseño sin guardar (vista previa del panel) &v=versión (solo para caché)
 
 const SIZES = { card: { width: 1012, height: 638 }, hero: { width: 1032, height: 336 } };
 const LOGO_PX: Record<CardSize, number> = { sm: 84, md: 112, lg: 148 };
@@ -25,7 +24,6 @@ type Company = {
   rewards: Reward[];
   cardDesign?: unknown;
   pass: Messages["pass"];
-  points: boolean;
   locale: string;
 };
 
@@ -45,7 +43,6 @@ async function loadCompany(companyId: string): Promise<Company | null> {
         rewards: cleanRewards(d.loyalty?.rewards),
         cardDesign: d.cardDesign,
         pass: messages[companyLocale(d)].pass,
-        points: cleanLoyalty(d.loyalty).mode === "points",
         locale: companyLocale(d),
       }
     : null;
@@ -71,35 +68,9 @@ function loadFont(family: string, weight: number, text: string) {
   return fontCache.get(key)!;
 }
 
-const ICON_PATHS: Record<string, (c: string) => string> = {
-  circle: (c) => `<circle cx="12" cy="12" r="8" fill="${c}"/>`,
-  star: (c) => `<path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6-4.9-4.5 6.6-.8z" fill="${c}"/>`,
-  heart: (c) => `<path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.5c2.1 0 3.5 1.1 4.4 2.5.9-1.4 2.3-2.5 4.4-2.5 3.7 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21z" fill="${c}"/>`,
-  check: (c) => `<path d="M4 12.5l5 5L20 6.5" stroke="${c}" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
-  crown: (c) => `<path d="M3 18h18l1-11-5.5 4L12 4 7.5 11 2 7z" fill="${c}"/>`,
-  coffee: (c) =>
-    `<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" fill="${c}"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" stroke="${c}" stroke-width="2" fill="none"/><path d="M8 2.5c0 1.5 1.5 1.5 1.5 3M12 2.5c0 1.5 1.5 1.5 1.5 3" stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
-  burger: (c) =>
-    `<path d="M3 11a9 7 0 0 1 18 0z" fill="${c}"/><rect x="2.5" y="12.5" width="19" height="2.5" rx="1.2" fill="${c}"/><path d="M3 16.5h18v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" fill="${c}"/>`,
-  pizza: (c) =>
-    `<path d="M12 22L2.5 5.5C8.5 2 15.5 2 21.5 5.5z" fill="${c}"/><circle cx="10" cy="9" r="1.6" fill="#ffffff" fill-opacity=".85"/><circle cx="14.5" cy="12" r="1.6" fill="#ffffff" fill-opacity=".85"/><circle cx="12" cy="16" r="1.3" fill="#ffffff" fill-opacity=".85"/>`,
-};
-const iconDataUri = (id: string, fill: string) =>
-  `data:image/svg+xml;base64,${Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${(ICON_PATHS[id] ?? ICON_PATHS.circle)(fill)}</svg>`
-  ).toString("base64")}`;
-
 function rgba(hex: string, alpha: number) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
-function contrastOn(hex: string) {
-  const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? "#111418" : "#ffffff";
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) {
@@ -126,14 +97,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
 
   // Meta: el primer premio que todavía no alcanza (o el último).
   const next = company.rewards.find((r) => r.stamps > stamps) ?? company.rewards[company.rewards.length - 1];
-  // Por puntos la meta puede ser grande: se muestra un número, no círculos.
-  const goal = company.points ? Math.max(next?.stamps ?? 1000, 1) : Math.min(Math.max(next?.stamps ?? 10, 1), 20);
+  // La meta puede ser grande: la tarjeta muestra el número de puntos y una barra.
+  const goal = Math.max(next?.stamps ?? 1000, 1);
   const filled = Math.min(stamps, goal);
   const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-ES" : company.locale);
   const progress = !next
-    ? company.points
-      ? `${number(stamps)} ${company.pass.points}`
-      : fmt(stamps === 1 ? company.pass.stampOne : company.pass.stampMany, { count: stamps })
+    ? `${number(stamps)} ${company.pass.points}`
     : stamps >= next.stamps
       ? fmt(company.pass.rewardReady, { reward: next.title })
       : fmt(company.pass.progress, { filled: number(filled), goal: number(goal), reward: next.title });
@@ -166,54 +135,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
       : { backgroundColor: design.bgColor };
   const photo = design.bgType === "image" && design.bgImageUrl ? abs(design.bgImageUrl) : "";
   const logo = company.logoUrl ? abs(company.logoUrl) : "";
-  const iconColor = contrastOn(design.accentColor);
-  const stampImage =
-    design.stampIcon === "logo" && logo
-      ? logo
-      : design.stampIcon === "custom" && design.stampIconUrl
-        ? abs(design.stampIconUrl)
-        : iconDataUri(design.stampIcon, iconColor);
-  const imageStamp = stampImage.startsWith("http");
-
   const pad = variant === "card" ? 48 : 30;
-  const gap = variant === "card" ? 18 : 12;
-  const cols = variant === "card" ? (goal <= 6 ? goal : Math.ceil(goal / 2)) : goal <= 10 ? goal : Math.ceil(goal / 2);
-  const rows = Math.ceil(goal / cols);
   const areaWidth = width - pad * 2;
-  const maxStamp = variant === "card" ? 112 : rows > 1 ? 70 : 96;
-  const stampSize = Math.floor(Math.min((areaWidth - (cols - 1) * gap) / cols, maxStamp));
-
-  const stampNodes = Array.from({ length: goal }, (_, i) => {
-    const on = i < filled;
-    return (
-      <div
-        key={i}
-        style={{
-          width: stampSize,
-          height: stampSize,
-          borderRadius: stampSize / 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: on ? (imageStamp ? "#ffffff" : design.accentColor) : "transparent",
-          border: on ? `3px solid ${design.accentColor}` : `3px solid ${rgba(design.textColor, 0.35)}`,
-          overflow: "hidden",
-        }}
-      >
-        {/* "Círculo" es el sello lleno, sin ícono adentro */}
-        {on && !(design.stampIcon === "circle" && !imageStamp) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={stampImage}
-            alt=""
-            width={imageStamp ? stampSize - 6 : Math.round(stampSize * 0.6)}
-            height={imageStamp ? stampSize - 6 : Math.round(stampSize * 0.6)}
-            style={{ objectFit: "cover", borderRadius: imageStamp ? stampSize / 2 : 0 }}
-          />
-        ) : null}
-      </div>
-    );
-  });
 
   const logoPx = variant === "card" ? LOGO_PX[design.logoSize] : Math.round(LOGO_PX[design.logoSize] * 0.55);
   const titlePx = variant === "card" ? TITLE_PX[design.titleSize] : Math.round(TITLE_PX[design.titleSize] * 0.55);
@@ -264,36 +187,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
         </div>
       )}
 
-      {company.points ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "center", gap: variant === "card" ? 16 : 10 }}>
-          <div
-            style={{
-              fontFamily: hasTitleFont ? "Title" : undefined,
-              fontSize: variant === "card" ? 150 : 92,
-              lineHeight: 1,
-              color: design.accentColor,
-            }}
-          >
-            {number(stamps)}
-          </div>
-          <div style={{ display: "flex", width: areaWidth, height: variant === "card" ? 22 : 16, borderRadius: 11, backgroundColor: rgba(design.textColor, 0.25), overflow: "hidden" }}>
-            <div style={{ display: "flex", width: Math.round((filled / goal) * areaWidth), backgroundColor: design.accentColor }} />
-          </div>
-        </div>
-      ) : (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "center", gap: variant === "card" ? 16 : 10 }}>
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignSelf: "center",
-            gap,
-            width: cols * stampSize + (cols - 1) * gap,
+            fontFamily: hasTitleFont ? "Title" : undefined,
+            fontSize: variant === "card" ? 150 : 92,
+            lineHeight: 1,
+            color: design.accentColor,
           }}
         >
-          {stampNodes}
+          {number(stamps)}
         </div>
-      )}
+        <div style={{ display: "flex", width: areaWidth, height: variant === "card" ? 22 : 16, borderRadius: 11, backgroundColor: rgba(design.textColor, 0.25), overflow: "hidden" }}>
+          <div style={{ display: "flex", width: Math.round((filled / goal) * areaWidth), backgroundColor: design.accentColor }} />
+        </div>
+      </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div style={{ fontSize: variant === "card" ? 30 : 24, color: design.accentColor }}>{progress}</div>

@@ -5,7 +5,6 @@ import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
 import { describeLink } from "./links";
 import { validLocation } from "./location";
-import { cleanLoyalty } from "./loyalty-mode";
 import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
@@ -47,7 +46,7 @@ export type WalletCompany = {
 // Sube este número si cambia LOYALTY_TEMPLATE, para que se vuelva a aplicar a las clases.
 export const WALLET_TEMPLATE_VERSION = 1;
 
-// Muestra sellos y próximo premio en el frente de la tarjeta.
+// Muestra puntos y próximo premio en el frente de la tarjeta.
 const LOYALTY_TEMPLATE = {
   cardTemplateOverride: {
     cardRowTemplateInfos: [
@@ -116,7 +115,7 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   const modules = [
     ...(rewards.length
       ? [
-          { id: "stamps", header: cleanLoyalty(company.loyalty).mode === "points" ? p.points : p.stamps, body: String(stamps) },
+          { id: "stamps", header: p.points, body: String(stamps) },
           { id: "next_reward", header: p.reward, body: nextRewardText(rewards, stamps, m.rewardText) || m.rewardText.keepGoing },
         ]
       : []),
@@ -138,7 +137,7 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
       : []),
   ];
 
-  // Diseño de marca: la portada es la tarjeta dibujada con los sellos del cliente.
+  // Diseño de marca: la portada es la tarjeta dibujada con los puntos del cliente.
   const design = company.cardDesign ? cleanDesign(company.cardDesign, company.brandColor) : null;
   const drawn = design?.useInWallet ? design : null;
 
@@ -196,7 +195,7 @@ export function googleWalletSaveUrl({
   return `https://pay.google.com/gp/v/save/${token}`;
 }
 
-// Ajustes de la clase del restaurante: sellos y premio en el frente de la tarjeta,
+// Ajustes de la clase del restaurante: puntos y premio en el frente de la tarjeta,
 // y la ubicación para que Google muestre la tarjeta cerca del local. false si aún no hay tarjetas.
 export async function applyClassSettings(company: WalletCompany) {
   const settings: Record<string, unknown> = {};
@@ -219,14 +218,14 @@ export async function applyClassSettings(company: WalletCompany) {
   return true;
 }
 
-// Actualiza los sellos en la tarjeta de un cliente. false si no la guardó en Wallet.
+// Actualiza los puntos en la tarjeta de un cliente. false si no la guardó en Wallet.
 export async function updateMemberCard(company: WalletCompany, memberId: string, stamps: number, origin: string) {
   const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
     method: "PATCH",
     body: JSON.stringify(
       (() => {
         const fields = cardFields(company, origin, stamps);
-        // La portada dibujada cambia con cada sello.
+        // La portada dibujada cambia con cada punto.
         return { textModulesData: fields.textModulesData ?? [], ...(fields.heroImage ? { heroImage: fields.heroImage } : {}) };
       })()
     ),

@@ -2,7 +2,7 @@ import type { Messages } from "../es";
 
 export const common: Messages["common"] = {
   language: "Language",
-  appDescription: "Stamp cards, coupons and notifications that bring your customers back to your business.",
+  appDescription: "Point cards, coupons and notifications that bring your customers back to your business.",
   save: "Save",
   saving: "Saving...",
   saved: "Saved.",

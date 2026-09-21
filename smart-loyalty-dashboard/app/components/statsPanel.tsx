@@ -118,21 +118,17 @@ export default function StatsPanel({ companyId }: { companyId?: string }) {
     { label: t.members, value: stats.members, note: f(t.newMembers, { count: stats.newMembers }) },
     { label: t.visits, value: summary.visits, note: f(t.distinct, { count: summary.visitors }) },
     { label: t.returning, value: summary.returning, note: f(t.returningNote, { count: summary.visitors }) },
-    ...(loyalty.mode === "points"
-      ? [
-          {
-            label: t.sales,
-            value: `${loyalty.currency}${summary.sales.toLocaleString(dateLocale)}`,
-            note: f(t.salesNote, { count: summary.salesCount }),
-          },
-          {
-            label: t.ticket,
-            value: summary.salesCount ? `${loyalty.currency}${Math.round(summary.sales / summary.salesCount).toLocaleString(dateLocale)}` : "—",
-            note: t.inDays,
-          },
-          { label: t.pointsGiven, value: summary.points.toLocaleString(dateLocale), note: t.inDays },
-        ]
-      : []),
+    {
+      label: t.sales,
+      value: `${loyalty.currency}${summary.sales.toLocaleString(dateLocale)}`,
+      note: f(t.salesNote, { count: summary.salesCount }),
+    },
+    {
+      label: t.ticket,
+      value: summary.salesCount ? `${loyalty.currency}${Math.round(summary.sales / summary.salesCount).toLocaleString(dateLocale)}` : "—",
+      note: t.inDays,
+    },
+    { label: t.pointsGiven, value: summary.points.toLocaleString(dateLocale), note: t.inDays },
     { label: t.redeems, value: summary.redeems, note: t.inDays },
     { label: t.coupons, value: summary.coupons, note: t.inDays },
     { label: t.devices, value: stats.devices, note: t.devicesNote },

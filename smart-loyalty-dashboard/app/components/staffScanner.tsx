@@ -166,7 +166,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps, totalVisits: m.totalVisits + 1 });
-    setNotice({ ok: true, text: `Sello agregado. Ahora tiene ${data.stamps}.` });
+    setNotice({ ok: true, text: f(t.stampOk, { count: addedPoints, total: data.stamps }) });
   };
 
   const redeem = async (reward: Reward) => {
@@ -180,7 +180,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps });
-    setNotice({ ok: true, text: `Canjeado: ${reward.title}. Le quedan ${data.stamps} sellos.` });
+    setNotice({ ok: true, text: f(t.redeemOk, { reward: reward.title, count: data.stamps }) });
   };
 
   const applyCoupon = async (coupon: Coupon) => {
@@ -258,10 +258,10 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
                 {member.stamps}
               </p>
-              <p className="text-gray-600">{loyalty.mode === "points" ? t.points : t.stamps}</p>
+              <p className="text-gray-600">{t.points}</p>
               <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
             </div>
-            {loyalty.mode === "points" && (
+            {(
               <label htmlFor="staff-sale" className="flex flex-col gap-1 text-sm text-gray-700">
                 {t.amount}
                 <span className="flex items-center gap-2 border rounded-lg p-2">
@@ -281,11 +281,11 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             )}
             <button
               onClick={() => addStamp()}
-              disabled={busy || (loyalty.mode === "points" && addedPoints <= 0)}
+              disabled={busy || addedPoints <= 0}
               className="py-4 rounded-xl text-lg font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {loyalty.mode === "points" ? t.addPoints : t.addStamp}
+              {t.addPoints}
             </button>
             </>
             )}
@@ -298,7 +298,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                     <li key={r.id} className="flex items-center justify-between gap-3 border rounded-lg p-3">
                       <span className="min-w-0">
                         <b className="text-gray-900">{r.title}</b>
-                        <span className="block text-xs text-gray-500">{r.stamps} sellos</span>
+                        <span className="block text-xs text-gray-500">{r.stamps} {t.points}</span>
                       </span>
                       <button
                         disabled={busy || member.stamps < r.stamps}

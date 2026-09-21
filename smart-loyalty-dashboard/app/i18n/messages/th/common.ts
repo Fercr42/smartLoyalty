@@ -2,7 +2,7 @@ import type { Messages } from "../es";
 
 export const common: Messages["common"] = {
   language: "ภาษา",
-  appDescription: "บัตรสะสมแต้ม คูปอง และการแจ้งเตือน ที่ทำให้ลูกค้ากลับมาที่ร้านของคุณ",
+  appDescription: "บัตรสะสมคะแนน คูปอง และการแจ้งเตือน ที่ทำให้ลูกค้ากลับมาที่ร้านของคุณ",
   save: "บันทึก",
   saving: "กำลังบันทึก...",
   saved: "บันทึกแล้ว",

@@ -34,7 +34,7 @@ export const panel: Messages["panel"] = {
     resultados: { label: "ผลลัพธ์", description: "เกิดอะไรขึ้นหลังแต่ละข้อความ: การเปิดอ่าน คูปอง และลูกค้าที่กลับมา" },
     automatizaciones: { label: "อัตโนมัติ", description: "ข้อความที่ส่งเองในเวลาที่เหมาะสม" },
     tarjeta: { label: "บัตร", description: "ดีไซน์บัตรของคุณและสิ่งที่แสดงใน Google Wallet" },
-    recompensas: { label: "รางวัล", description: "รางวัลจากแต้ม เครื่องสแกนของพนักงาน และรีวิว" },
+    recompensas: { label: "รางวัล", description: "รางวัลจากคะแนน เครื่องสแกนของพนักงาน และรีวิว" },
     negocio: { label: "ร้านของฉัน", description: "ชื่อ ประเภท ภาษา โลโก้ สี และคิวอาร์โค้ดของคุณ" },
     plan: { label: "แพ็กเกจ", description: "การสมัครสมาชิก Smart Loyalty ของคุณ" },
   },
@@ -50,7 +50,7 @@ export const panel: Messages["panel"] = {
 
 export const planBanner: Messages["planBanner"] = {
   expiredTitle: "แพ็กเกจของคุณยังไม่เปิดใช้งาน",
-  expiredText: "ลูกค้ายังเห็นบัตรและยังสะสมแต้มได้ แต่คุณส่งการแจ้งเตือนหรือใช้ระบบอัตโนมัติไม่ได้",
+  expiredText: "ลูกค้ายังเห็นบัตรและยังสะสมคะแนนได้ แต่คุณส่งการแจ้งเตือนหรือใช้ระบบอัตโนมัติไม่ได้",
   failedTitle: "การชำระเงินผ่าน PayPal ครั้งล่าสุดไม่สำเร็จ",
   failedText: "PayPal จะลองเรียกเก็บอีกครั้ง โปรดตรวจสอบวิธีชำระเงินของคุณ",
   trialOne: "เหลือเวลาทดลองใช้ฟรีอีก 1 วัน",
@@ -64,7 +64,7 @@ export const business: Messages["business"] = {
   description: "คำอธิบาย (ร้านของคุณมีอะไรบ้าง)",
   type: "ประเภทธุรกิจ",
   language: "ภาษาของข้อความอัตโนมัติ",
-  languageHint: "วันเกิด “อีก 1 แต้ม” คำขอรีวิว และข้อความใน Google Wallet",
+  languageHint: "วันเกิด “ใกล้ได้รางวัล” คำขอรีวิว และข้อความใน Google Wallet",
   logo: "โลโก้",
   changeLogo: "เปลี่ยนโลโก้",
   uploadLogo: "อัปโหลดโลโก้",
@@ -78,7 +78,7 @@ export const business: Messages["business"] = {
 };
 
 export const qr: Messages["qr"] = {
-  hint: "ลูกค้าสแกนเพื่อเข้าร่วม สะสมแต้ม และรับโปรโมชันของคุณ",
+  hint: "ลูกค้าสแกนเพื่อเข้าร่วม สะสมคะแนน และรับโปรโมชันของคุณ",
   download: "ดาวน์โหลด PNG",
   fileName: "smart-loyalty-qr.png",
 };
@@ -93,7 +93,7 @@ export const labels: Messages["labels"] = {
   },
   automatic: {
     review: "ขอรีวิว (อัตโนมัติ)",
-    near_reward: "อีก 1 แต้ม (อัตโนมัติ)",
+    near_reward: "ใกล้ได้รางวัล (อัตโนมัติ)",
     birthday: "วันเกิด (อัตโนมัติ)",
     winback: "คิดถึงนะ (อัตโนมัติ)",
   },

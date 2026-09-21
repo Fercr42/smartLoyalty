@@ -12,7 +12,7 @@ export const legal: Messages["legal"] = {
     metaDescription: "What data Smart Loyalty stores, what it is used for and how to ask for it to be deleted.",
     title: "Privacy policy",
     intro:
-      "Smart Loyalty is a tool businesses (restaurants, barbershops, salons, cafés and others) use for their customer programme: stamp card, coupons and notifications. This page explains what data we store, why, and what you can ask us for.",
+      "Smart Loyalty is a tool businesses (restaurants, barbershops, salons, cafés and others) use for their customer programme: point card, coupons and notifications. This page explains what data we store, why, and what you can ask us for.",
     sections: [
       {
         h: "Who is responsible for your data",
@@ -24,7 +24,7 @@ export const legal: Messages["legal"] = {
       {
         h: "Data about a business's customers",
         p: [
-          "When you scan the QR and accept notifications we store: the identifier your phone's browser provides to receive notifications, a card code, your stamps, visits, redeemed rewards and used coupons.",
+          "When you scan the QR and accept notifications we store: the identifier your phone's browser provides to receive notifications, a card code, your points, visits, redeemed rewards and used coupons.",
           "If you choose to protect your card, we store your email address. If you allow it, that email is shared with the business.",
           "If you enter it, we store the day and month of your birthday (not the year) for the birthday gift.",
           "If you answer the survey, we store your 1-to-5 rating and your comment.",
@@ -41,7 +41,7 @@ export const legal: Messages["legal"] = {
       {
         h: "What we use the data for",
         p: [
-          "To run the stamp card, the coupons and the notifications the business sends.",
+          "To run the point card, the coupons and the notifications the business sends.",
           "To show the business its visit statistics and campaign results.",
           "To charge the business's subscription and provide support.",
           "To calculate aggregated, anonymous statistics that help us improve the product.",
@@ -52,7 +52,7 @@ export const legal: Messages["legal"] = {
         h: "Who we share it with",
         p: [
           "Google (Firebase and Firebase Cloud Messaging): stores the data and delivers the notifications.",
-          "Google Wallet: only if you save your card there; it receives the business name, your card code and your stamps.",
+          "Google Wallet: only if you save your card there; it receives the business name, your card code and your points.",
           "Google Gemini: when the owner uses the artificial intelligence, their promotion texts, business statistics and survey comments are sent (without customer emails or identifiers) to draft suggestions and summaries.",
           "PayPal: to charge the business's subscription.",
           "Vercel: serves the website.",
@@ -63,7 +63,7 @@ export const legal: Messages["legal"] = {
         h: "How long we keep it",
         p: [
           "For as long as the business uses Smart Loyalty and you have your card.",
-          "If you ask us to delete your card, we remove it along with your stamps, coupons and feedback.",
+          "If you ask us to delete your card, we remove it along with your points, coupons and feedback.",
           "If a business closes its account, we delete its data and its customers' data within 90 days.",
         ],
       },
@@ -108,7 +108,7 @@ export const legal: Messages["legal"] = {
       {
         h: "The service",
         p: [
-          "Smart Loyalty provides a digital stamp card, coupons, phone notifications, a satisfaction survey, statistics and artificial-intelligence help.",
+          "Smart Loyalty provides a digital point card, coupons, phone notifications, a satisfaction survey, statistics and artificial-intelligence help.",
           "The service is provided as is. We work to keep it available, but we do not guarantee uninterrupted operation.",
         ],
       },
@@ -132,7 +132,7 @@ export const legal: Messages["legal"] = {
         p: [
           "You can cancel anytime from the Plan section of your dashboard. You keep access until the end of the month already paid.",
           "We do not refund months already charged, unless the law requires it.",
-          "After cancelling, your customers keep their card and stamps, but sends and automations stop.",
+          "After cancelling, your customers keep their card and points, but sends and automations stop.",
         ],
       },
       {

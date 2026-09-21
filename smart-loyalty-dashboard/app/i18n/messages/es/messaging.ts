@@ -11,7 +11,7 @@ export const composer = {
     all: "todos los suscritos",
     frequent: "5 visitas o más",
     inactive: "sin venir en 30 días",
-    near_reward: "les falta 1 sello",
+    near_reward: "cerca de un premio",
   },
   repeats: { none: "Una sola vez", daily: "Cada día", weekly: "Cada semana" },
   invalidImage: "Imagen inválida",

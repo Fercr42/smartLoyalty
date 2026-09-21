@@ -59,7 +59,7 @@ export const localNow = (timezone: string, now = new Date()) => {
   return { local: p.local, label: `${p.weekday} ${p.local.replace("T", " ")}` };
 };
 
-// Cuántas visitas (sellos) hubo por día de la semana y por hora, en la zona del restaurante.
+// Cuántas visitas (puntos) hubo por día de la semana y por hora, en la zona del restaurante.
 export function visitPattern(timestamps: number[], timezone: string) {
   const byWeekday: Record<string, number> = {};
   const byHour: Record<string, number> = {};

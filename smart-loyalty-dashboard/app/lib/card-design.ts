@@ -12,7 +12,7 @@ export type CardDesign = {
   bgImageUrl: string;
   bgOverlay: number; // oscurecer la foto, 0 a 0.8
   textColor: string;
-  accentColor: string; // sellos llenos y progreso
+  accentColor: string; // puntos llenos y progreso
   font: string;
   logoSize: CardSize;
   titleSize: CardSize;

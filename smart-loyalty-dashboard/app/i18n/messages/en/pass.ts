@@ -2,15 +2,15 @@ import type { Messages } from "../es";
 
 export const pass: Messages["pass"] = {
   business: "My business",
-  stamps: "Stamps",
+  stamps: "Points",
   points: "Points",
   reward: "Reward",
   about: "About us",
   promotions: "Promotions",
   member: "Regular customer",
   membership: "Membership",
-  stampOne: "{count} stamp",
-  stampMany: "{count} stamps",
+  stampOne: "{count} point",
+  stampMany: "{count} points",
   rewardReady: "Reward ready: {reward}",
   progress: "{filled} of {goal} · {reward}",
   call: "Call",

@@ -8,7 +8,6 @@ import {
   CARD_TEMPLATES,
   cleanDesign,
   encodeDesign,
-  STAMP_ICONS,
   templateDesign,
   type CardDesign,
   type CardSize,
@@ -220,36 +219,6 @@ export default function CardDesigner() {
 
           <fieldset className="border rounded-lg p-4 flex flex-col gap-3">
             <legend className="text-sm font-semibold text-gray-800 px-1">{t.stamps}</legend>
-            <div className="grid grid-cols-5 gap-2">
-              {STAMP_ICONS.map((icon) => (
-                <button
-                  key={icon.id}
-                  type="button"
-                  onClick={() => update({ stampIcon: icon.id })}
-                  className={`rounded-lg border px-1 py-2 text-xs ${
-                    design.stampIcon === icon.id ? "border-gray-900 bg-gray-50 font-semibold" : "hover:bg-gray-50"
-                  }`}
-                >
-                  {t.icons[icon.id as keyof typeof t.icons] ?? icon.label}
-                </button>
-              ))}
-            </div>
-            {design.stampIcon === "custom" && (
-              <label className="self-start border px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-100">
-                {uploading ? t.uploading : design.stampIconUrl ? t.changeIcon : t.uploadIcon}
-                <input
-                  id="design-stamp-icon"
-                  type="file"
-                  accept="image/png,image/webp,image/jpeg"
-                  className="sr-only"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    upload(e.target.files?.[0], "icon");
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            )}
             <label htmlFor="design-preview-stamps" className="flex flex-col gap-1 text-xs text-gray-600">
               {tf(t.tryStamps, { count: previewStamps, goal })}
               <input id="design-preview-stamps" type="range" min={0} max={goal} value={previewStamps} onChange={(e) => setPreviewStamps(Number(e.target.value))} />

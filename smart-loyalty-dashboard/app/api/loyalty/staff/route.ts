@@ -22,7 +22,7 @@ import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-aut
 
 export const runtime = "nodejs";
 
-// Escáner de empleados: login con PIN, buscar tarjeta, sumar sello, canjear premio y usar cupón.
+// Escáner de empleados: login con PIN, buscar tarjeta, sumar puntos, canjear premio y usar cupón.
 
 const COMPANY_ID = /^[A-Za-z0-9]{10,64}$/;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
@@ -59,11 +59,11 @@ async function refreshWalletCard(
     }
     await updateMemberCard(company, memberId, stamps, origin);
   } catch (e) {
-    console.error("Wallet", e); // el sello ya quedó guardado; la tarjeta se corrige en la próxima sincronización
+    console.error("Wallet", e); // el punto ya quedó guardado; la tarjeta se corrige en la próxima sincronización
   }
 }
 
-// Primer sello de un cliente: programar una notificación para pedirle reseña en Google (una sola vez).
+// Primer punto de un cliente: programar una notificación para pedirle reseña en Google (una sola vez).
 async function maybeRequestReview(
   companyRef: DocumentReference,
   company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number; survey?: boolean } },
@@ -101,7 +101,7 @@ async function maybeRequestReview(
       "none"
     );
   } catch (e) {
-    console.error("Reseña", e); // el sello ya quedó guardado
+    console.error("Reseña", e); // el punto ya quedó guardado
   }
 }
 
@@ -239,11 +239,11 @@ export async function POST(req: NextRequest) {
       if (action === "stamp") {
         const last = snap.data()?.lastStampAt?.toMillis?.() ?? 0;
         if (!body.force && Date.now() - last < STAMP_COOLDOWN_MS) {
-          throw new LoyaltyError("A esta tarjeta ya se le sumó un sello hace menos de 1 minuto.", 409);
+          throw new LoyaltyError("A esta tarjeta ya se le sumaron puntos hace menos de 1 minuto.", 409);
         }
-        // Por puntos: el monto de la compra decide cuántos suma. Por sellos: siempre 1.
-        const added = loyalty.mode === "points" ? pointsFor(sale, loyalty.rule) : 1;
-        if (loyalty.mode === "points" && added <= 0) throw new LoyaltyError("Escribe el monto de la compra.", 400);
+        // El monto de la compra decide cuántos puntos suma.
+        const added = pointsFor(sale, loyalty.rule);
+        if (added <= 0) throw new LoyaltyError("Escribe el monto de la compra.", 400);
         stamps = current + added;
         tx.update(memberRef, {
           stamps,
@@ -253,13 +253,7 @@ export async function POST(req: NextRequest) {
         tx.set(events.doc(), { ...event, type: "stamp", amount: added, stampsAfter: stamps, ...(sale ? { sale } : {}) });
       } else {
         if (current < reward!.stamps) {
-          const missing = reward!.stamps - current;
-          throw new LoyaltyError(
-            loyalty.mode === "points"
-              ? `Le faltan ${missing} puntos para "${reward!.title}".`
-              : `Le faltan ${missing} sellos para "${reward!.title}".`,
-            400
-          );
+          throw new LoyaltyError(`Le faltan ${reward!.stamps - current} puntos para "${reward!.title}".`, 400);
         }
         stamps = current - reward!.stamps;
         tx.update(memberRef, { stamps, lastRedeemAt: FieldValue.serverTimestamp() });
@@ -284,5 +278,5 @@ export async function POST(req: NextRequest) {
     await maybeRequestReview(companyRef, companyData, memberId, origin);
     await maybeNotifyNearReward(companyRef, companyData, memberId, stamps);
   }
-  return Response.json({ stamps, mode: loyalty.mode });
+  return Response.json({ stamps });
 }

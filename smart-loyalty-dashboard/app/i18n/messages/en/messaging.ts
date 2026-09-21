@@ -11,7 +11,7 @@ export const composer: Messages["composer"] = {
     all: "every subscriber",
     frequent: "5 or more visits",
     inactive: "no visit in 30 days",
-    near_reward: "1 stamp to go",
+    near_reward: "Almost there",
   },
   repeats: { none: "Just once", daily: "Every day", weekly: "Every week" },
   invalidImage: "Invalid image",
