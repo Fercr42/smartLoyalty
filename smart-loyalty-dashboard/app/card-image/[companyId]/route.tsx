@@ -106,7 +106,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   const { companyId } = await params;
   const q = req.nextUrl.searchParams;
   const variant = q.get("variant") === "hero" ? "hero" : "card";
-  const stamps = Math.min(Math.max(parseInt(q.get("s") ?? "0", 10) || 0, 0), 999);
+  const stamps = Math.min(Math.max(parseInt(q.get("s") ?? "0", 10) || 0, 0), 9_999_999);
   const code = (q.get("code") ?? "").replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase();
   const preview = q.get("p");
 
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   // Por puntos la meta puede ser grande: se muestra un número, no círculos.
   const goal = company.points ? Math.max(next?.stamps ?? 1000, 1) : Math.min(Math.max(next?.stamps ?? 10, 1), 20);
   const filled = Math.min(stamps, goal);
-  const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-CR" : company.locale);
+  const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-ES" : company.locale);
   const progress = !next
     ? company.points
       ? `${number(stamps)} ${company.pass.points}`
