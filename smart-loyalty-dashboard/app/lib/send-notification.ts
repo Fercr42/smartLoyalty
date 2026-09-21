@@ -8,6 +8,8 @@ import {
   walletIssuerId,
   type WalletCompany,
 } from "./google-wallet";
+import { companyLocale } from "../i18n/config";
+import { messages } from "../i18n/messages";
 import { planState } from "./plan";
 import { cleanRewards, type Reward } from "./rewards";
 
@@ -263,6 +265,10 @@ export async function sendNotification(companyId: string, payload: StoredNotific
   }
 
   let wallet = "off";
+  const walletBody =
+    payload.kind === "review"
+      ? `${payload.body} ${messages[companyLocale(data as { language?: unknown })].pass.reviewWalletHint}`.slice(0, 500)
+      : payload.body;
   if (walletIssuerId()) {
     try {
       if (!memberIds) {
@@ -273,7 +279,7 @@ export async function sendNotification(companyId: string, payload: StoredNotific
         for (let i = 0; i < ids.length; i += 10) {
           const batch = ids.slice(i, i + 10);
           const results = await Promise.all(
-            batch.map((id) => notifyWalletMember(companyId, id, payload.title, payload.body))
+            batch.map((id) => notifyWalletMember(companyId, id, payload.title, walletBody))
           );
           results.forEach((ok, j) => ok && reached.add(batch[j]));
           delivered += results.filter(Boolean).length;

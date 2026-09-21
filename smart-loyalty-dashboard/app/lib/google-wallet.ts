@@ -38,6 +38,7 @@ export type WalletCompany = {
   brandColor?: string;
   walletCard?: WalletCard;
   loyalty?: { rewards?: unknown; walletTemplate?: number; mode?: unknown; rule?: unknown; currency?: unknown };
+  reviews?: { enabled?: boolean; url?: string; survey?: boolean };
   location?: unknown;
   cardDesign?: unknown;
   language?: unknown;
@@ -104,7 +105,7 @@ async function walletApi(path: string, init: RequestInit = {}) {
 }
 
 // Lo que se ve en la tarjeta. Lo usan la creación y la actualización, así siempre coinciden.
-function cardFields(company: WalletCompany, origin: string, stamps = 0) {
+function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId?: string) {
   const card = company.walletCard ?? {};
   const locale = companyLocale(company);
   const m = messages[locale];
@@ -124,7 +125,10 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
       .map((row, i) => ({ id: `info_${i}`, header: clip(row.label, 40), body: clip(row.value, 200) }))
       .filter((m) => m.header && m.body),
   ];
+  const review = memberId && origin.startsWith("https://") ? reviewLink(company, origin, memberId) : "";
   const uris = [
+    // Botón fijo para calificar: los mensajes de Wallet no se pueden tocar, así que el enlace vive aquí.
+    ...(review ? [{ id: "review", description: p.rateVisit, uri: review }] : []),
     ...(card.links ?? [])
       .map((row, i) => ({
         id: `link_${i}`,
@@ -157,6 +161,14 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0) {
   };
 }
 
+// Encuesta del cliente (o Google directo si el dueño apagó la encuesta). "" si las reseñas están apagadas.
+function reviewLink(company: WalletCompany, origin: string, memberId: string) {
+  const reviews = company.reviews;
+  if (!reviews?.enabled) return "";
+  if (reviews.survey !== false) return `${origin}/encuesta/${company.id}?m=${encodeURIComponent(memberId)}`;
+  return /^https:\/\/\S+$/.test(reviews.url ?? "") ? `${origin}/r/${company.id}` : "";
+}
+
 const hasRewards = (company: WalletCompany) => cleanRewards(company.loyalty?.rewards).length > 0;
 
 // Enlace "Guardar en Google Wallet". Crea la clase y la tarjeta al guardarla.
@@ -175,7 +187,7 @@ export function googleWalletSaveUrl({
     id: objectId(company.id, memberId),
     classId: classId(company.id),
     state: "ACTIVE",
-    ...cardFields(company, origin, stamps),
+    ...cardFields(company, origin, stamps, memberId),
     barcode: { type: "QR_CODE", value: memberId, alternateText: memberId.slice(0, 8).toUpperCase() },
   };
 
@@ -261,7 +273,7 @@ export async function syncWalletCards(
           // Los campos en undefined se quitan (ej. si se borró la portada).
           const r = await walletApi(`/genericObject/${encodeURIComponent(object.id)}`, {
             method: "PUT",
-            body: JSON.stringify({ ...object, ...cardFields(company, origin, stampsByMember[memberId] ?? 0) }),
+            body: JSON.stringify({ ...object, ...cardFields(company, origin, stampsByMember[memberId] ?? 0, memberId) }),
           });
           if (r.ok) updated++;
           else console.error("Wallet PUT", object.id, r.status, await r.text());
@@ -290,11 +302,14 @@ export async function setWalletPromoLink(
     if (!res.ok && res.status !== 404) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
     return;
   }
-  const baseLinks = cardFields(company, origin).linksModuleData?.uris ?? [];
-  const uris = [{ id: "member_promo", uri: promo.url, description }, ...baseLinks];
   for (let i = 0; i < memberIds.length; i += 10) {
     await Promise.all(
       memberIds.slice(i, i + 10).map(async (memberId) => {
+        const baseLinks = cardFields(company, origin, 0, memberId).linksModuleData?.uris ?? [];
+        // Si el enlace ya es un botón de la tarjeta (ej. la encuesta), no repetirlo.
+        const uris = baseLinks.some((l) => l.uri === promo.url)
+          ? baseLinks
+          : [{ id: "member_promo", uri: promo.url, description }, ...baseLinks];
         const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
           method: "PATCH",
           body: JSON.stringify({ linksModuleData: { uris } }),
