@@ -9,6 +9,7 @@ import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
+import { cardImageVersion } from "../lib/card-version";
 import { NAME_MAX } from "../lib/member-name";
 import { formatPoints, nextRewardText, type Reward } from "../lib/rewards";
 
@@ -20,6 +21,8 @@ type Company = {
   bgColor?: string;
   loyalty?: { rewards?: unknown; mode?: unknown; rule?: unknown; currency?: unknown };
   cardDesign?: { version?: number };
+  walletCard?: { header?: string };
+  language?: string;
 };
 type Status =
   | "loading"
@@ -373,7 +376,7 @@ export default function JoinClient({
           {company.cardDesign && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/card-image/${companyId}?variant=card&s=${memberCard.stamps}&code=${memberCard.code}&v=${company.cardDesign.version ?? 0}`}
+              src={`/card-image/${companyId}?variant=card&s=${memberCard.stamps}&code=${memberCard.code}&v=${cardImageVersion(company)}`}
               alt={`${company.name} · ${memberCard.stamps} ${t.stamps}`}
               className="w-full aspect-[1012/638] rounded-2xl shadow-lg bg-gray-100"
             />

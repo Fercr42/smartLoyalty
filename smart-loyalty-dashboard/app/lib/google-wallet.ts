@@ -1,5 +1,6 @@
 import { createSign } from "crypto";
 import { cleanDesign } from "./card-design";
+import { cardImageVersion } from "./card-version";
 import { DEFAULT_BRAND, safeColor } from "./colors";
 import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
@@ -155,7 +156,7 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId
     // Logo ancho: Google lo muestra en grande arriba, en lugar del logo pequeño.
     wideLogo: image(absolute(card.wideLogoUrl, origin), name),
     heroImage: drawn
-      ? image(`${origin}/card-image/${company.id}?variant=hero&s=${stamps}&v=${drawn.version ?? 0}`, name)
+      ? image(`${origin}/card-image/${company.id}?variant=hero&s=${stamps}&v=${cardImageVersion(company)}`, name)
       : image(absolute(card.heroUrl, origin), name),
     textModulesData: modules.length ? modules : undefined,
     linksModuleData: uris.length ? { uris } : undefined,
