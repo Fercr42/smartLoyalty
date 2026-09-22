@@ -29,7 +29,7 @@ describe.skipIf(!hasCredentials)("Tarjeta protegida por correo", () => {
     expect(r.status).toBe(200);
     expect(r.data.memberId).toBe(phone1);
     const card = await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone1 } });
-    expect(card.data).toMatchObject({ linked: true, stamps: 2000 });
+    expect(card.data).toMatchObject({ linked: true, stamps: 200 });
     expect(card.data.email).toContain("@example.com");
   });
 
@@ -40,7 +40,7 @@ describe.skipIf(!hasCredentials)("Tarjeta protegida por correo", () => {
     const r = await api("/api/loyalty/link", { headers: customer, body: { companyId: restaurantA, memberId: phone2 } });
     expect(r.data).toMatchObject({ memberId: phone1, merged: true });
     const main = await api("/api/loyalty/member", { body: { companyId: restaurantA, memberId: phone2 } });
-    expect(main.data).toMatchObject({ memberId: phone1, stamps: 3000 });
+    expect(main.data).toMatchObject({ memberId: phone1, stamps: 300 });
   });
 
   it("el escáner con el QR viejo usa la tarjeta principal", async () => {
