@@ -240,15 +240,11 @@ function PhoneMockup({ t }: { t: Messages["landing"]["mock"] }) {
             <p className="text-sm font-bold">{t.business}</p>
             <p className="text-[11px] text-white/60">{t.member}</p>
           </div>
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: 10 }, (_, i) => (
-              <span
-                key={i}
-                className={`aspect-square rounded-full border-2 ${
-                  i < 9 ? "bg-[#f2b134] border-[#f2b134]" : "border-dashed border-white/40"
-                }`}
-              />
-            ))}
+          <p className={`${display.className} text-5xl font-semibold text-[#f2b134] tabular-nums leading-none`}>
+            450 <span className="text-sm font-normal text-white/70">{t.points}</span>
+          </p>
+          <div className="h-2.5 rounded-full bg-white/15 overflow-hidden">
+            <div className="h-full w-[90%] rounded-full bg-[#f2b134]" />
           </div>
           <p className="text-xs text-white/80">{t.progress}</p>
         </div>

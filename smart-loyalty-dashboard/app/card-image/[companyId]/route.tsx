@@ -98,7 +98,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   // Meta: el primer premio que todavía no alcanza (o el último).
   const next = company.rewards.find((r) => r.stamps > stamps) ?? company.rewards[company.rewards.length - 1];
   // La meta puede ser grande: la tarjeta muestra el número de puntos y una barra.
-  const goal = Math.max(next?.stamps ?? 1000, 1);
+  const goal = Math.max(next?.stamps ?? 500, 1);
   const filled = Math.min(stamps, goal);
   const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-ES" : company.locale);
   const progress = !next

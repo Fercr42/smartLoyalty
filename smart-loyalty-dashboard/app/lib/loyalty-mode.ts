@@ -5,7 +5,7 @@
 export type PointsRule = { points: number; per: number };
 export type LoyaltyConfig = { rule: PointsRule; currency: string };
 
-export const DEFAULT_RULE: PointsRule = { points: 1000, per: 5000 };
+export const DEFAULT_RULE: PointsRule = { points: 100, per: 5000 };
 export const MAX_SALE = 100_000_000; // tope por compra, para que un error de dedo no dispare los puntos
 
 const int = (value: unknown, fallback: number, min: number, max: number) => {

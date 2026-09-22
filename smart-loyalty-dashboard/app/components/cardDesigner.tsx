@@ -21,14 +21,19 @@ type Notice = { ok: boolean; text: string } | null;
 const SIZES: CardSize[] = ["sm", "md", "lg"];
 const ASSET_MAX_CHARS = 900_000; // un documento de Firestore admite máx. 1 MB
 
+// Hoja de Google Fonts con solo las letras de los nombres, para la vista previa de cada tipo de letra.
+const FONT_PREVIEW_CSS = `https://fonts.googleapis.com/css2?${CARD_FONTS.map(
+  (f) => `family=${encodeURIComponent(f.family).replace(/%20/g, "+")}:wght@${f.weight}`
+).join("&")}&text=${encodeURIComponent([...new Set(CARD_FONTS.map((f) => f.label).join(""))].join(""))}&display=swap`;
+
 export default function CardDesigner() {
   const { user } = useAuth();
   const { m, f: tf, locale } = useI18n();
   const t = m.cardDesign;
   const [design, setDesign] = useState<CardDesign | null>(null);
   const [brandColor, setBrandColor] = useState<string | undefined>();
-  const [goal, setGoal] = useState(5000);
-  const [previewStamps, setPreviewStamps] = useState(3000);
+  const [goal, setGoal] = useState(500);
+  const [previewStamps, setPreviewStamps] = useState(300);
   const [previewParam, setPreviewParam] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,7 +44,7 @@ export default function CardDesigner() {
     getDoc(doc(db, "companies", user.uid))
       .then((snap) => {
         const data = snap.data() ?? {};
-        const rewardGoal = cleanRewards(data.loyalty?.rewards)[0]?.stamps ?? 5000;
+        const rewardGoal = cleanRewards(data.loyalty?.rewards)[0]?.stamps ?? 500;
         setBrandColor(data.brandColor);
         setGoal(rewardGoal);
         setPreviewStamps(Math.round(rewardGoal * 0.6));
@@ -198,16 +203,33 @@ export default function CardDesigner() {
               <ColorField id="design-text" label={t.textColor} value={design.textColor} onChange={(textColor) => update({ textColor })} />
               <ColorField id="design-accent" label={t.stampColor} value={design.accentColor} onChange={(accentColor) => update({ accentColor })} />
             </div>
-            <label htmlFor="design-font" className="flex flex-col gap-1 text-xs text-gray-600">
-              {t.font}
-              <select id="design-font" value={design.font} onChange={(e) => update({ font: e.target.value })} className="border rounded p-2 text-sm text-gray-900">
+            <div className="flex flex-col gap-1 text-xs text-gray-600">
+              <span id="design-font-label">{t.font}</span>
+              {/* Cada opción se ve en su propia letra (Google Fonts carga solo las letras del nombre). */}
+              <link rel="stylesheet" href={FONT_PREVIEW_CSS} />
+              <div
+                id="design-font"
+                role="radiogroup"
+                aria-labelledby="design-font-label"
+                className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto border rounded p-2"
+              >
                 {CARD_FONTS.map((f) => (
-                  <option key={f.id} value={f.id}>
+                  <button
+                    key={f.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={design.font === f.id}
+                    onClick={() => update({ font: f.id })}
+                    className={`rounded-lg border px-2 py-2 text-base text-gray-900 truncate ${
+                      design.font === f.id ? "border-gray-900 ring-2 ring-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
+                    }`}
+                    style={{ fontFamily: `"${f.family}", sans-serif`, fontWeight: f.weight }}
+                  >
                     {f.label}
-                  </option>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <SizeField id="design-logo-size" label={t.logoSize} value={design.logoSize} onChange={(logoSize) => update({ logoSize })} />
               <SizeField id="design-title-size" label={t.titleSize} value={design.titleSize} onChange={(titleSize) => update({ titleSize })} />

@@ -26,7 +26,7 @@ type Event = {
 type Notice = { ok: boolean; text: string } | null;
 type Feedback = { id: string; rating: number; comment: string; code: string | null; at?: Timestamp };
 
-const HINT_POINTS = ["4000", "8000", "20000"];
+const HINT_POINTS = ["400", "800", "2000"];
 const newRow = (): Row => ({ id: crypto.randomUUID().slice(0, 8), title: "", stamps: "" });
 
 export default function LoyaltyEditor() {
@@ -266,7 +266,7 @@ export default function LoyaltyEditor() {
                 inputMode="numeric"
                 min={1}
                 max={1_000_000}
-                placeholder={HINT_POINTS[i] ?? "10000"}
+                placeholder={HINT_POINTS[i] ?? "1000"}
                 value={row.stamps}
                 onChange={(e) => updateRow(row.id, "stamps", e.target.value)}
                 className="border p-2 rounded tabular-nums"
