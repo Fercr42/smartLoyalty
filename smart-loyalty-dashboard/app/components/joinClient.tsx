@@ -243,7 +243,7 @@ export default function JoinClient({
   }
 
   return (
-    <Shell bg={bg}>
+    <Shell bg={bg} wide={Boolean(memberCard && company.cardDesign)}>
       {company.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={company.logoUrl} alt="" className="w-24 h-24 rounded-2xl object-cover mx-auto" />
@@ -439,10 +439,11 @@ export default function JoinClient({
   );
 }
 
-function Shell({ bg, children }: { bg: string; children: React.ReactNode }) {
+// wide: con tarjeta de cliente la caja se ensancha en compu para mostrar la tarjeta al doble.
+function Shell({ bg, wide = false, children }: { bg: string; wide?: boolean; children: React.ReactNode }) {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 py-10" style={{ background: bg }}>
-      <div className="bg-white shadow-sm border rounded-2xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-3">
+      <div className={`bg-white shadow-sm border rounded-2xl px-4 py-8 sm:p-8 w-full text-center flex flex-col items-center gap-3 ${wide ? "max-w-sm sm:max-w-2xl" : "max-w-sm"}`}>
         {children}
       </div>
       <LanguageSwitcher className="bg-white" />
