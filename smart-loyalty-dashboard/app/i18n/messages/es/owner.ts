@@ -36,6 +36,7 @@ export const panel = {
     tarjeta: { label: "Tarjeta", description: "El diseño de tu tarjeta y lo que muestra en Google Wallet." },
     recompensas: { label: "Recompensas", description: "Premios por puntos, escáner de empleados y reseñas." },
     negocio: { label: "Mi negocio", description: "Nombre, tipo, idioma, logo, colores y tu código QR." },
+    clientes: { label: "Clientes", description: "Quiénes tienen tu tarjeta: nombre, puntos, visitas y contacto." },
     plan: { label: "Plan", description: "Tu suscripción a Smart Loyalty." },
   },
   sectionsLabel: "Secciones del panel",
@@ -97,4 +98,24 @@ export const labels = {
     birthday: "Cumpleaños (automático)",
     winback: "Te extrañamos (automático)",
   },
+};
+
+export const customers = {
+  search: "Buscar por nombre, código o correo",
+  count: "{count} clientes",
+  showing: "Mostrando {shown} de {count}",
+  empty: "Aún no hay clientes. Aparecen aquí cuando escanean tu QR.",
+  noResults: "Ningún cliente coincide con la búsqueda.",
+  noName: "Sin nombre",
+  name: "Cliente",
+  points: "Puntos",
+  visits: "Visitas",
+  lastVisit: "Última visita",
+  contact: "Contacto",
+  never: "—",
+  wallet: "Wallet",
+  push: "Notificaciones",
+  birthday: "Cumple {date}",
+  loadError: "No se pudo cargar la lista de clientes.",
+  namesHint: "Los clientes escriben su nombre en su tarjeta (página de tu QR).",
 };

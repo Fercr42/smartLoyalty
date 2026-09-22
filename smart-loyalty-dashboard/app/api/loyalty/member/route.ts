@@ -7,6 +7,8 @@ import { cleanAutomations } from "../../../lib/automations-config";
 import { memberCoupons } from "../../../lib/coupons";
 import { kickCron } from "../../../lib/cron-kick";
 import { publicOrigin } from "../../../lib/origin";
+import { updateMemberName, type WalletCompany } from "../../../lib/google-wallet";
+import { cleanName } from "../../../lib/member-name";
 import { cleanRewards } from "../../../lib/rewards";
 
 export const runtime = "nodejs";
@@ -23,6 +25,7 @@ function validBirthday(value: unknown) {
 
 // Tarjeta del cliente en la página del QR: puntos, cupones, cumpleaños y si está protegida con correo.
 // Crea el registro la primera vez. Si llega "birthday" (MM-DD) se guarda, solo una vez.
+// Si llega "name" se guarda (el cliente lo puede cambiar) y se muestra en su tarjeta de Wallet.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { companyId, memberId } = body;
@@ -66,6 +69,16 @@ export async function POST(req: NextRequest) {
     member = { ...member, birthday };
   }
 
+  if (body.name !== undefined) {
+    const name = cleanName(body.name);
+    if (!name) return Response.json({ error: "Escribe tu nombre." }, { status: 400 });
+    await memberRef.update({ name, nameSetAt: FieldValue.serverTimestamp() });
+    member = { ...member, name };
+    await updateMemberName({ ...company.data(), id: companyId } as WalletCompany, memberRef.id, publicOrigin(req.nextUrl.origin), name).catch(
+      (e) => console.error("Wallet nombre", e) // el nombre ya quedó guardado
+    );
+  }
+
   return Response.json({
     enabled: true,
     memberId: memberRef.id,
@@ -78,5 +91,6 @@ export async function POST(req: NextRequest) {
     birthdayGift: birthdaySettings.gift,
     linked: Boolean(member.customerUid),
     email: member.email ?? null,
+    name: member.name ?? "",
   });
 }

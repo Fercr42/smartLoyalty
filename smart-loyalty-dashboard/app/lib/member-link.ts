@@ -29,7 +29,7 @@ export async function linkMember(
     if (existing && existing.id !== memberId) {
       const e = existing.data();
       const canMerge = c && !c.customerUid && !c.mergedInto;
-      const hasProgress = canMerge && ((c.stamps ?? 0) > 0 || (c.totalVisits ?? 0) > 0 || c.birthday);
+      const hasProgress = canMerge && ((c.stamps ?? 0) > 0 || (c.totalVisits ?? 0) > 0 || c.birthday || c.name);
       if (hasProgress) {
         const newerVisit = c.lastStampAt && (!e.lastStampAt || c.lastStampAt.toMillis() > e.lastStampAt.toMillis());
         tx.update(existing.ref, {
@@ -37,6 +37,7 @@ export async function linkMember(
           totalVisits: FieldValue.increment(c.totalVisits ?? 0),
           ...(newerVisit ? { lastStampAt: c.lastStampAt } : {}),
           ...(!e.birthday && c.birthday ? { birthday: c.birthday } : {}),
+          ...(!e.name && c.name ? { name: c.name } : {}),
           ...emailFields,
         });
       } else if (shareEmail) {

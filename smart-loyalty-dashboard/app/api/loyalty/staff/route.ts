@@ -43,6 +43,7 @@ const memberView = (doc: DocumentSnapshot) => ({
   code: doc.id.slice(0, 8).toUpperCase(),
   stamps: doc.data()?.stamps ?? 0,
   totalVisits: doc.data()?.totalVisits ?? 0,
+  name: doc.data()?.name ?? "",
 });
 
 async function refreshWalletCard(
@@ -211,6 +212,7 @@ export async function POST(req: NextRequest) {
         tx.set(events.doc(), {
           memberId,
           code,
+          ...(member.data()?.name ? { name: member.data()?.name } : {}),
           type: "coupon",
           couponId,
           couponTitle: coupon.data()?.title ?? "",
@@ -234,7 +236,8 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(memberRef);
       if (!snap.exists) throw new LoyaltyError("Tarjeta no encontrada", 404);
       const current = snap.data()?.stamps ?? 0;
-      const event = { memberId, code, at: FieldValue.serverTimestamp() };
+      const name = snap.data()?.name;
+      const event = { memberId, code, ...(name ? { name } : {}), at: FieldValue.serverTimestamp() };
 
       if (action === "stamp") {
         const last = snap.data()?.lastStampAt?.toMillis?.() ?? 0;

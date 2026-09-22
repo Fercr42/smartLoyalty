@@ -23,14 +23,16 @@ export async function POST(req: NextRequest) {
   const company = await companyRef.get();
   if (!company.exists) return Response.json({ updated: 0 });
 
-  const members = await companyRef.collection("walletMembers").select("stamps").get();
+  const members = await companyRef.collection("walletMembers").select("stamps", "name").get();
   const stampsByMember = Object.fromEntries(members.docs.map((d) => [d.id, d.data().stamps ?? 0]));
+  const namesByMember = Object.fromEntries(members.docs.map((d) => [d.id, d.data().name ?? ""]));
 
   try {
     const updated = await syncWalletCards(
       { ...company.data(), id: uid } as WalletCompany,
       publicOrigin(req.nextUrl.origin),
-      stampsByMember
+      stampsByMember,
+      namesByMember
     );
     return Response.json({ updated });
   } catch (e) {

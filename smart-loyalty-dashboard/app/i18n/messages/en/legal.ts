@@ -26,6 +26,7 @@ export const legal: Messages["legal"] = {
         p: [
           "When you scan the QR and accept notifications we store: the identifier your phone's browser provides to receive notifications, a card code, your points, visits, redeemed rewards and used coupons.",
           "If you choose to protect your card, we store your email address. If you allow it, that email is shared with the business.",
+          "If you enter it, we store your name. The business sees it in its dashboard and scanner, and it appears on your Google Wallet card.",
           "If you enter it, we store the day and month of your birthday (not the year) for the birthday gift.",
           "If you answer the survey, we store your 1-to-5 rating and your comment.",
           "We do not ask for or store your full name, address, ID number or payment details.",

@@ -31,11 +31,14 @@ export async function GET(req: NextRequest) {
   const withPush = new Set(subscribers.docs.map((d) => d.data().memberId).filter(Boolean));
 
   const rows: unknown[][] = [
-    ["Código", "Tipo de tarjeta", "Puntos", "Visitas", "Cliente desde", "Última visita", "Último canje", "Recibe notificaciones"],
-    ...members.docs.map((d) => {
+    ["Nombre", "Código", "Correo", "Cumpleaños (MM-DD)", "Tipo de tarjeta", "Puntos", "Visitas", "Cliente desde", "Última visita", "Último canje", "Recibe notificaciones"],
+    ...members.docs.filter((d) => !d.data().mergedInto).map((d) => {
       const m = d.data();
       return [
+        m.name ?? "",
         d.id.slice(0, 8).toUpperCase(),
+        m.email ?? "",
+        m.birthday ?? "",
         m.platform === "google" ? "Google Wallet" : "Web",
         m.stamps ?? 0,
         m.totalVisits ?? 0,

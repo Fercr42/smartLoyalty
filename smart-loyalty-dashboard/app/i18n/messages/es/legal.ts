@@ -26,6 +26,7 @@ export const legal = {
         p: [
           "Cuando escaneas el QR y aceptas las notificaciones guardamos: el identificador que el navegador de tu celular entrega para recibir notificaciones, un código de tarjeta, tus puntos, visitas, premios canjeados y cupones usados.",
           "Si decides proteger tu tarjeta, guardamos tu correo electrónico. Si lo autorizas, ese correo se comparte con el negocio.",
+          "Si lo escribes, guardamos tu nombre. El negocio lo ve en su panel y en su escáner, y aparece en tu tarjeta de Google Wallet.",
           "Si lo escribes, guardamos el día y el mes de tu cumpleaños (no el año) para el regalo de cumpleaños.",
           "Si respondes la encuesta, guardamos tu calificación de 1 a 5 y tu comentario.",
           "No pedimos ni guardamos tu nombre completo, tu dirección, tu cédula ni datos de pago.",

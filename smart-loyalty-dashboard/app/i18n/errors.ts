@@ -33,6 +33,8 @@ const EXACT: Table = {
   "Este cliente ya usó este cupón.": ["This customer already used this coupon.", "ลูกค้าคนนี้ใช้คูปองนี้แล้ว"],
   "A esta tarjeta ya se le sumaron puntos hace menos de 1 minuto.": ["This card got points less than 1 minute ago.", "บัตรนี้เพิ่งได้แต้มไปเมื่อไม่ถึง 1 นาทีที่แล้ว"],
   "Ya nos dejaste tu opinión hoy. ¡Gracias!": ["You already left feedback today. Thanks!", "วันนี้คุณให้ความคิดเห็นแล้ว ขอบคุณ!"],
+  "Escribe tu nombre.": ["Enter your name.", "กรอกชื่อของคุณ"],
+  "Escribe el monto de la compra.": ["Enter the purchase amount.", "กรอกยอดซื้อ"],
   "Elige de 1 a 5 estrellas": ["Choose 1 to 5 stars", "เลือก 1 ถึง 5 ดาว"],
   "Tu cumpleaños ya está registrado": ["Your birthday is already saved", "บันทึกวันเกิดของคุณไว้แล้ว"],
   "Fecha de cumpleaños no válida": ["Invalid birthday", "วันเกิดไม่ถูกต้อง"],

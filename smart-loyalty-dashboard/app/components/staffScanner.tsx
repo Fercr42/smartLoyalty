@@ -8,7 +8,7 @@ import { nextRewardText, type Reward } from "../lib/rewards";
 import { useI18n } from "../i18n/client";
 
 type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[]; loyalty?: unknown };
-type Member = { memberId: string; code: string; stamps: number; totalVisits: number };
+type Member = { memberId: string; code: string; stamps: number; totalVisits: number; name?: string };
 type Notice = { ok: boolean; text: string } | null;
 type Coupon = { id: string; title: string; expiresDate: string; used: boolean };
 
@@ -248,6 +248,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
           </form>
         ) : member ? (
           <section className="bg-white rounded-2xl border p-5 flex flex-col gap-4">
+            {member.name && <p className="text-xl font-bold text-gray-900 -mb-2 break-words">{member.name}</p>}
             <div className="flex justify-between items-baseline">
               <span className="font-mono text-sm text-gray-500">#{member.code}</span>
               <span className="text-xs text-gray-500 tabular-nums">{f(t.visits, { count: member.totalVisits })}</span>

@@ -11,6 +11,7 @@ import NotificationComposer from "../components/notificationComposer";
 import WalletCardEditor from "../components/walletCardEditor";
 import LoyaltyEditor from "../components/loyaltyEditor";
 import StatsPanel from "../components/statsPanel";
+import CustomersList from "../components/customersList";
 import PlanBanner from "../components/planBanner";
 import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
@@ -22,7 +23,7 @@ import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { planState, type PlanState } from "../lib/plan";
 
 // Panel del dueño: una sección a la vez, con menú lateral (computadora) o pestañas (celular).
-const TABS = ["inicio", "mensajes", "resultados", "automatizaciones", "tarjeta", "recompensas", "negocio", "plan"] as const;
+const TABS = ["inicio", "clientes", "mensajes", "resultados", "automatizaciones", "tarjeta", "recompensas", "negocio", "plan"] as const;
 type TabId = (typeof TABS)[number];
 
 const tabFromHash = (): TabId => {
@@ -147,6 +148,12 @@ export default function Panel() {
           {tab === "inicio" && (
             <Card>
               <StatsPanel />
+            </Card>
+          )}
+
+          {tab === "clientes" && (
+            <Card>
+              <CustomersList />
             </Card>
           )}
 

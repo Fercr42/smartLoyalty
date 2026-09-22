@@ -36,6 +36,7 @@ export const panel: Messages["panel"] = {
     tarjeta: { label: "Card", description: "Your card design and what it shows in Google Wallet." },
     recompensas: { label: "Rewards", description: "Point rewards, staff scanner and reviews." },
     negocio: { label: "My business", description: "Name, type, language, logo, colors and your QR code." },
+    clientes: { label: "Customers", description: "Who has your card: name, points, visits and contact." },
     plan: { label: "Plan", description: "Your Smart Loyalty subscription." },
   },
   sectionsLabel: "Dashboard sections",
@@ -97,4 +98,24 @@ export const labels: Messages["labels"] = {
     birthday: "Birthday (automatic)",
     winback: "We miss you (automatic)",
   },
+};
+
+export const customers: Messages["customers"] = {
+  search: "Search by name, code or email",
+  count: "{count} customers",
+  showing: "Showing {shown} of {count}",
+  empty: "No customers yet. They show up here after scanning your QR.",
+  noResults: "No customer matches your search.",
+  noName: "No name",
+  name: "Customer",
+  points: "Points",
+  visits: "Visits",
+  lastVisit: "Last visit",
+  contact: "Contact",
+  never: "—",
+  wallet: "Wallet",
+  push: "Notifications",
+  birthday: "Birthday {date}",
+  loadError: "Couldn't load the customer list.",
+  namesHint: "Customers enter their name on their card (your QR page).",
 };

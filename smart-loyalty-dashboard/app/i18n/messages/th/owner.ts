@@ -36,6 +36,7 @@ export const panel: Messages["panel"] = {
     tarjeta: { label: "บัตร", description: "ดีไซน์บัตรของคุณและสิ่งที่แสดงใน Google Wallet" },
     recompensas: { label: "รางวัล", description: "รางวัลจากคะแนน เครื่องสแกนของพนักงาน และรีวิว" },
     negocio: { label: "ร้านของฉัน", description: "ชื่อ ประเภท ภาษา โลโก้ สี และคิวอาร์โค้ดของคุณ" },
+    clientes: { label: "ลูกค้า", description: "ใครมีบัตรของคุณบ้าง: ชื่อ คะแนน จำนวนครั้งที่มา และช่องทางติดต่อ" },
     plan: { label: "แพ็กเกจ", description: "การสมัครสมาชิก Smart Loyalty ของคุณ" },
   },
   sectionsLabel: "ส่วนต่าง ๆ ของแดชบอร์ด",
@@ -97,4 +98,24 @@ export const labels: Messages["labels"] = {
     birthday: "วันเกิด (อัตโนมัติ)",
     winback: "คิดถึงนะ (อัตโนมัติ)",
   },
+};
+
+export const customers: Messages["customers"] = {
+  search: "ค้นหาด้วยชื่อ รหัส หรืออีเมล",
+  count: "ลูกค้า {count} คน",
+  showing: "แสดง {shown} จาก {count}",
+  empty: "ยังไม่มีลูกค้า ลูกค้าจะแสดงที่นี่หลังจากสแกนคิวอาร์ของคุณ",
+  noResults: "ไม่พบลูกค้าที่ตรงกับการค้นหา",
+  noName: "ไม่มีชื่อ",
+  name: "ลูกค้า",
+  points: "คะแนน",
+  visits: "ครั้งที่มา",
+  lastVisit: "มาล่าสุด",
+  contact: "ติดต่อ",
+  never: "—",
+  wallet: "Wallet",
+  push: "การแจ้งเตือน",
+  birthday: "วันเกิด {date}",
+  loadError: "โหลดรายชื่อลูกค้าไม่สำเร็จ",
+  namesHint: "ลูกค้ากรอกชื่อของตนเองบนบัตร (หน้าคิวอาร์ของคุณ)",
 };

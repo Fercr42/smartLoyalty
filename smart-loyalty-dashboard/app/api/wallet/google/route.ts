@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     memberId,
     origin: publicOrigin(req.nextUrl.origin),
     stamps: member.data()?.stamps ?? 0,
+    name: member.data()?.name ?? "",
   });
   return Response.json({ url });
 }

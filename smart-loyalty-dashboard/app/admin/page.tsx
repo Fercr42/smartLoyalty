@@ -6,6 +6,7 @@ import Auth from "../components/auth";
 import BrandLogo from "../components/brandLogo";
 import CampaignResults from "../components/campaignResults";
 import StatsPanel from "../components/statsPanel";
+import CustomersList from "../components/customersList";
 import { auth } from "../firebase/config";
 
 // Administrador de Smart Loyalty: todos los restaurantes, planes, pruebas por vencer e ingresos.
@@ -308,6 +309,10 @@ export default function AdminPage() {
             </p>
             <div className="bg-white border rounded-xl p-5">
               <StatsPanel companyId={openRestaurant.id} />
+            </div>
+            <div className="bg-white border rounded-xl p-5">
+              <h3 className="font-semibold text-gray-900 mb-3">Clientes</h3>
+              <CustomersList companyId={openRestaurant.id} />
             </div>
             <div className="bg-white border rounded-xl p-5">
               <CampaignResults companyId={openRestaurant.id} />

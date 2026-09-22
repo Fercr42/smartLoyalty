@@ -17,6 +17,7 @@ type Event = {
   id: string;
   type: "stamp" | "redeem" | "coupon";
   code: string;
+  name?: string;
   rewardTitle?: string;
   couponTitle?: string;
   stampsAfter?: number;
@@ -458,7 +459,13 @@ export default function LoyaltyEditor() {
                           ? tf(t.redeemed, { reward: ev.rewardTitle ?? "" })
                           : tf(t.usedCoupon, { coupon: ev.couponTitle ?? "" })}
                     </b>{" "}
-                    <span className="font-mono text-gray-500">#{ev.code}</span>
+                    {ev.name ? (
+                      <span className="text-gray-700">
+                        {ev.name} <span className="font-mono text-gray-400">#{ev.code}</span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-gray-500">#{ev.code}</span>
+                    )}
                     {ev.type !== "coupon" && (
                       <span className="block text-xs text-gray-500">{tf(t.stampsLeft, { count: ev.stampsAfter ?? 0 })}</span>
                     )}

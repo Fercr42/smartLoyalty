@@ -105,7 +105,7 @@ async function walletApi(path: string, init: RequestInit = {}) {
 }
 
 // Lo que se ve en la tarjeta. Lo usan la creación y la actualización, así siempre coinciden.
-function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId?: string) {
+function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId?: string, memberName = "") {
   const card = company.walletCard ?? {};
   const locale = companyLocale(company);
   const m = messages[locale];
@@ -147,8 +147,9 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId
 
   return {
     cardTitle: text(name, locale),
-    header: text(clip(card.header, 40) || p.member, locale),
-    subheader: text(clip(card.subheader, 40) || p.membership, locale),
+    // Con nombre: "Luis" en grande y el texto del dueño ("Cliente frecuente") debajo.
+    header: text(memberName || clip(card.header, 40) || p.member, locale),
+    subheader: text(memberName ? clip(card.header, 40) || p.member : clip(card.subheader, 40) || p.membership, locale),
     hexBackgroundColor: drawn ? drawn.bgColor : safeColor(card.color, safeColor(company.brandColor, DEFAULT_BRAND)),
     logo: image(absolute(company.logoUrl, origin), name),
     // Logo ancho: Google lo muestra en grande arriba, en lugar del logo pequeño.
@@ -177,17 +178,19 @@ export function googleWalletSaveUrl({
   memberId,
   origin,
   stamps = 0,
+  name = "",
 }: {
   company: WalletCompany;
   memberId: string;
   origin: string;
   stamps?: number;
+  name?: string;
 }) {
   const object = {
     id: objectId(company.id, memberId),
     classId: classId(company.id),
     state: "ACTIVE",
-    ...cardFields(company, origin, stamps, memberId),
+    ...cardFields(company, origin, stamps, memberId, name),
     barcode: { type: "QR_CODE", value: memberId, alternateText: memberId.slice(0, 8).toUpperCase() },
   };
 
@@ -251,7 +254,8 @@ export async function updateMemberCard(company: WalletCompany, memberId: string,
 export async function syncWalletCards(
   company: WalletCompany,
   origin: string,
-  stampsByMember: Record<string, number> = {}
+  stampsByMember: Record<string, number> = {},
+  namesByMember: Record<string, string> = {}
 ) {
   await applyClassSettings(company);
   let pageToken = "";
@@ -273,7 +277,7 @@ export async function syncWalletCards(
           // Los campos en undefined se quitan (ej. si se borró la portada).
           const r = await walletApi(`/genericObject/${encodeURIComponent(object.id)}`, {
             method: "PUT",
-            body: JSON.stringify({ ...object, ...cardFields(company, origin, stampsByMember[memberId] ?? 0, memberId) }),
+            body: JSON.stringify({ ...object, ...cardFields(company, origin, stampsByMember[memberId] ?? 0, memberId, namesByMember[memberId]) }),
           });
           if (r.ok) updated++;
           else console.error("Wallet PUT", object.id, r.status, await r.text());
@@ -318,6 +322,19 @@ export async function setWalletPromoLink(
       })
     );
   }
+}
+
+// El cliente escribió o cambió su nombre: mostrarlo en su tarjeta. false si no la guardó en Wallet.
+export async function updateMemberName(company: WalletCompany, memberId: string, origin: string, name: string) {
+  if (!walletIssuerId()) return false;
+  const { header, subheader } = cardFields(company, origin, 0, memberId, name);
+  const res = await walletApi(`/genericObject/${encodeURIComponent(objectId(company.id, memberId))}`, {
+    method: "PATCH",
+    body: JSON.stringify({ header, subheader }),
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) throw new Error(`Google Wallet ${res.status}: ${await res.text()}`);
+  return true;
 }
 
 // ¿El cliente guardó de verdad su tarjeta en Google Wallet? (tocar el botón no basta: puede no guardarla)

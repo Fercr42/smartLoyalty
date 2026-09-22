@@ -9,6 +9,7 @@ import { formatDay } from "../lib/format";
 import { getMemberId, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
+import { NAME_MAX } from "../lib/member-name";
 import { formatPoints, nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
@@ -41,6 +42,7 @@ type MemberCard = {
   birthdayGift: string;
   linked: boolean;
   email: string | null;
+  name: string;
 };
 
 // Nombres de los meses y fecha de cumpleaños en el idioma del cliente.
@@ -92,13 +94,17 @@ export default function JoinClient({
   const [birthdayDay, setBirthdayDay] = useState("");
   const [birthdayMonth, setBirthdayMonth] = useState("");
   const [birthdayError, setBirthdayError] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   const loadMemberCard = useCallback(
-    async (birthday?: string) => {
+    async (extra: { birthday?: string; name?: string } = {}) => {
       const res = await fetch("/api/loyalty/member", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, memberId: getMemberId(companyId), ...(birthday ? { birthday } : {}) }),
+        body: JSON.stringify({ companyId, memberId: getMemberId(companyId), ...extra }),
       });
       const data = await res.json();
       if (res.ok && data.enabled) {
@@ -140,8 +146,22 @@ export default function JoinClient({
       return;
     }
     setBirthdayError("");
-    const { ok, error } = await loadMemberCard(`${birthdayMonth.padStart(2, "0")}-${birthdayDay.padStart(2, "0")}`);
+    const { ok, error } = await loadMemberCard({ birthday: `${birthdayMonth.padStart(2, "0")}-${birthdayDay.padStart(2, "0")}` });
     if (!ok) setBirthdayError(error ?? t.saveFailed);
+  };
+
+  const saveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameInput.trim()) {
+      setNameError(t.nameRequired);
+      return;
+    }
+    setSavingName(true);
+    setNameError("");
+    const { ok, error } = await loadMemberCard({ name: nameInput }).catch(() => ({ ok: false, error: undefined }));
+    setSavingName(false);
+    if (!ok) setNameError(te(error) ?? t.saveFailed);
+    else setEditingName(false);
   };
 
   const addToGoogleWallet = async () => {
@@ -308,6 +328,47 @@ export default function JoinClient({
 
       {memberCard && (
         <div className="w-full border-t pt-4 mt-2 flex flex-col items-center gap-2">
+          {memberCard.name && !editingName ? (
+            <p className="font-semibold text-gray-900">
+              {f(t.hello, { name: memberCard.name })}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setNameInput(memberCard.name);
+                  setEditingName(true);
+                }}
+                className="text-xs font-normal text-blue-700 underline"
+              >
+                {t.editName}
+              </button>
+            </p>
+          ) : (
+            <form onSubmit={saveName} className="w-full text-left border rounded-lg p-3 flex flex-col gap-2">
+              <label htmlFor="member-name" className="text-sm font-semibold text-gray-900">
+                {t.nameQuestion}
+              </label>
+              <p className="text-xs text-gray-600">{t.nameHint}</p>
+              <div className="flex gap-2">
+                <input
+                  id="member-name"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  maxLength={NAME_MAX}
+                  autoComplete="given-name"
+                  placeholder={t.namePlaceholder}
+                  className="border rounded p-2 text-sm flex-1 min-w-0"
+                />
+                <button
+                  disabled={savingName}
+                  className="px-3 rounded text-sm font-semibold disabled:opacity-50"
+                  style={{ background: brand, color: textOn(brand) }}
+                >
+                  {m.common.save}
+                </button>
+              </div>
+              {nameError && <p className="text-xs text-red-600">{nameError}</p>}
+            </form>
+          )}
           <p className="font-semibold text-gray-900">{t.cardTitle}</p>
           {company.cardDesign && (
             // eslint-disable-next-line @next/next/no-img-element
