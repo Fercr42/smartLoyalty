@@ -2,7 +2,31 @@
 
 export const auth = {
   title: "Entra a tu panel",
-  loginError: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+  loginError: "No se pudo entrar con Google. Inténtalo de nuevo.",
+  or: "o con tu correo",
+  email: "Correo",
+  password: "Contraseña",
+  passwordHint: "Mínimo 8 caracteres",
+  signIn: "Entrar",
+  signingIn: "Entrando...",
+  createAccount: "Crear cuenta",
+  creating: "Creando cuenta...",
+  noAccount: "¿No tienes cuenta? Crear una",
+  haveAccount: "¿Ya tienes cuenta? Entrar",
+  forgot: "Olvidé mi contraseña",
+  resetSent: "Te enviamos un correo para cambiar tu contraseña.",
+  verifySent: "Te enviamos un correo para confirmar tu dirección. Revisa tu bandeja (y el spam).",
+  fillBoth: "Escribe tu correo y tu contraseña.",
+  invalidEmail: "Ese correo no es válido.",
+  weakPassword: "La contraseña debe tener al menos 8 caracteres.",
+  emailInUse: "Ese correo ya tiene cuenta. Entra con tu contraseña.",
+  wrongPassword: "Correo o contraseña incorrectos.",
+  tooMany: "Demasiados intentos. Espera unos minutos.",
+  genericError: "No se pudo completar. Inténtalo de nuevo.",
+  verifyTitle: "Confirma tu correo",
+  verifyText: "Te enviamos un enlace a {email}. Confírmalo para no perder el acceso a tu cuenta.",
+  resend: "Reenviar correo",
+  resent: "Correo reenviado.",
 };
 
 export const signup = {

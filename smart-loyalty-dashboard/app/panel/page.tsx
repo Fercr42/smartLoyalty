@@ -13,6 +13,7 @@ import LoyaltyEditor from "../components/loyaltyEditor";
 import StatsPanel from "../components/statsPanel";
 import CustomersList from "../components/customersList";
 import PlanBanner from "../components/planBanner";
+import VerifyEmailBanner from "../components/verifyEmailBanner";
 import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
 import CardDesigner from "../components/cardDesigner";
@@ -138,6 +139,7 @@ export default function Panel() {
         </nav>
 
         <main className="flex flex-col gap-6 min-w-0">
+          <VerifyEmailBanner user={user} />
           {plan && <PlanBanner plan={plan} />}
 
           <div>
