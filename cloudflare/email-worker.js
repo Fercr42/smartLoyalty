@@ -8,7 +8,7 @@
 
 export default {
   async email(message, env) {
-    const texto = await leer(message);
+    const raw = new TextDecoder().decode(await new Response(message.raw).arrayBuffer());
 
     try {
       await fetch(env.ENDPOINT, {
@@ -18,7 +18,7 @@ export default {
           from: message.from,
           name: (message.headers.get("from") || "").split("<")[0].replace(/"/g, "").trim(),
           subject: message.headers.get("subject") || "",
-          text: texto.slice(0, 8000),
+          raw: raw.slice(0, 200000),
         }),
       });
     } catch (e) {
@@ -28,10 +28,3 @@ export default {
     if (env.REENVIAR) await message.forward(env.REENVIAR);
   },
 };
-
-// El cuerpo del correo llega como flujo de bytes.
-async function leer(message) {
-  const bruto = new TextDecoder().decode(await new Response(message.raw).arrayBuffer());
-  const corte = bruto.indexOf("\r\n\r\n");
-  return corte > 0 ? bruto.slice(corte + 4) : bruto;
-}
