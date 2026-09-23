@@ -296,6 +296,8 @@ export default function AdminPage() {
           </table>
         </div>
 
+        <SupportInbox />
+
         {openRestaurant && (
           <section className="flex flex-col gap-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -322,6 +324,67 @@ export default function AdminPage() {
         )}
       </main>
     </div>
+  );
+}
+
+type Ticket = { id: string; name: string; email: string; business: string; message: string; locale: string; at: number | null };
+
+// Mensajes que llegan de la página de soporte.
+function SupportInbox() {
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<Ticket[] | null>(null);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    user
+      .getIdToken()
+      .then((token) => fetch("/api/admin/support", { headers: { Authorization: `Bearer ${token}` } }))
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error ?? "No se pudieron cargar los mensajes");
+        if (alive) setTickets(body.tickets);
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "No se pudieron cargar los mensajes"));
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (!tickets) return null;
+
+  return (
+    <section className="bg-white border rounded-xl p-5 flex flex-col gap-3">
+      <button type="button" onClick={() => setOpen(!open)} className="flex items-baseline justify-between gap-3 text-left">
+        <h2 className="font-semibold text-gray-900">Mensajes de soporte</h2>
+        <span className="text-sm text-gray-600">{tickets.length ? `${tickets.length} mensajes` : "Sin mensajes"}</span>
+      </button>
+      {open && tickets.length > 0 && (
+        <ul className="divide-y text-sm">
+          {tickets.map((t) => (
+            <li key={t.id} className="py-3 flex flex-col gap-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-semibold text-gray-900">
+                  {t.name || "Sin nombre"}
+                  {t.business && <span className="font-normal text-gray-600"> · {t.business}</span>}{" "}
+                  <a href={`mailto:${t.email}`} className="font-normal text-blue-700 underline">
+                    {t.email}
+                  </a>
+                </p>
+                <span className="text-xs text-gray-500 tabular-nums">
+                  {t.at ? new Date(t.at).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" }) : ""}
+                  {t.locale && ` · ${t.locale}`}
+                </span>
+              </div>
+              <p className="text-gray-700 whitespace-pre-wrap">{t.message}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

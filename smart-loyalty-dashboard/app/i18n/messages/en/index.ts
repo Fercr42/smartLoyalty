@@ -9,5 +9,6 @@ import * as messaging from "./messaging";
 import * as owner from "./owner";
 import * as pass from "./pass";
 import * as programs from "./programs";
+import * as support from "./support";
 
-export const en: Messages = { ...cards, ...common, ...customer, ...insights, ...landing, ...legal, ...messaging, ...owner, ...pass, ...programs };
+export const en: Messages = { ...cards, ...common, ...customer, ...insights, ...landing, ...legal, ...messaging, ...owner, ...pass, ...programs, ...support };

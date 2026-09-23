@@ -195,6 +195,9 @@ export default async function Landing() {
           <BrandLogo size={22} />
           <div className="flex flex-wrap items-center gap-4">
             <LanguageSwitcher className="border-[#cfd8d4]" />
+            <Link href="/soporte" className="hover:text-[#111418]">
+              {m.support.supportLink}
+            </Link>
             <Link href="/privacidad" className="hover:text-[#111418]">
               {m.legal.privacyLink}
             </Link>
