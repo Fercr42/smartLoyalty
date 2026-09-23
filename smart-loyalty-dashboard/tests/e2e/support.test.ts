@@ -29,7 +29,7 @@ describe.skipIf(!hasCredentials)("Página de soporte", () => {
 
   it("la página responde en los tres idiomas", async () => {
     for (const [lang, text] of [["es", "Preguntas frecuentes"], ["en", "Frequently asked"], ["th", "คำถามที่พบบ่อย"]] as const) {
-      const html = await fetch(`${process.env.E2E_BASE_URL || "https://smart-loyalty-fawn.vercel.app"}/soporte`, {
+      const html = await fetch(`${process.env.E2E_BASE_URL || "https://smartloyalty.app"}/soporte`, {
         headers: { "Accept-Language": lang },
       }).then((r) => r.text());
       expect(html).toContain(text);

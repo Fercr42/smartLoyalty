@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 
 // Utilidades para probar el sitio publicado con datos desechables.
 
-export const BASE_URL = (process.env.E2E_BASE_URL || "https://smart-loyalty-fawn.vercel.app").replace(/\/+$/, "");
+export const BASE_URL = (process.env.E2E_BASE_URL || "https://smartloyalty.app").replace(/\/+$/, "");
 export const hasCredentials = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
 
 function app() {

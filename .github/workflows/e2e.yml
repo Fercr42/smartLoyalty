@@ -8,7 +8,7 @@ on:
     inputs:
       base_url:
         description: "Sitio a probar"
-        default: "https://smart-loyalty-fawn.vercel.app"
+        default: "https://smartloyalty.app"
 
 concurrency:
   group: e2e-production
@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: smart-loyalty-dashboard
     env:
-      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://smart-loyalty-fawn.vercel.app' }}
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://smartloyalty.app' }}
       FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
     steps:

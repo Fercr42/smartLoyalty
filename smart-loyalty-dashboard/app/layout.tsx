@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { I18nProvider } from "./i18n/client";
 import { getI18n } from "./i18n/server";
+import { SITE_URL } from "./lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,19 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { m } = await getI18n();
-  return { title: "Smart Loyalty", description: m.common.appDescription };
+  const { m, locale } = await getI18n();
+  const title = m.landing.metaTitle;
+  const description = m.common.appDescription;
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: "Smart Loyalty", template: "%s" },
+    description,
+    applicationName: "Smart Loyalty",
+    alternates: { canonical: "/" },
+    openGraph: { type: "website", url: SITE_URL, siteName: "Smart Loyalty", title, description, locale },
+    twitter: { card: "summary_large_image", title, description },
+    robots: { index: true, follow: true },
+  };
 }
 
 export default async function RootLayout({
