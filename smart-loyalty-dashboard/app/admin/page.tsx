@@ -201,6 +201,8 @@ export default function AdminPage() {
           ))}
         </div>
 
+        <SupportInbox />
+
         <div className="bg-white border rounded-xl overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
@@ -296,8 +298,6 @@ export default function AdminPage() {
           </table>
         </div>
 
-        <SupportInbox />
-
         {openRestaurant && (
           <section className="flex flex-col gap-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -362,6 +362,11 @@ function SupportInbox() {
         <h2 className="font-semibold text-gray-900">Mensajes de soporte</h2>
         <span className="text-sm text-gray-600">{tickets.length ? `${tickets.length} mensajes` : "Sin mensajes"}</span>
       </button>
+      {open && tickets.length === 0 && (
+        <p className="text-sm text-gray-500">
+          Nadie ha escrito todavía desde smartloyalty.app/soporte. Los mensajes aparecen aquí apenas alguien envía el formulario.
+        </p>
+      )}
       {open && tickets.length > 0 && (
         <ul className="divide-y text-sm">
           {tickets.map((t) => (
