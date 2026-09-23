@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../firebase/admin";
+import { adminEmails, sendEmail } from "../../lib/email";
 import { cleanName } from "../../lib/member-name";
 
 export const runtime = "nodejs";
@@ -35,5 +36,21 @@ export async function POST(req: NextRequest) {
     status: "nuevo",
     at: FieldValue.serverTimestamp(),
   });
+  // Aviso al equipo, para no depender de entrar al administrador.
+  const equipo = adminEmails();
+  if (equipo.length) {
+    await sendEmail({
+      to: equipo,
+      replyTo: email,
+      subject: `Soporte: ${cleanName(body.name) || email}`,
+      text: `${message}
+
+—
+De: ${email}
+Negocio: ${cleanName(body.business) || "(sin nombre)"}
+Responder desde el administrador: https://smartloyalty.app/admin`,
+    }).catch((e) => console.error("Aviso de soporte", e));
+  }
+
   return Response.json({ ok: true });
 }

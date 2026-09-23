@@ -327,50 +327,105 @@ export default function AdminPage() {
   );
 }
 
-type Ticket = { id: string; name: string; email: string; business: string; message: string; locale: string; at: number | null };
+type Reply = { message: string; by: string; at: number | null };
+type Ticket = {
+  id: string;
+  name: string;
+  email: string;
+  business: string;
+  subject: string;
+  message: string;
+  locale: string;
+  origen: string;
+  status: string;
+  replies: Reply[];
+  at: number | null;
+};
 
-// Mensajes que llegan de la página de soporte.
+// Mensajes de soporte: los del formulario y los que llegan a soporte@smartloyalty.app.
 function SupportInbox() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(true);
+  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+  const [enviando, setEnviando] = useState("");
+  const [aviso, setAviso] = useState<{ id: string; ok: boolean; texto: string } | null>(null);
+
+  const cargar = useCallback(async () => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/support", { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "No se pudieron cargar los mensajes");
+      setTickets(body.tickets);
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudieron cargar los mensajes");
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    let alive = true;
-    user
-      .getIdToken()
-      .then((token) => fetch("/api/admin/support", { headers: { Authorization: `Bearer ${token}` } }))
-      .then(async (res) => {
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "No se pudieron cargar los mensajes");
-        if (alive) setTickets(body.tickets);
-      })
-      .catch((e) => alive && setError(e instanceof Error ? e.message : "No se pudieron cargar los mensajes"));
-    return () => {
-      alive = false;
-    };
-  }, [user]);
+    cargar().catch(console.error);
+  }, [cargar]);
+
+  const responder = async (ticket: Ticket) => {
+    const message = (respuestas[ticket.id] ?? "").trim();
+    if (!user || !message) return;
+    setEnviando(ticket.id);
+    setAviso(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/support/reply", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId: ticket.id, message }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "No se pudo enviar");
+      setRespuestas((r) => ({ ...r, [ticket.id]: "" }));
+      setAviso({ id: ticket.id, ok: true, texto: "Respuesta enviada a " + ticket.email });
+      await cargar();
+    } catch (e) {
+      setAviso({ id: ticket.id, ok: false, texto: e instanceof Error ? e.message : "No se pudo enviar" });
+    } finally {
+      setEnviando("");
+    }
+  };
+
+  const fecha = (ms: number | null) =>
+    ms ? new Date(ms).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" }) : "";
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!tickets) return null;
 
+  const sinResponder = tickets.filter((t) => t.status !== "respondido").length;
+
   return (
     <section className="bg-white border rounded-xl p-5 flex flex-col gap-3">
       <button type="button" onClick={() => setOpen(!open)} className="flex items-baseline justify-between gap-3 text-left">
-        <h2 className="font-semibold text-gray-900">Mensajes de soporte</h2>
-        <span className="text-sm text-gray-600">{tickets.length ? `${tickets.length} mensajes` : "Sin mensajes"}</span>
+        <h2 className="font-semibold text-gray-900">
+          Mensajes de soporte
+          {sinResponder > 0 && (
+            <span className="ml-2 text-xs font-semibold bg-amber-100 text-amber-900 rounded-full px-2 py-0.5">
+              {sinResponder} sin responder
+            </span>
+          )}
+        </h2>
+        <span className="text-sm text-gray-600">{tickets.length ? `${tickets.length} en total` : "Sin mensajes"}</span>
       </button>
+
       {open && tickets.length === 0 && (
         <p className="text-sm text-gray-500">
-          Nadie ha escrito todavía desde smartloyalty.app/soporte. Los mensajes aparecen aquí apenas alguien envía el formulario.
+          Todavía no hay mensajes. Llegan aquí los del formulario de smartloyalty.app/soporte y los correos a soporte@smartloyalty.app.
         </p>
       )}
+
       {open && tickets.length > 0 && (
         <ul className="divide-y text-sm">
           {tickets.map((t) => (
-            <li key={t.id} className="py-3 flex flex-col gap-1">
+            <li key={t.id} className="py-4 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-semibold text-gray-900">
                   {t.name || "Sin nombre"}
@@ -380,11 +435,50 @@ function SupportInbox() {
                   </a>
                 </p>
                 <span className="text-xs text-gray-500 tabular-nums">
-                  {t.at ? new Date(t.at).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" }) : ""}
-                  {t.locale && ` · ${t.locale}`}
+                  {fecha(t.at)}
+                  {t.origen === "correo" ? " · correo" : " · formulario"}
+                  {t.status === "respondido" && " · respondido"}
                 </span>
               </div>
+
+              {t.subject && <p className="text-gray-900 font-medium">{t.subject}</p>}
               <p className="text-gray-700 whitespace-pre-wrap">{t.message}</p>
+
+              {t.replies.map((r, i) => (
+                <div key={i} className="border-l-2 border-emerald-300 pl-3 text-gray-700">
+                  <p className="text-xs text-gray-500">
+                    {r.by} · {fecha(r.at)}
+                  </p>
+                  <p className="whitespace-pre-wrap">{r.message}</p>
+                </div>
+              ))}
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor={`respuesta-${t.id}`} className="sr-only">
+                  Responder a {t.email}
+                </label>
+                <textarea
+                  id={`respuesta-${t.id}`}
+                  rows={3}
+                  value={respuestas[t.id] ?? ""}
+                  onChange={(e) => setRespuestas((r) => ({ ...r, [t.id]: e.target.value }))}
+                  placeholder={`Responder a ${t.email}...`}
+                  className="border rounded-lg p-2 text-sm"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => responder(t)}
+                    disabled={enviando === t.id || !(respuestas[t.id] ?? "").trim()}
+                    className="text-sm bg-gray-900 text-white rounded px-4 py-2 disabled:opacity-50"
+                  >
+                    {enviando === t.id ? "Enviando..." : "Responder por correo"}
+                  </button>
+                  {aviso?.id === t.id && (
+                    <span className={`text-xs ${aviso.ok ? "text-emerald-700" : "text-red-600"}`}>{aviso.texto}</span>
+                  )}
+                </div>
+              </div>
             </li>
           ))}
         </ul>

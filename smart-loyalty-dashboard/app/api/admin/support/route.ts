@@ -11,14 +11,27 @@ export async function GET(req: NextRequest) {
 
   const snap = await adminDb().collection("supportTickets").orderBy("at", "desc").limit(50).get();
   return Response.json({
-    tickets: snap.docs.map((d) => ({
-      id: d.id,
-      name: d.data().name ?? "",
-      email: d.data().email ?? "",
-      business: d.data().business ?? "",
-      message: d.data().message ?? "",
-      locale: d.data().locale ?? "",
-      at: d.data().at?.toMillis?.() ?? null,
-    })),
+    tickets: snap.docs.map((d) => {
+      const t = d.data();
+      const ms = (v: unknown) =>
+        typeof v === "object" && v && "toMillis" in v ? (v as { toMillis: () => number }).toMillis() : null;
+      return {
+        id: d.id,
+        name: t.name ?? "",
+        email: t.email ?? "",
+        business: t.business ?? "",
+        subject: t.subject ?? "",
+        message: t.message ?? "",
+        locale: t.locale ?? "",
+        origen: t.origen ?? "formulario",
+        status: t.status ?? "nuevo",
+        replies: (Array.isArray(t.replies) ? t.replies : []).map((r) => ({
+          message: r?.message ?? "",
+          by: r?.by ?? "",
+          at: ms(r?.at) ?? (r?.at instanceof Date ? r.at.getTime() : null),
+        })),
+        at: ms(t.at),
+      };
+    }),
   });
 }
