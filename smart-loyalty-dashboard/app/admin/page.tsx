@@ -82,6 +82,8 @@ export default function AdminPage() {
   const [actions, setActions] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
   const [openId, setOpenId] = useState("");
+  const [vista, setVista] = useState<"restaurantes" | "soporte">("restaurantes");
+  const [sinResponder, setSinResponder] = useState(0);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -179,6 +181,27 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+        <div className="flex gap-2 border-b">
+          {([
+            { id: "restaurantes" as const, label: "Restaurantes" },
+            { id: "soporte" as const, label: "Soporte" },
+          ]).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setVista(t.id)}
+              className={`-mb-px px-4 py-2 text-sm font-medium border-b-2 ${
+                vista === t.id ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {t.label}
+              {t.id === "soporte" && sinResponder > 0 && (
+                <span className="ml-2 text-xs font-semibold bg-amber-100 text-amber-900 rounded-full px-2 py-0.5">{sinResponder}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div hidden={vista !== "restaurantes"} className="flex flex-col gap-6">
         <dl className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {tiles.map((t) => (
             <div key={t.label} className="bg-white border rounded-xl p-4">
@@ -200,8 +223,6 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
-
-        <SupportInbox />
 
         <div className="bg-white border rounded-xl overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
@@ -322,6 +343,11 @@ export default function AdminPage() {
             <AdminFeedback companyId={openRestaurant.id} />
           </section>
         )}
+        </div>
+
+        <div hidden={vista !== "soporte"}>
+          <SupportInbox onCount={setSinResponder} />
+        </div>
       </main>
     </div>
   );
@@ -343,7 +369,7 @@ type Ticket = {
 };
 
 // Mensajes de soporte: los del formulario y los que llegan a soporte@smartloyalty.app.
-function SupportInbox() {
+function SupportInbox({ onCount }: { onCount: (n: number) => void }) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [error, setError] = useState("");
@@ -369,6 +395,11 @@ function SupportInbox() {
   useEffect(() => {
     cargar().catch(console.error);
   }, [cargar]);
+
+  const sinResponder = (tickets ?? []).filter((t) => t.status !== "respondido").length;
+  useEffect(() => {
+    onCount(sinResponder);
+  }, [onCount, sinResponder]);
 
   const responder = async (ticket: Ticket) => {
     const message = (respuestas[ticket.id] ?? "").trim();
@@ -399,8 +430,6 @@ function SupportInbox() {
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!tickets) return null;
-
-  const sinResponder = tickets.filter((t) => t.status !== "respondido").length;
 
   return (
     <section className="bg-white border rounded-xl p-5 flex flex-col gap-3">
