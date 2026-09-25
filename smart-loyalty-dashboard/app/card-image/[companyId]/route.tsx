@@ -96,7 +96,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
 
   const origin = req.nextUrl.origin;
   const abs = (u: string) => (u.startsWith("/") ? `${origin}${u}` : u);
-  const { width, height } = SIZES[variant];
+  const full = SIZES[variant];
+  // ?w= dibuja más pequeño (la vista previa del panel). Menos píxeles, menos espera.
+  const asked = Math.round(Number(q.get("w")) || full.width);
+  const width = Math.min(Math.max(Number.isFinite(asked) ? asked : full.width, 240), full.width);
+  const height = Math.round((width * full.height) / full.width);
+  const k = width / full.width;
+  const px = (n: number) => Math.max(1, Math.round(n * k));
 
   // Meta: el primer premio que todavía no alcanza (o el último).
   const next = company.rewards.find((r) => r.stamps > stamps) ?? company.rewards[company.rewards.length - 1];
@@ -139,11 +145,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
       : { backgroundColor: design.bgColor };
   const photo = design.bgType === "image" && design.bgImageUrl ? abs(design.bgImageUrl) : "";
   const logo = company.logoUrl ? abs(company.logoUrl) : "";
-  const pad = variant === "card" ? 48 : 30;
+  const pad = px(variant === "card" ? 48 : 30);
   const areaWidth = width - pad * 2;
 
-  const logoPx = variant === "card" ? LOGO_PX[design.logoSize] : Math.round(LOGO_PX[design.logoSize] * 0.55);
-  const titlePx = variant === "card" ? TITLE_PX[design.titleSize] : Math.round(TITLE_PX[design.titleSize] * 0.55);
+  const logoPx = px(variant === "card" ? LOGO_PX[design.logoSize] : LOGO_PX[design.logoSize] * 0.55);
+  const titlePx = px(variant === "card" ? TITLE_PX[design.titleSize] : TITLE_PX[design.titleSize] * 0.55);
 
   const image = (
     <div
@@ -169,20 +175,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
       ) : null}
 
       {variant === "card" ? (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: px(24) }}>
+          <div style={{ display: "flex", alignItems: "center", gap: px(26) }}>
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logo} alt="" width={logoPx} height={logoPx} style={{ borderRadius: logoPx * 0.22, objectFit: "cover" }} />
             ) : null}
-            <div style={{ display: "flex", flexDirection: "column", maxWidth: areaWidth - logoPx - 40 }}>
+            <div style={{ display: "flex", flexDirection: "column", maxWidth: areaWidth - logoPx - px(40) }}>
               <div style={{ fontFamily: hasTitleFont ? "Title" : undefined, fontSize: titlePx, lineHeight: 1.05 }}>{company.name}</div>
-              <div style={{ fontSize: 26, opacity: 0.8, marginTop: 6 }}>{company.header}</div>
+              <div style={{ fontSize: px(26), opacity: 0.8, marginTop: px(6) }}>{company.header}</div>
             </div>
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: px(16) }}>
           {logo && design.logoSize !== "sm" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt="" width={logoPx} height={logoPx} style={{ borderRadius: logoPx * 0.22, objectFit: "cover" }} />
@@ -191,25 +197,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "center", gap: variant === "card" ? 16 : 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "center", gap: px(variant === "card" ? 16 : 10) }}>
         <div
           style={{
             fontFamily: hasTitleFont ? "Title" : undefined,
-            fontSize: variant === "card" ? 150 : 92,
+            fontSize: px(variant === "card" ? 150 : 92),
             lineHeight: 1,
             color: design.accentColor,
           }}
         >
           {number(stamps)}
         </div>
-        <div style={{ display: "flex", width: areaWidth, height: variant === "card" ? 22 : 16, borderRadius: 11, backgroundColor: rgba(design.textColor, 0.25), overflow: "hidden" }}>
+        <div style={{ display: "flex", width: areaWidth, height: px(variant === "card" ? 22 : 16), borderRadius: px(11), backgroundColor: rgba(design.textColor, 0.25), overflow: "hidden" }}>
           <div style={{ display: "flex", width: Math.round((filled / goal) * areaWidth), backgroundColor: design.accentColor }} />
         </div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ fontSize: variant === "card" ? 30 : 24, color: design.accentColor }}>{progress}</div>
-        {code && variant === "card" ? <div style={{ fontSize: 24, opacity: 0.75 }}>{`#${code}`}</div> : null}
+        <div style={{ fontSize: px(variant === "card" ? 30 : 24), color: design.accentColor }}>{progress}</div>
+        {code && variant === "card" ? <div style={{ fontSize: px(24), opacity: 0.75 }}>{`#${code}`}</div> : null}
       </div>
     </div>
   );
@@ -217,7 +223,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   const response = new ImageResponse(image, { width, height, fonts });
   response.headers.set(
     "Cache-Control",
-    preview ? "no-store" : "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+    // La vista previa depende solo de lo que va en la dirección, así que se puede guardar un rato.
+    preview ? "public, max-age=600, s-maxage=3600" : "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
   );
   return response;
 }

@@ -26,6 +26,17 @@ const FONT_PREVIEW_CSS = `https://fonts.googleapis.com/css2?${CARD_FONTS.map(
   (f) => `family=${encodeURIComponent(f.family).replace(/%20/g, "+")}:wght@${f.weight}`
 ).join("&")}&text=${encodeURIComponent([...new Set(CARD_FONTS.map((f) => f.label).join(""))].join(""))}&display=swap`;
 
+// Miniatura dibujada con CSS: instantánea y suficiente para elegir plantilla.
+function thumbStyle(design: CardDesign): React.CSSProperties {
+  if (design.bgType === "gradient") {
+    return { background: `linear-gradient(${design.bgAngle}deg, ${design.bgColor}, ${design.bgColor2})` };
+  }
+  if (design.bgType === "image" && design.bgImageUrl) {
+    return { backgroundImage: `url(${design.bgImageUrl})`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: design.bgColor };
+  }
+  return { background: design.bgColor };
+}
+
 export default function CardDesigner() {
   const { user } = useAuth();
   const { m, f: tf, locale } = useI18n();
@@ -56,7 +67,7 @@ export default function CardDesigner() {
   // Vista previa: se redibuja un momento después del último cambio.
   useEffect(() => {
     if (!design) return;
-    const timer = setTimeout(() => setPreviewParam(encodeDesign(design)), 350);
+    const timer = setTimeout(() => setPreviewParam(encodeDesign(design)), 600);
     return () => clearTimeout(timer);
   }, [design]);
 
@@ -64,7 +75,7 @@ export default function CardDesigner() {
 
   const update = (patch: Partial<CardDesign>) => setDesign((d) => (d ? { ...d, ...patch, template: patch.template ?? "custom" } : d));
   const imageUrl = (variant: "card" | "hero", p: string, stamps = previewStamps) =>
-    `/card-image/${user.uid}?variant=${variant}&s=${stamps}&code=DEMO1234&p=${encodeURIComponent(p)}`;
+    `/card-image/${user.uid}?variant=${variant}&w=520&s=${stamps}&code=DEMO1234&p=${encodeURIComponent(p)}`;
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -123,13 +134,16 @@ export default function CardDesigner() {
                   design.template === tpl.id ? "border-gray-900" : "border-transparent hover:border-gray-300"
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imageUrl("card", encodeDesign(thumb), Math.round(goal * 0.6))}
-                  alt={tf(t.templateAlt, { name })}
-                  loading="lazy"
-                  className="w-full aspect-[1012/638] rounded-md bg-gray-100 object-cover"
-                />
+                <span
+                  aria-label={tf(t.templateAlt, { name })}
+                  className="w-full aspect-[1012/638] rounded-md border flex flex-col justify-between p-2 overflow-hidden"
+                  style={thumbStyle(thumb)}
+                >
+                  <span className="text-[10px] font-semibold truncate" style={{ color: thumb.textColor }}>
+                    {name}
+                  </span>
+                  <span className="h-1.5 rounded-full" style={{ background: thumb.accentColor, width: "60%" }} />
+                </span>
                 <span className="text-xs font-medium text-gray-800 px-0.5">{name}</span>
               </button>
             );
