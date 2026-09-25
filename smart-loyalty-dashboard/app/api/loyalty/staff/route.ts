@@ -15,7 +15,7 @@ import { companyLocale, fmt } from "../../../i18n/config";
 import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
 import { planState, type Plan } from "../../../lib/plan";
-import { cleanLoyalty, MAX_SALE, pointsFor } from "../../../lib/loyalty-mode";
+import { cleanLoyalty, earnedFor, formatBalance, MAX_SALE } from "../../../lib/loyalty-mode";
 import { cleanRewards } from "../../../lib/rewards";
 import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ member: memberView(found), rewards, loyalty, coupons: await memberCoupons(companyRef, found.id) });
   }
 
-  if (!["stamp", "redeem", "coupon"].includes(action)) return bad("Acción inválida");
+  if (!["stamp", "redeem", "coupon", "cashout"].includes(action)) return bad("Acción inválida");
   const memberId = String(body.memberId ?? "");
   if (!UUID.test(memberId)) return bad("Tarjeta inválida");
   const memberRef = members.doc(memberId);
@@ -244,8 +244,8 @@ export async function POST(req: NextRequest) {
         if (!body.force && Date.now() - last < STAMP_COOLDOWN_MS) {
           throw new LoyaltyError("A esta tarjeta ya se le sumaron puntos hace menos de 1 minuto.", 409);
         }
-        // El monto de la compra decide cuántos puntos suma.
-        const added = pointsFor(sale, loyalty.rule);
+        // En sellos suma 1 por visita; en puntos y cashback, según el monto de la compra.
+        const added = earnedFor(sale, loyalty);
         if (added <= 0) throw new LoyaltyError("Escribe el monto de la compra.", 400);
         stamps = current + added;
         tx.update(memberRef, {
@@ -254,9 +254,22 @@ export async function POST(req: NextRequest) {
           lastStampAt: FieldValue.serverTimestamp(),
         });
         tx.set(events.doc(), { ...event, type: "stamp", amount: added, stampsAfter: stamps, ...(sale ? { sale } : {}) });
+      } else if (action === "cashout") {
+        // Cashback: el cliente usa todo su saldo en esta compra.
+        if (loyalty.mode !== "cashback") throw new LoyaltyError("Este negocio no usa cashback.", 400);
+        if (current <= 0) throw new LoyaltyError("Esta tarjeta no tiene saldo.", 400);
+        stamps = 0;
+        tx.update(memberRef, { stamps, lastRedeemAt: FieldValue.serverTimestamp() });
+        tx.set(events.doc(), {
+          ...event,
+          type: "redeem",
+          amount: -current,
+          rewardTitle: `Saldo usado: ${formatBalance(current, loyalty)}`,
+          stampsAfter: 0,
+        });
       } else {
         if (current < reward!.stamps) {
-          throw new LoyaltyError(`Le faltan ${reward!.stamps - current} puntos para "${reward!.title}".`, 400);
+          throw new LoyaltyError(`Le faltan ${reward!.stamps - current} para "${reward!.title}".`, 400);
         }
         stamps = current - reward!.stamps;
         tx.update(memberRef, { stamps, lastRedeemAt: FieldValue.serverTimestamp() });

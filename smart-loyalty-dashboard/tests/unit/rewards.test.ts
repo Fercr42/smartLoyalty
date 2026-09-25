@@ -64,7 +64,7 @@ describe("puntos por monto de compra", () => {
   });
 
   it("corrige una configuración inválida", () => {
-    expect(cleanLoyalty({})).toEqual({ rule: DEFAULT_RULE, currency: "$" });
-    expect(cleanLoyalty({ rule: { points: 0, per: -3 }, currency: " ₡ " })).toEqual({ rule: DEFAULT_RULE, currency: "₡" });
+    expect(cleanLoyalty({})).toEqual({ mode: "points", rule: DEFAULT_RULE, percent: 5, currency: "$" });
+    expect(cleanLoyalty({ rule: { points: 0, per: -3 }, currency: " ₡ " })).toEqual({ mode: "points", rule: DEFAULT_RULE, percent: 5, currency: "₡" });
   });
 });

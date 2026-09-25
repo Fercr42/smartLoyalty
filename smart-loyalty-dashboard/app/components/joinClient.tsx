@@ -11,7 +11,8 @@ import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { cardImageVersion } from "../lib/card-version";
 import { NAME_MAX } from "../lib/member-name";
-import { formatPoints, nextRewardText, type Reward } from "../lib/rewards";
+import { cleanLoyalty, formatBalance } from "../lib/loyalty-mode";
+import { nextRewardText, type Reward } from "../lib/rewards";
 
 type Company = {
   name: string;
@@ -256,6 +257,8 @@ export default function JoinClient({
   }, [companyId, subscribe, loadMemberCard]);
 
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
+  const loyalty = cleanLoyalty(company?.loyalty);
+  const unidad = m.pass.unit[loyalty.mode];
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
 
   if (status === "loading") {
@@ -377,7 +380,7 @@ export default function JoinClient({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`/card-image/${companyId}?variant=card&s=${memberCard.stamps}&code=${memberCard.code}&v=${cardImageVersion(company)}`}
-              alt={`${company.name} · ${memberCard.stamps} ${t.stamps}`}
+              alt={`${company.name} · ${formatBalance(memberCard.stamps, loyalty, locale)} ${unidad}`}
               className="w-full aspect-[1012/638] rounded-2xl shadow-lg bg-gray-100"
             />
           )}
@@ -388,7 +391,8 @@ export default function JoinClient({
           {memberCard.rewards.length > 0 && (
             <>
               <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-                {memberCard.stamps.toLocaleString(dateLocale)} <span className="text-base font-normal text-gray-600">{t.points}</span>
+                {formatBalance(memberCard.stamps, loyalty, locale)}{" "}
+                <span className="text-base font-normal text-gray-600">{unidad}</span>
               </p>
               <p className="text-sm text-gray-700">
                 {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText, locale) || t.showCode}
@@ -398,7 +402,7 @@ export default function JoinClient({
                   <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
                     <span className="text-gray-900">{r.title}</span>
                     <span className="text-gray-500 tabular-nums whitespace-nowrap">
-                      {formatPoints(Math.min(memberCard.stamps, r.stamps), locale)}/{formatPoints(r.stamps, locale)}
+                      {formatBalance(Math.min(memberCard.stamps, r.stamps), loyalty, locale)}/{formatBalance(r.stamps, loyalty, locale)}
                     </span>
                   </li>
                 ))}

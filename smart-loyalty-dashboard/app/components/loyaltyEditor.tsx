@@ -6,7 +6,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n/client";
 import { cleanBusinessType, type BusinessType } from "../lib/business-types";
-import { cleanLoyalty, DEFAULT_RULE, pointsFor } from "../lib/loyalty-mode";
+import { cleanLoyalty, DEFAULT_PERCENT, DEFAULT_RULE, earnedFor, formatBalance, LOYALTY_MODES, type LoyaltyMode } from "../lib/loyalty-mode";
 import { publicOrigin } from "../lib/origin";
 import { cleanRewards, MAX_REWARDS } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
@@ -37,6 +37,8 @@ export default function LoyaltyEditor() {
   const [businessType, setBusinessType] = useState<BusinessType>("other");
   const [rulePoints, setRulePoints] = useState(String(DEFAULT_RULE.points));
   const [rulePer, setRulePer] = useState(String(DEFAULT_RULE.per));
+  const [mode, setMode] = useState<LoyaltyMode>("points");
+  const [percent, setPercent] = useState(String(DEFAULT_PERCENT));
   const [currency, setCurrency] = useState("$");
   const [rows, setRows] = useState<Row[]>([newRow(), newRow()]);
   const [pinSet, setPinSet] = useState(false);
@@ -73,6 +75,8 @@ export default function LoyaltyEditor() {
         setBusinessType(cleanBusinessType(snap.data()?.businessType));
         const loyalty = snap.data()?.loyalty ?? {};
         const config = cleanLoyalty(loyalty);
+        setMode(config.mode);
+        setPercent(String(config.percent));
         setRulePoints(String(config.rule.points));
         setRulePer(String(config.rule.per));
         setCurrency(config.currency);
@@ -114,6 +118,8 @@ export default function LoyaltyEditor() {
         doc(db, "companies", user.uid),
         {
           loyalty: {
+            mode,
+            percent: Number(percent) || DEFAULT_PERCENT,
             rewards,
             rule: { points: Number(rulePoints) || DEFAULT_RULE.points, per: Number(rulePer) || DEFAULT_RULE.per },
             currency: currency.trim() || "$",
@@ -192,11 +198,15 @@ export default function LoyaltyEditor() {
     }
   };
 
+  const config = {
+    mode,
+    rule: { points: Number(rulePoints) || DEFAULT_RULE.points, per: Number(rulePer) || DEFAULT_RULE.per },
+    percent: Number(percent) || DEFAULT_PERCENT,
+    currency: currency.trim() || "$",
+  };
   const exampleSale = (Number(rulePer) || DEFAULT_RULE.per) * 2.4;
-  const examplePoints = pointsFor(exampleSale, {
-    points: Number(rulePoints) || DEFAULT_RULE.points,
-    per: Number(rulePer) || DEFAULT_RULE.per,
-  });
+  const exampleEarned = earnedFor(exampleSale, config);
+  const unidad = m.pass.unit[mode].toLowerCase();
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -207,49 +217,101 @@ export default function LoyaltyEditor() {
             <p className="text-sm text-gray-600">{t.leadPoints}</p>
           </div>
 
-          <fieldset className="border rounded-lg p-3 flex flex-col gap-2">
+          <fieldset className="border rounded-lg p-3 flex flex-col gap-3">
             <legend className="text-sm text-gray-600 px-1">{t.modeTitle}</legend>
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  <label htmlFor="rule-points" className="flex flex-col gap-1 text-xs text-gray-600">
-                    {t.rulePoints}
-                    <input
-                      id="rule-points"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      value={rulePoints}
-                      onChange={(e) => setRulePoints(e.target.value)}
-                      className="border p-2 rounded text-sm tabular-nums min-w-0"
-                    />
-                  </label>
-                  <label htmlFor="rule-per" className="flex flex-col gap-1 text-xs text-gray-600">
-                    {t.rulePer}
-                    <input
-                      id="rule-per"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      value={rulePer}
-                      onChange={(e) => setRulePer(e.target.value)}
-                      className="border p-2 rounded text-sm tabular-nums min-w-0"
-                    />
-                  </label>
-                  <label htmlFor="rule-currency" className="flex flex-col gap-1 text-xs text-gray-600">
-                    {t.currency}
-                    <input
-                      id="rule-currency"
-                      maxLength={5}
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="border p-2 rounded text-sm min-w-0"
-                    />
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 tabular-nums">
-                  {tf(t.ruleExample, { sale: `${currency}${exampleSale.toLocaleString(dateLocale)}`, points: examplePoints.toLocaleString(dateLocale) })}
-                </p>
-              </>
+
+            <div className="grid sm:grid-cols-3 gap-2">
+              {LOYALTY_MODES.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setMode(option)}
+                  aria-pressed={mode === option}
+                  className={`text-left border rounded-lg p-3 ${
+                    mode === option ? "border-gray-900 ring-2 ring-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-gray-900">{t.modes[option].label}</span>
+                  <span className="block text-xs text-gray-600">{t.modes[option].hint}</span>
+                </button>
+              ))}
+            </div>
+
+            {mode === "points" && (
+              <div className="grid grid-cols-3 gap-2">
+                <label htmlFor="rule-points" className="flex flex-col gap-1 text-xs text-gray-600">
+                  {t.rulePoints}
+                  <input
+                    id="rule-points"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={rulePoints}
+                    onChange={(e) => setRulePoints(e.target.value)}
+                    className="border p-2 rounded text-sm tabular-nums min-w-0"
+                  />
+                </label>
+                <label htmlFor="rule-per" className="flex flex-col gap-1 text-xs text-gray-600">
+                  {t.rulePer}
+                  <input
+                    id="rule-per"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={rulePer}
+                    onChange={(e) => setRulePer(e.target.value)}
+                    className="border p-2 rounded text-sm tabular-nums min-w-0"
+                  />
+                </label>
+                <label htmlFor="rule-currency" className="flex flex-col gap-1 text-xs text-gray-600">
+                  {t.currency}
+                  <input
+                    id="rule-currency"
+                    maxLength={5}
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="border p-2 rounded text-sm min-w-0"
+                  />
+                </label>
+              </div>
+            )}
+
+            {mode === "cashback" && (
+              <div className="grid grid-cols-2 gap-2">
+                <label htmlFor="rule-percent" className="flex flex-col gap-1 text-xs text-gray-600">
+                  {t.percent}
+                  <input
+                    id="rule-percent"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={50}
+                    value={percent}
+                    onChange={(e) => setPercent(e.target.value)}
+                    className="border p-2 rounded text-sm tabular-nums min-w-0"
+                  />
+                </label>
+                <label htmlFor="rule-currency-cash" className="flex flex-col gap-1 text-xs text-gray-600">
+                  {t.currency}
+                  <input
+                    id="rule-currency-cash"
+                    maxLength={5}
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="border p-2 rounded text-sm min-w-0"
+                  />
+                </label>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 tabular-nums">
+              {mode === "stamps"
+                ? t.stampExample
+                : tf(t.ruleExample, {
+                    sale: `${config.currency}${exampleSale.toLocaleString(dateLocale)}`,
+                    points: `${formatBalance(exampleEarned, config, dateLocale.slice(0, 2))} ${unidad}`,
+                  })}
+            </p>
           </fieldset>
           {rows.map((row, i) => (
             <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_7rem_auto] gap-2 items-center">

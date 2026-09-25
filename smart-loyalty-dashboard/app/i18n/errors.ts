@@ -33,6 +33,8 @@ const EXACT: Table = {
   "Este cliente ya usó este cupón.": ["This customer already used this coupon.", "ลูกค้าคนนี้ใช้คูปองนี้แล้ว"],
   "A esta tarjeta ya se le sumaron puntos hace menos de 1 minuto.": ["This card got points less than 1 minute ago.", "บัตรนี้เพิ่งได้แต้มไปเมื่อไม่ถึง 1 นาทีที่แล้ว"],
   "Ya nos dejaste tu opinión hoy. ¡Gracias!": ["You already left feedback today. Thanks!", "วันนี้คุณให้ความคิดเห็นแล้ว ขอบคุณ!"],
+  "Este negocio no usa cashback.": ["This business doesn't use cashback.", "ร้านนี้ไม่ได้ใช้เงินคืน"],
+  "Esta tarjeta no tiene saldo.": ["This card has no balance.", "บัตรนี้ไม่มียอดคงเหลือ"],
   "Escribe tu nombre.": ["Enter your name.", "กรอกชื่อของคุณ"],
   "Escribe el monto de la compra.": ["Enter the purchase amount.", "กรอกยอดซื้อ"],
   "Elige de 1 a 5 estrellas": ["Choose 1 to 5 stars", "เลือก 1 ถึง 5 ดาว"],
@@ -85,7 +87,7 @@ const EXACT: Table = {
 const PATTERNS: [RegExp, en: string, th: string][] = [
   [/^Llegaste al máximo de (\d+) usos de IA de hoy\. Mañana se renueva\.$/, "You've reached today's limit of $1 AI uses. It resets tomorrow.", "ใช้ AI ครบ $1 ครั้งของวันนี้แล้ว จะรีเซ็ตพรุ่งนี้"],
   [/^Necesitas al menos (\d+) opiniones de los últimos (\d+) días\.$/, "You need at least $1 reviews from the last $2 days.", "ต้องมีความคิดเห็นอย่างน้อย $1 รายการใน $2 วันที่ผ่านมา"],
-  [/^Le faltan (\d+) puntos para "(.+)"\.$/, "$1 more points needed for “$2”.", "ยังขาดอีก $1 แต้มสำหรับ “$2”"],
+  [/^Le faltan (\d+) para "(.+)"\.$/, "$1 more needed for “$2”.", "ยังขาดอีก $1 สำหรับ “$2”"],
 ];
 
 export function translateError(locale: Locale, message?: string | null): string | undefined {

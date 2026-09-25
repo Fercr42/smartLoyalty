@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
-import { cleanLoyalty, pointsFor, type LoyaltyConfig } from "../lib/loyalty-mode";
+import { cleanLoyalty, earnedFor, formatBalance, needsSale, type LoyaltyConfig } from "../lib/loyalty-mode";
 import { nextRewardText, type Reward } from "../lib/rewards";
 import { useI18n } from "../i18n/client";
 
@@ -13,7 +13,7 @@ type Notice = { ok: boolean; text: string } | null;
 type Coupon = { id: string; title: string; expiresDate: string; used: boolean };
 
 export default function StaffScanner({ companyId }: { companyId: string }) {
-  const { m, f, dateLocale, te } = useI18n();
+  const { m, f, dateLocale, locale, te } = useI18n();
   const t = m.scanner;
   const sessionKey = `staff-session:${companyId}`;
   const [token, setToken] = useState<string | null>(null);
@@ -166,7 +166,21 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps, totalVisits: m.totalVisits + 1 });
-    setNotice({ ok: true, text: f(t.stampOk, { count: addedPoints, total: data.stamps }) });
+    setNotice({ ok: true, text: f(t.stampOk, { count: formatBalance(added, loyalty, locale), total: formatBalance(data.stamps, loyalty, locale) }) });
+  };
+
+  const cashout = async () => {
+    if (!member || !confirm(f(t.confirmCashout, { amount: formatBalance(member.stamps, loyalty, locale) }))) return;
+    setBusy(true);
+    setNotice(null);
+    const { ok, data } = await call({ action: "cashout", memberId: member.memberId });
+    setBusy(false);
+    if (!ok) {
+      setNotice({ ok: false, text: te(data.error) ?? t.redeemFailed });
+      return;
+    }
+    setMember((mem) => mem && { ...mem, stamps: 0 });
+    setNotice({ ok: true, text: t.balanceUsed });
   };
 
   const redeem = async (reward: Reward) => {
@@ -180,7 +194,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       return;
     }
     setMember((m) => m && { ...m, stamps: data.stamps });
-    setNotice({ ok: true, text: f(t.redeemOk, { reward: reward.title, count: data.stamps }) });
+    setNotice({ ok: true, text: f(t.redeemOk, { reward: reward.title, count: formatBalance(data.stamps, loyalty, locale) }) });
   };
 
   const applyCoupon = async (coupon: Coupon) => {
@@ -198,7 +212,9 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
   const rewards = company?.rewards ?? [];
   const loyalty: LoyaltyConfig = cleanLoyalty(company?.loyalty);
-  const addedPoints = pointsFor(Number(sale), loyalty.rule);
+  const added = earnedFor(Number(sale), loyalty);
+  const pideMonto = needsSale(loyalty.mode);
+  const unidad = m.pass.unit[loyalty.mode];
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-6 flex justify-center">
@@ -257,12 +273,12 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             <>
             <div className="text-center">
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
-                {member.stamps}
+                {formatBalance(member.stamps, loyalty, locale)}
               </p>
-              <p className="text-gray-600">{t.points}</p>
+              <p className="text-gray-600">{unidad}</p>
               <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
             </div>
-            {(
+            {pideMonto && (
               <label htmlFor="staff-sale" className="flex flex-col gap-1 text-sm text-gray-700">
                 {t.amount}
                 <span className="flex items-center gap-2 border rounded-lg p-2">
@@ -277,17 +293,29 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                     className="flex-1 min-w-0 text-xl tabular-nums outline-none"
                   />
                 </span>
-                <span className="text-xs text-gray-500 tabular-nums">{f(t.willAdd, { points: addedPoints })}</span>
+                <span className="text-xs text-gray-500 tabular-nums">
+                  {f(t.willAdd, { points: `${formatBalance(added, loyalty, locale)} ${unidad.toLowerCase()}` })}
+                </span>
               </label>
             )}
             <button
               onClick={() => addStamp()}
-              disabled={busy || addedPoints <= 0}
+              disabled={busy || added <= 0}
               className="py-4 rounded-xl text-lg font-semibold disabled:opacity-50"
               style={{ background: brand, color: textOn(brand) }}
             >
-              {t.addPoints}
+              {loyalty.mode === "stamps" ? t.addStampButton : t.addPoints}
             </button>
+            {loyalty.mode === "cashback" && member.stamps > 0 && (
+              <button
+                onClick={cashout}
+                disabled={busy}
+                className="py-3 rounded-xl font-semibold border-2 disabled:opacity-50"
+                style={{ borderColor: brand, color: brand }}
+              >
+                {f(t.useBalance, { amount: formatBalance(member.stamps, loyalty, locale) })}
+              </button>
+            )}
             </>
             )}
 
@@ -299,7 +327,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
                     <li key={r.id} className="flex items-center justify-between gap-3 border rounded-lg p-3">
                       <span className="min-w-0">
                         <b className="text-gray-900">{r.title}</b>
-                        <span className="block text-xs text-gray-500">{r.stamps} {t.points}</span>
+                        <span className="block text-xs text-gray-500">{formatBalance(r.stamps, loyalty, locale)} {unidad.toLowerCase()}</span>
                       </span>
                       <button
                         disabled={busy || member.stamps < r.stamps}

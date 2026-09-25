@@ -4,6 +4,7 @@ export const pass: Messages["pass"] = {
   business: "ร้านของฉัน",
   stamps: "คะแนน",
   points: "คะแนน",
+  unit: { stamps: "ดวงตรา", points: "คะแนน", cashback: "ยอดเงินคืน" },
   reward: "รางวัล",
   about: "เกี่ยวกับเรา",
   promotions: "โปรโมชัน",

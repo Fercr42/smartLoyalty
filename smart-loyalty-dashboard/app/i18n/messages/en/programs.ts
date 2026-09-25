@@ -42,6 +42,13 @@ export const rewards: Messages["rewards"] = {
   rewardName: "Reward name",
   stampsNeeded: "Points needed",
   modeTitle: "Points per purchase",
+  modes: {
+    stamps: { label: "Stamps", hint: "1 stamp per visit. Like the classic paper card." },
+    points: { label: "Points", hint: "Earns by purchase amount. Rewards who spends more." },
+    cashback: { label: "Cashback", hint: "Gives back a % in money for their next purchase." },
+  },
+  percent: "% given back",
+  stampExample: "Example: the customer arrives, your staff scans and adds 1 stamp. No amounts to type.",
   modeStamps: "Points based on the purchase amount",
   modePoints: "Points based on the purchase amount",
   rulePoints: "Points earned",

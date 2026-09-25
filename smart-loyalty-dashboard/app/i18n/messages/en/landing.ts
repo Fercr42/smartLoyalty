@@ -40,7 +40,7 @@ export const landing: Messages["landing"] = {
   features: [
     { title: "Phone notifications", text: "Promotions, opening hours and events right on the customer's screen, with a photo and a button." },
     { title: "Card in Google Wallet and Apple Wallet", text: "With your logo, colors and cover. Updates itself with every purchase. Apple Wallet: coming soon." },
-    { title: "Points and rewards", text: "Your team types the purchase amount and the card adds the points by itself." },
+    { title: "Stamps, points or cashback", text: "You choose how to reward: 1 stamp per visit, points by amount, or a % back in money." },
     { title: "Single-use coupons", text: "“20% off today”. Validated at checkout and can't be used twice." },
     { title: "Scheduled and targeted sends", text: "Schedule Friday at 5 pm or message only frequent or inactive customers." },
     { title: "Stats and results", text: "Visits by day and hour, returning customers and which promotion worked." },

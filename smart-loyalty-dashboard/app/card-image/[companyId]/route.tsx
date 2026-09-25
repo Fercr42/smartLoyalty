@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { adminDb } from "../../firebase/admin";
 import { CARD_FONTS, cleanDesign, type CardDesign, type CardSize } from "../../lib/card-design";
+import { cleanLoyalty, formatBalance, type LoyaltyConfig } from "../../lib/loyalty-mode";
 import { cleanRewards, type Reward } from "../../lib/rewards";
 import { companyLocale, fmt } from "../../i18n/config";
 import { messages, type Messages } from "../../i18n/messages";
@@ -22,6 +23,7 @@ type Company = {
   brandColor?: string;
   header: string;
   rewards: Reward[];
+  loyalty: LoyaltyConfig;
   cardDesign?: unknown;
   pass: Messages["pass"];
   locale: string;
@@ -41,6 +43,7 @@ async function loadCompany(companyId: string): Promise<Company | null> {
         brandColor: d.brandColor,
         header: d.walletCard?.header || messages[companyLocale(d)].pass.member,
         rewards: cleanRewards(d.loyalty?.rewards),
+        loyalty: cleanLoyalty(d.loyalty),
         cardDesign: d.cardDesign,
         pass: messages[companyLocale(d)].pass,
         locale: companyLocale(d),
@@ -100,15 +103,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   // La meta puede ser grande: la tarjeta muestra el número de puntos y una barra.
   const goal = Math.max(next?.stamps ?? 500, 1);
   const filled = Math.min(stamps, goal);
-  const number = (value: number) => value.toLocaleString(company.locale === "es" ? "es-ES" : company.locale);
+  const number = (value: number) => formatBalance(value, company.loyalty, company.locale);
+  const unit = company.pass.unit[company.loyalty.mode];
   const progress = !next
-    ? `${number(stamps)} ${company.pass.points}`
+    ? `${number(stamps)} ${unit}`
     : stamps >= next.stamps
       ? fmt(company.pass.rewardReady, { reward: next.title })
       : fmt(company.pass.progress, { filled: number(filled), goal: number(goal), reward: next.title });
 
   const title = design.font && CARD_FONTS.find((f) => f.id === design.font);
-  const allText = `${company.name}${company.header}${progress}${company.pass.points}#${code}0123456789 de·,.`;
+  const allText = `${company.name}${company.header}${progress}${unit}${company.loyalty.currency}#${code}0123456789 de·,.`;
   const fonts: { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }[] = [];
   await Promise.all([
     loadFont("Nunito", 700, allText)

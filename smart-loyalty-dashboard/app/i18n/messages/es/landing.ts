@@ -38,7 +38,7 @@ export const landing = {
   features: [
     { title: "Notificaciones al celular", text: "Promociones, horarios y eventos directo en la pantalla del cliente, con foto y botón." },
     { title: "Tarjeta en Google Wallet y Apple Wallet", text: "Con tu logo, colores y portada. Se actualiza sola con cada compra. Apple Wallet: próximamente." },
-    { title: "Puntos y premios", text: "Tu equipo escribe el monto de la compra y la tarjeta suma los puntos sola." },
+    { title: "Sellos, puntos o cashback", text: "Elegís cómo premiar: 1 sello por visita, puntos según el monto o un % de vuelta en dinero." },
     { title: "Cupones de un solo uso", text: "“20% hoy”. Se valida en caja y no se puede usar dos veces." },
     { title: "Envíos programados y por grupo", text: "Programa el viernes a las 5 pm o escribe solo a clientes frecuentes o inactivos." },
     { title: "Estadísticas y resultados", text: "Visitas por día y hora, clientes que regresan y qué promoción funcionó." },

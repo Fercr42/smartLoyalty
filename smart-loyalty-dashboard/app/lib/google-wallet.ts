@@ -6,7 +6,8 @@ import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
 import { describeLink } from "./links";
 import { validLocation } from "./location";
-import { cleanRewards, formatPoints, nextRewardText } from "./rewards";
+import { cleanLoyalty, formatBalance } from "./loyalty-mode";
+import { cleanRewards, nextRewardText } from "./rewards";
 
 // Google Wallet con la misma cuenta de servicio de Firebase.
 // Tarjeta genérica: una clase por restaurante, un objeto por cliente.
@@ -113,11 +114,12 @@ function cardFields(company: WalletCompany, origin: string, stamps = 0, memberId
   const p = m.pass;
   const name = clip(company.name, 60) || p.business;
   const rewards = cleanRewards(company.loyalty?.rewards);
+  const loyalty = cleanLoyalty(company.loyalty);
 
   const modules = [
     ...(rewards.length
       ? [
-          { id: "stamps", header: p.points, body: formatPoints(stamps, locale) },
+          { id: "stamps", header: p.unit[loyalty.mode], body: formatBalance(stamps, loyalty, locale) },
           { id: "next_reward", header: p.reward, body: nextRewardText(rewards, stamps, m.rewardText, locale) || m.rewardText.keepGoing },
         ]
       : []),

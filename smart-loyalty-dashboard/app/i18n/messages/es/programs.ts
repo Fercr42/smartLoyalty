@@ -43,6 +43,13 @@ export const rewards = {
   rewardName: "Nombre del premio",
   stampsNeeded: "Puntos necesarios",
   modeTitle: "Puntos por compra",
+  modes: {
+    stamps: { label: "Sellos", hint: "1 sello por visita. Como la tarjeta de cartón de toda la vida." },
+    points: { label: "Puntos", hint: "Suma según el monto de la compra. Premia al que gasta más." },
+    cashback: { label: "Cashback", hint: "Le devuelve un % en dinero para su próxima compra." },
+  },
+  percent: "% que devuelve",
+  stampExample: "Ejemplo: el cliente llega, el empleado escanea y suma 1 sello. Sin escribir montos.",
   modeStamps: "Puntos por el monto de la compra",
   modePoints: "Puntos por el monto de la compra",
   rulePoints: "Puntos que gana",
