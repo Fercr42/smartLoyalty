@@ -269,14 +269,14 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               <span className="font-mono text-sm text-gray-500">#{member.code}</span>
               <span className="text-xs text-gray-500 tabular-nums">{f(t.visits, { count: member.totalVisits })}</span>
             </div>
-            {rewards.length > 0 && (
-            <>
             <div className="text-center">
               <p className="text-6xl font-bold tabular-nums" style={{ color: brand }}>
                 {formatBalance(member.stamps, loyalty, locale)}
               </p>
               <p className="text-gray-600">{unidad}</p>
-              <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
+              {rewards.length > 0 && (
+                <p className="text-sm text-gray-800 mt-1">{nextRewardText(rewards, member.stamps, m.rewardText)}</p>
+              )}
             </div>
             {pideMonto && (
               <label htmlFor="staff-sale" className="flex flex-col gap-1 text-sm text-gray-700">
@@ -315,8 +315,6 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
               >
                 {f(t.useBalance, { amount: formatBalance(member.stamps, loyalty, locale) })}
               </button>
-            )}
-            </>
             )}
 
             {rewards.length > 0 && (

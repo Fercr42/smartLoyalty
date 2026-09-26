@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     at: FieldValue.serverTimestamp(),
   });
   // Aviso al equipo, para no depender de entrar al administrador.
-  const equipo = adminEmails();
+  // Las pruebas automáticas usan @example.com (dominio reservado): no se avisa por correo.
+  const equipo = email.endsWith("@example.com") ? [] : adminEmails();
   if (equipo.length) {
     await sendEmail({
       to: equipo,
