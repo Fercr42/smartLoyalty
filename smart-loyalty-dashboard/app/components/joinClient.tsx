@@ -47,6 +47,7 @@ type MemberCard = {
   linked: boolean;
   email: string | null;
   name: string;
+  loyalty?: unknown;
 };
 
 // Nombres de los meses y fecha de cumpleaños en el idioma del cliente.
@@ -257,7 +258,7 @@ export default function JoinClient({
   }, [companyId, subscribe, loadMemberCard]);
 
   const brand = safeColor(company?.brandColor, DEFAULT_BRAND);
-  const loyalty = cleanLoyalty(company?.loyalty);
+  const loyalty = cleanLoyalty(memberCard?.loyalty ?? company?.loyalty);
   const unidad = m.pass.unit[loyalty.mode];
   const bg = safeColor(company?.bgColor, DEFAULT_BG);
 
@@ -388,16 +389,15 @@ export default function JoinClient({
             <QRCodeSVG value={memberCard.memberId} size={160} />
           </div>
           <p className="font-mono text-sm text-gray-500">#{memberCard.code}</p>
+          <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
+            {formatBalance(memberCard.stamps, loyalty, locale)}{" "}
+            <span className="text-base font-normal text-gray-600">{unidad}</span>
+          </p>
+          <p className="text-sm text-gray-700">
+            {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText, locale) || t.showCode}
+          </p>
           {memberCard.rewards.length > 0 && (
-            <>
-              <p className="text-3xl font-bold tabular-nums" style={{ color: brand }}>
-                {formatBalance(memberCard.stamps, loyalty, locale)}{" "}
-                <span className="text-base font-normal text-gray-600">{unidad}</span>
-              </p>
-              <p className="text-sm text-gray-700">
-                {nextRewardText(memberCard.rewards, memberCard.stamps, m.rewardText, locale) || t.showCode}
-              </p>
-              <ul className="w-full text-sm text-left divide-y border rounded-lg">
+            <ul className="w-full text-sm text-left divide-y border rounded-lg">
                 {memberCard.rewards.map((r) => (
                   <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
                     <span className="text-gray-900">{r.title}</span>
@@ -406,8 +406,7 @@ export default function JoinClient({
                     </span>
                   </li>
                 ))}
-              </ul>
-            </>
+            </ul>
           )}
           {memberCard.coupons.length > 0 && (
             <div className="w-full text-left">

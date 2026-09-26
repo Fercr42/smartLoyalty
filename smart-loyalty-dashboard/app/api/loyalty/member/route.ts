@@ -9,6 +9,7 @@ import { kickCron } from "../../../lib/cron-kick";
 import { publicOrigin } from "../../../lib/origin";
 import { updateMemberName, type WalletCompany } from "../../../lib/google-wallet";
 import { cleanName } from "../../../lib/member-name";
+import { cleanLoyalty } from "../../../lib/loyalty-mode";
 import { cleanRewards } from "../../../lib/rewards";
 
 export const runtime = "nodejs";
@@ -42,7 +43,12 @@ export async function POST(req: NextRequest) {
   const rewards = cleanRewards(company.data()?.loyalty?.rewards);
   const birthdaySettings = cleanAutomations(company.data()?.automations, messages[companyLocale(company.data())].automations.defaults).birthday;
   let coupons = await memberCoupons(companyRef, memberId);
-  if (!rewards.length && !coupons.length && !birthdaySettings.enabled) return Response.json({ enabled: false });
+  // El negocio ya usa el programa si tiene premios, cupones, cumpleaños o el escáner con PIN.
+  // Con cashback (o sellos sin premios) la tarjeta igual muestra el saldo del cliente.
+  const loyalty = cleanLoyalty(company.data()?.loyalty);
+  const activo =
+    rewards.length > 0 || coupons.length > 0 || birthdaySettings.enabled || Boolean(company.data()?.loyalty?.pinSet);
+  if (!activo) return Response.json({ enabled: false });
 
   const members = companyRef.collection("walletMembers");
   let memberRef = members.doc(memberId);
@@ -90,6 +96,7 @@ export async function POST(req: NextRequest) {
     birthdayEnabled: birthdaySettings.enabled,
     birthdayGift: birthdaySettings.gift,
     linked: Boolean(member.customerUid),
+    loyalty,
     email: member.email ?? null,
     name: member.name ?? "",
   });
