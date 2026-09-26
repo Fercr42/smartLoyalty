@@ -84,6 +84,7 @@ export default function AdminPage() {
   const [openId, setOpenId] = useState("");
   const [vista, setVista] = useState<"restaurantes" | "soporte">("restaurantes");
   const [sinResponder, setSinResponder] = useState(0);
+  const [recarga, setRecarga] = useState(0);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -170,7 +171,13 @@ export default function AdminPage() {
             <span className="font-medium text-gray-500 hidden sm:inline">· Administrador</span>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => load().catch(console.error)} className="text-sm border rounded-md px-3 py-1.5 hover:bg-gray-100">
+            <button
+              onClick={() => {
+                setRecarga((n) => n + 1);
+                load().catch(console.error);
+              }}
+              className="text-sm border rounded-md px-3 py-1.5 hover:bg-gray-100"
+            >
               Actualizar
             </button>
             <button onClick={() => signOut(auth)} className="text-sm text-gray-600">
@@ -346,7 +353,7 @@ export default function AdminPage() {
         </div>
 
         <div hidden={vista !== "soporte"}>
-          <SupportInbox onCount={setSinResponder} />
+          <SupportInbox onCount={setSinResponder} recarga={recarga} />
         </div>
       </main>
     </div>
@@ -369,7 +376,7 @@ type Ticket = {
 };
 
 // Mensajes de soporte: los del formulario y los que llegan a soporte@smartloyalty.app.
-function SupportInbox({ onCount }: { onCount: (n: number) => void }) {
+function SupportInbox({ onCount, recarga }: { onCount: (n: number) => void; recarga: number }) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [error, setError] = useState("");
@@ -392,9 +399,12 @@ function SupportInbox({ onCount }: { onCount: (n: number) => void }) {
     }
   }, [user]);
 
+  // Se recarga al entrar, cada minuto y cuando se toca Actualizar.
   useEffect(() => {
     cargar().catch(console.error);
-  }, [cargar]);
+    const cada = setInterval(() => cargar().catch(console.error), 60_000);
+    return () => clearInterval(cada);
+  }, [cargar, recarga]);
 
   const sinResponder = (tickets ?? []).filter((t) => t.status !== "respondido").length;
   useEffect(() => {
