@@ -352,11 +352,108 @@ export default function AdminPage() {
         )}
         </div>
 
-        <div hidden={vista !== "soporte"}>
+        <div hidden={vista !== "soporte"} className="flex flex-col gap-6">
+          <DemoRequests recarga={recarga} />
           <SupportInbox onCount={setSinResponder} recarga={recarga} />
         </div>
       </main>
     </div>
+  );
+}
+
+type Demo = {
+  id: string;
+  name: string;
+  business: string;
+  phone: string;
+  email: string;
+  kind: string;
+  when: string;
+  message: string;
+  at: number | null;
+};
+
+// Solicitudes de demo que llegan desde la página /demo.
+function DemoRequests({ recarga }: { recarga: number }) {
+  const { user } = useAuth();
+  const [demos, setDemos] = useState<Demo[] | null>(null);
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/demos", { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "No se pudieron cargar las demos");
+      setDemos(body.demos);
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudieron cargar las demos");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    cargar().catch(console.error);
+    const cada = setInterval(() => cargar().catch(console.error), 60_000);
+    return () => clearInterval(cada);
+  }, [cargar, recarga]);
+
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (!demos) return null;
+
+  const fecha = (ms: number | null) =>
+    ms ? new Date(ms).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" }) : "";
+
+  return (
+    <section className="bg-white border rounded-xl p-5 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-semibold text-gray-900">
+          Solicitudes de demo
+          {demos.length > 0 && (
+            <span className="ml-2 text-xs font-semibold bg-emerald-100 text-emerald-900 rounded-full px-2 py-0.5">
+              {demos.length}
+            </span>
+          )}
+        </h2>
+        <span className="text-sm text-gray-600">{demos.length ? "las más nuevas primero" : "Sin solicitudes"}</span>
+      </div>
+
+      {demos.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          Nadie ha pedido una demo todavía. Llegan aquí las del formulario de smartloyalty.app/demo.
+        </p>
+      ) : (
+        <ul className="divide-y text-sm">
+          {demos.map((d) => (
+            <li key={d.id} className="py-3 flex flex-col gap-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-semibold text-gray-900">
+                  {d.name}
+                  {d.business && <span className="font-normal text-gray-600"> · {d.business}</span>}
+                </p>
+                <span className="text-xs text-gray-500 tabular-nums">{fecha(d.at)}</span>
+              </div>
+              <p className="text-xs text-gray-600 flex flex-wrap gap-x-3">
+                {d.phone && (
+                  <a href={`https://wa.me/${d.phone.replace(/[^0-9]/g, "")}`} className="text-blue-700 underline">
+                    {d.phone}
+                  </a>
+                )}
+                {d.email && (
+                  <a href={`mailto:${d.email}`} className="text-blue-700 underline">
+                    {d.email}
+                  </a>
+                )}
+                {d.kind && <span>{d.kind}</span>}
+                {d.when && <span>Prefiere: {d.when}</span>}
+              </p>
+              {d.message && <p className="text-gray-700 whitespace-pre-wrap">{d.message}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

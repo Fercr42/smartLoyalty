@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import BrandLogo from "./components/brandLogo";
+import RoiCalculator from "./components/roiCalculator";
 import { fmt } from "./i18n/config";
 import { LanguageSwitcher } from "./i18n/client";
 import { getI18n } from "./i18n/server";
@@ -35,6 +36,7 @@ export default async function Landing() {
             <a href="#como-funciona" className="hover:text-[#111418]">{t.navHow}</a>
             <a href="#nichos" className="hover:text-[#111418]">{t.navNiches}</a>
             <a href="#funciones" className="hover:text-[#111418]">{t.navFeatures}</a>
+            <a href="#numeros" className="hover:text-[#111418]">{t.roiEyebrow}</a>
             <a href="#preguntas" className="hover:text-[#111418]">{t.navFaq}</a>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -44,9 +46,15 @@ export default async function Landing() {
             </Link>
             <Link
               href="/registro"
-              className="text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap bg-[#0e7c66] text-white hover:bg-[#0b6552]"
+              className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap border border-[#cfd8d4] hover:bg-[#f4f7f5]"
             >
               {t.tryFree}
+            </Link>
+            <Link
+              href="/demo"
+              className="text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap bg-[#0e7c66] text-white hover:bg-[#0b6552]"
+            >
+              {t.ctaDemo}
             </Link>
           </div>
         </nav>
@@ -62,20 +70,70 @@ export default async function Landing() {
             <p className="text-lg text-[#4b5560] max-w-[34rem]">{t.lead}</p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                href="/registro"
+                href="/demo"
                 className="px-6 py-3.5 rounded-xl bg-[#0e7c66] text-white font-semibold text-lg hover:bg-[#0b6552]"
+              >
+                {t.ctaDemo}
+              </Link>
+              <Link
+                href="/registro"
+                className="px-5 py-3.5 rounded-xl font-semibold border border-[#cfd8d4] hover:bg-[#f4f7f5]"
               >
                 {fmt(t.ctaTrial, vars)}
               </Link>
-              <a href="#como-funciona" className="px-5 py-3.5 rounded-xl font-semibold border border-[#cfd8d4] hover:bg-[#f4f7f5]">
-                {t.ctaHow}
-              </a>
             </div>
             <p className="text-sm text-[#6b7580]">{t.noCard}</p>
             <LanguageSwitcher className="sm:hidden self-start border-[#cfd8d4]" />
           </div>
 
           <PhoneMockup t={t.mock} />
+        </section>
+
+        {/* Lo que el dueño recibe sin hacer nada: datos del producto, no promesas. */}
+        <section className="border-y border-[#e6ece9] bg-[#fbfcfb]">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {t.trust.map((item) => (
+              <div key={item.value} className="flex flex-col gap-1">
+                <p className={`${display.className} text-2xl font-extrabold tracking-tight text-[#0e7c66]`}>{item.value}</p>
+                <p className="text-sm text-[#4b5560]">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Antes y después: el problema que ya tiene el dueño y qué cambia. */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8">
+          <div className="flex flex-col gap-3 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.storyEyebrow}</p>
+            <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
+              {t.storyTitle}
+            </h2>
+            <p className="text-[#4b5560]">{t.storyLead}</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-6 flex flex-col gap-4">
+              <h3 className="font-bold text-[#6b7580]">{t.storyBeforeTitle}</h3>
+              <ul className="flex flex-col gap-3">
+                {t.storyBefore.map((item) => (
+                  <li key={item} className="flex gap-3 text-[#4b5560]">
+                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-[#cfd8d4] shrink-0" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border-2 border-[#0e7c66] bg-white p-6 flex flex-col gap-4">
+              <h3 className="font-bold text-[#0b6552]">{t.storyAfterTitle}</h3>
+              <ul className="flex flex-col gap-3">
+                {t.storyAfter.map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-[#f2b134] shrink-0" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </section>
 
         <section id="nichos" className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 flex flex-col gap-8 scroll-mt-20">
@@ -157,6 +215,45 @@ export default async function Landing() {
           </div>
         </section>
 
+        {/* Calculadora: el dueño mueve sus propios números. */}
+        <section id="numeros" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
+          <div className="flex flex-col gap-3 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.roiEyebrow}</p>
+            <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
+              {t.roiTitle}
+            </h2>
+            <p className="text-[#4b5560]">{t.roiLead}</p>
+          </div>
+          <RoiCalculator />
+        </section>
+
+        {/* Invitación a la demo, antes de las preguntas. */}
+        <section className="px-4 sm:px-6 pb-4">
+          <div className="max-w-6xl mx-auto rounded-3xl border border-[#e6ece9] bg-[#f4f7f5] px-6 py-10 sm:px-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.demoBandEyebrow}</p>
+              <h2 className={`${display.className} text-2xl sm:text-3xl font-extrabold tracking-tight text-balance`}>
+                {t.demoBandTitle}
+              </h2>
+              <p className="text-[#4b5560]">{t.demoBandLead}</p>
+            </div>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link
+                href="/demo"
+                className="px-6 py-3.5 rounded-xl bg-[#0e7c66] text-white font-semibold text-center hover:bg-[#0b6552]"
+              >
+                {t.demoBandCta}
+              </Link>
+              <Link
+                href="/soporte#contacto"
+                className="px-5 py-3.5 rounded-xl font-semibold border border-[#cfd8d4] bg-white text-center hover:bg-[#f4f7f5]"
+              >
+                {t.demoBandSales}
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section id="preguntas" className="max-w-3xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
           <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight`}>{t.faqTitle}</h2>
           <div className="divide-y divide-[#e6ece9] border-y border-[#e6ece9]">
@@ -180,12 +277,20 @@ export default async function Landing() {
               <h2 className={`${display.className} text-3xl font-extrabold tracking-tight text-balance`}>{t.finalTitle}</h2>
               <p className="text-white/70">{fmt(t.finalLead, vars)}</p>
             </div>
-            <Link
-              href="/registro"
-              className="shrink-0 px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#111418] font-bold text-lg text-center hover:bg-[#e6a322]"
-            >
-              {t.finalCta}
-            </Link>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link
+                href="/registro"
+                className="px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#111418] font-bold text-lg text-center hover:bg-[#e6a322]"
+              >
+                {t.finalCta}
+              </Link>
+              <Link
+                href="/demo"
+                className="px-5 py-3.5 rounded-xl border border-white/30 text-white font-semibold text-center hover:bg-white/10"
+              >
+                {t.ctaDemo}
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -195,6 +300,9 @@ export default async function Landing() {
           <BrandLogo size={22} />
           <div className="flex flex-wrap items-center gap-4">
             <LanguageSwitcher className="border-[#cfd8d4]" />
+            <Link href="/demo" className="hover:text-[#111418]">
+              {t.ctaDemo}
+            </Link>
             <Link href="/soporte" className="hover:text-[#111418]">
               {m.support.supportLink}
             </Link>
