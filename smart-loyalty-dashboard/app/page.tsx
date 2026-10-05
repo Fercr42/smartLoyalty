@@ -4,6 +4,7 @@ import { Bricolage_Grotesque } from "next/font/google";
 import BrandLogo from "./components/brandLogo";
 import HeroParallax from "./components/heroParallax";
 import ProgramShowcase from "./components/programShowcase";
+import ScrollProgress from "./components/scrollProgress";
 import Reveal from "./components/reveal";
 import StickyHeader from "./components/stickyHeader";
 import RoiCalculator from "./components/roiCalculator";
@@ -30,18 +31,19 @@ export default async function Landing() {
   const vars = { days: TRIAL_DAYS, price: PLAN_PRICE_USD };
 
   return (
-    <div className="bg-white text-[#111418]">
+    <div className="bg-[#07201b] text-white">
+      <ScrollProgress />
       <StickyHeader>
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link href="/" aria-label="Smart Loyalty" className="shrink-0">
             <BrandLogo size={30} />
           </Link>
           <div className="hidden lg:flex items-center gap-6 text-sm text-[#4b5560]">
-            <a href="#como-funciona" className="hover:text-[#111418]">{t.navHow}</a>
-            <a href="#nichos" className="hover:text-[#111418]">{t.navNiches}</a>
-            <a href="#funciones" className="hover:text-[#111418]">{t.navFeatures}</a>
-            <a href="#numeros" className="hover:text-[#111418]">{t.roiEyebrow}</a>
-            <a href="#preguntas" className="hover:text-[#111418]">{t.navFaq}</a>
+            <a href="#como-funciona" className="transition-colors hover:text-white">{t.navHow}</a>
+            <a href="#nichos" className="transition-colors hover:text-white">{t.navNiches}</a>
+            <a href="#funciones" className="transition-colors hover:text-white">{t.navFeatures}</a>
+            <a href="#numeros" className="transition-colors hover:text-white">{t.roiEyebrow}</a>
+            <a href="#preguntas" className="transition-colors hover:text-white">{t.navFaq}</a>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <LanguageSwitcher className="hidden sm:block border-[#cfd8d4]" />
@@ -120,26 +122,33 @@ export default async function Landing() {
         </section>
 
         {/* Lo que el dueño recibe sin hacer nada: datos del producto, no promesas. */}
-        <section className="border-b border-[#e6ece9] bg-[#fbfcfb]">
+        <section className="border-b border-white/10 bg-[#0a2a23]">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {t.trust.map((item) => (
               <div key={item.value} className="flex flex-col gap-1">
-                <p className={`${display.className} text-2xl font-extrabold tracking-tight text-[#0e7c66]`}>{item.value}</p>
-                <p className="text-sm text-[#4b5560]">{item.label}</p>
+                <p className={`${display.className} text-2xl font-extrabold tracking-tight text-[#19c58a]`}>{item.value}</p>
+                <p className="text-sm text-white/65">{item.label}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* Selector vivo: sellos, puntos o cashback. */}
-        <section id="programas" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
+        <section id="programas" className="relative overflow-hidden scroll-mt-16">
+          <div
+            className="sl-aurora pointer-events-none absolute -left-32 top-10 h-[28rem] w-[28rem] rounded-full blur-3xl"
+            style={{ background: "radial-gradient(circle, rgba(242,177,52,0.18) 0%, rgba(7,32,27,0) 70%)" }}
+            aria-hidden
+          />
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8">
           <div className="flex flex-col gap-3 max-w-2xl">
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.modesTitle}
             </h2>
-            <p className="text-[#4b5560]">{t.modesLead}</p>
+            <p className="text-white/70">{t.modesLead}</p>
           </div>
           <ProgramShowcase />
+          </div>
         </section>
 
         {/* Antes y después: el problema que ya tiene el dueño y qué cambia. */}
@@ -149,26 +158,26 @@ export default async function Landing() {
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.storyTitle}
             </h2>
-            <p className="text-[#4b5560]">{t.storyLead}</p>
+            <p className="text-white/70">{t.storyLead}</p>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-2">
-            <Reveal className="sl-lift rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-6 flex flex-col gap-4">
-              <h3 className="font-bold text-[#6b7580]">{t.storyBeforeTitle}</h3>
+            <Reveal className="sl-lift rounded-2xl border border-white/10 bg-white/[0.04] p-6 flex flex-col gap-4">
+              <h3 className="font-bold text-white/55">{t.storyBeforeTitle}</h3>
               <ul className="flex flex-col gap-3">
                 {t.storyBefore.map((item) => (
-                  <li key={item} className="flex gap-3 text-[#4b5560]">
-                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-[#cfd8d4] shrink-0" aria-hidden />
+                  <li key={item} className="flex gap-3 text-white/60">
+                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-white/25 shrink-0" aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </Reveal>
-            <Reveal delay={120} className="sl-lift rounded-2xl border-2 border-[#0e7c66] bg-white p-6 flex flex-col gap-4">
-              <h3 className="font-bold text-[#0b6552]">{t.storyAfterTitle}</h3>
+            <Reveal delay={120} className="sl-lift rounded-2xl border-2 border-[#19c58a] bg-[#0b352c] p-6 flex flex-col gap-4">
+              <h3 className="font-bold text-[#19c58a]">{t.storyAfterTitle}</h3>
               <ul className="flex flex-col gap-3">
                 {t.storyAfter.map((item) => (
-                  <li key={item} className="flex gap-3">
-                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-[#f2b134] shrink-0" aria-hidden />
+                  <li key={item} className="flex gap-3 text-white/85">
+                    <span className="mt-2 w-2.5 h-2.5 rounded-full bg-[#f2b134] shrink-0 sl-pulse" aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -182,23 +191,23 @@ export default async function Landing() {
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.nichesTitle}
             </h2>
-            <p className="text-[#4b5560]">{t.nichesLead}</p>
+            <p className="text-white/70">{t.nichesLead}</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {t.niches.map((n) => (
-              <li key={n.name} className="sl-lift rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-5 flex flex-col gap-3">
+            {t.niches.map((n, i) => (
+              <Reveal key={n.name} delay={(i % 4) * 80} className="sl-lift sl-tap rounded-2xl border border-white/12 bg-white/5 p-5 flex flex-col gap-3">
                 <h3 className="font-bold text-lg leading-snug">{n.name}</h3>
-                <p className="flex items-center gap-2 text-sm font-semibold text-[#0b6552]">
+                <p className="flex items-center gap-2 text-sm font-semibold text-[#ffd98a]">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f2b134] shrink-0" aria-hidden />
                   {n.reward}
                 </p>
-                <p className="text-sm text-[#4b5560]">{n.message}</p>
-              </li>
+                <p className="text-sm text-white/65">{n.message}</p>
+              </Reveal>
             ))}
           </ul>
         </section>
 
-        <section id="como-funciona" className="bg-[#f4f7f5] border-y border-[#e6ece9] scroll-mt-16">
+        <section id="como-funciona" className="bg-[#f6f4ee] text-[#111418] border-y border-black/10 scroll-mt-16">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-10">
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.stepsTitle}
@@ -224,13 +233,13 @@ export default async function Landing() {
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.featuresTitle}
             </h2>
-            <p className="text-[#4b5560]">{t.featuresLead}</p>
+            <p className="text-white/70">{t.featuresLead}</p>
           </div>
           <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {t.features.map((f, i) => (
-              <Reveal key={f.title} delay={(i % 4) * 90} className="flex flex-col gap-2 border-t-2 border-[#111418] pt-4">
+              <Reveal key={f.title} delay={(i % 4) * 90} className="flex flex-col gap-2 border-t-2 border-[#19c58a] pt-4">
                 <h3 className="font-bold">{f.title}</h3>
-                <p className="text-sm text-[#4b5560]">{f.text}</p>
+                <p className="text-sm text-white/65">{f.text}</p>
               </Reveal>
             ))}
           </div>
@@ -263,31 +272,31 @@ export default async function Landing() {
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.roiTitle}
             </h2>
-            <p className="text-[#4b5560]">{t.roiLead}</p>
+            <p className="text-white/70">{t.roiLead}</p>
           </div>
           <RoiCalculator />
         </section>
 
         {/* Invitación a la demo, antes de las preguntas. */}
         <section className="px-4 sm:px-6 pb-4">
-          <div className="max-w-6xl mx-auto rounded-3xl border border-[#e6ece9] bg-[#f4f7f5] px-6 py-10 sm:px-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="max-w-6xl mx-auto rounded-3xl border border-white/12 bg-white/5 px-6 py-10 sm:px-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex flex-col gap-2 max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.demoBandEyebrow}</p>
               <h2 className={`${display.className} text-2xl sm:text-3xl font-extrabold tracking-tight text-balance`}>
                 {t.demoBandTitle}
               </h2>
-              <p className="text-[#4b5560]">{t.demoBandLead}</p>
+              <p className="text-white/70">{t.demoBandLead}</p>
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
               <Link
                 href="/demo"
-                className="px-6 py-3.5 rounded-xl bg-[#0e7c66] text-white font-semibold text-center hover:bg-[#0b6552]"
+                className="sl-press sl-shine px-6 py-3.5 rounded-xl bg-[#19c58a] text-[#07201b] font-bold text-center hover:bg-[#2fe0a2]"
               >
                 {t.demoBandCta}
               </Link>
               <Link
                 href="/soporte#contacto"
-                className="px-5 py-3.5 rounded-xl font-semibold border border-[#cfd8d4] bg-white text-center hover:bg-[#f4f7f5]"
+                className="sl-press px-5 py-3.5 rounded-xl font-semibold border border-white/25 text-white text-center hover:bg-white/10"
               >
                 {t.demoBandSales}
               </Link>
@@ -297,18 +306,18 @@ export default async function Landing() {
 
         <section id="preguntas" className="max-w-3xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
           <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight`}>{t.faqTitle}</h2>
-          <div className="divide-y divide-[#e6ece9] border-y border-[#e6ece9]">
+          <div className="divide-y divide-white/10 border-y border-white/10">
             {t.faq.map((item) => (
               <details key={item.q} className="group py-4">
                 <summary className="cursor-pointer list-none flex justify-between gap-4 font-semibold">
                   {item.q}
-                  <span className="text-[#0e7c66] group-open:rotate-45 transition-transform" aria-hidden>
+                  <span className="text-[#f2b134] group-open:rotate-45 transition-transform duration-300" aria-hidden>
                     +
                   </span>
                 </summary>
                 <div className="sl-faq-body">
                   <div>
-                    <p className="mt-2 text-[#4b5560]">{fmt(item.a, vars)}</p>
+                    <p className="mt-2 text-white/70">{fmt(item.a, vars)}</p>
                   </div>
                 </div>
               </details>
@@ -317,7 +326,7 @@ export default async function Landing() {
         </section>
 
         <section className="px-4 sm:px-6 pb-16">
-          <div className="max-w-6xl mx-auto rounded-3xl bg-[#111418] text-white px-6 py-12 sm:px-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="relative overflow-hidden max-w-6xl mx-auto rounded-3xl bg-[#0b352c] text-white px-6 py-12 sm:px-12 flex flex-col md:flex-row md:items-center justify-between gap-6 border border-white/10">
             <div className="flex flex-col gap-2">
               <h2 className={`${display.className} text-3xl font-extrabold tracking-tight text-balance`}>{t.finalTitle}</h2>
               <p className="text-white/70">{fmt(t.finalLead, vars)}</p>
@@ -325,7 +334,7 @@ export default async function Landing() {
             <div className="flex flex-wrap gap-3 shrink-0">
               <Link
                 href="/registro"
-                className="px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#111418] font-bold text-lg text-center hover:bg-[#e6a322]"
+                className="sl-press sl-shine px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#07201b] font-bold text-lg text-center hover:bg-[#ffc04d]"
               >
                 {t.finalCta}
               </Link>
@@ -340,24 +349,24 @@ export default async function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-[#e6ece9]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-sm text-[#6b7580]">
+      <footer className="border-t border-white/10 bg-[#061a16]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-sm text-white/55">
           <BrandLogo size={22} />
           <div className="flex flex-wrap items-center gap-4">
             <LanguageSwitcher className="border-[#cfd8d4]" />
-            <Link href="/demo" className="hover:text-[#111418]">
+            <Link href="/demo" className="transition-colors hover:text-white">
               {t.ctaDemo}
             </Link>
-            <Link href="/soporte" className="hover:text-[#111418]">
+            <Link href="/soporte" className="transition-colors hover:text-white">
               {m.support.supportLink}
             </Link>
-            <Link href="/privacidad" className="hover:text-[#111418]">
+            <Link href="/privacidad" className="transition-colors hover:text-white">
               {m.legal.privacyLink}
             </Link>
-            <Link href="/terminos" className="hover:text-[#111418]">
+            <Link href="/terminos" className="transition-colors hover:text-white">
               {m.legal.termsLink}
             </Link>
-            <Link href="/panel" className="hover:text-[#111418]">
+            <Link href="/panel" className="transition-colors hover:text-white">
               {t.footerPanel}
             </Link>
           </div>

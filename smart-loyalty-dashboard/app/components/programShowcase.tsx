@@ -1,14 +1,49 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/client";
 import { LOYALTY_MODES, type LoyaltyMode } from "../lib/loyalty-mode";
 
 // Selector vivo de la página principal: el visitante toca sellos, puntos o cashback
 // y ve la tarjeta del cliente y lo que hace el empleado en cada caso.
+// Mientras nadie lo toca, va cambiando solo para que se note que se puede jugar con él.
 export default function ProgramShowcase() {
   const { m } = useI18n();
   const t = m.landing;
   const [mode, setMode] = useState<LoyaltyMode>("points");
+  const [solo, setSolo] = useState(true);
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!solo) return;
+    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (quieto || typeof IntersectionObserver === "undefined") return;
+
+    let reloj: ReturnType<typeof setInterval> | null = null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some((e) => e.isIntersecting);
+        if (visible && !reloj) {
+          reloj = setInterval(() => {
+            setMode((actual) => LOYALTY_MODES[(LOYALTY_MODES.indexOf(actual) + 1) % LOYALTY_MODES.length]);
+          }, 3200);
+        } else if (!visible && reloj) {
+          clearInterval(reloj);
+          reloj = null;
+        }
+      },
+      { threshold: 0.35 }
+    );
+    if (caja.current) observer.observe(caja.current);
+    return () => {
+      if (reloj) clearInterval(reloj);
+      observer.disconnect();
+    };
+  }, [solo]);
+
+  const elegir = (option: LoyaltyMode) => {
+    setSolo(false); // alguien tomó el control: deja de cambiar solo
+    setMode(option);
+  };
 
   const unit = m.pass.unit[mode];
   const value = mode === "stamps" ? "7" : mode === "points" ? "450" : "₡2.000";
@@ -16,7 +51,7 @@ export default function ProgramShowcase() {
   const progress = mode === "stamps" ? 70 : mode === "points" ? 90 : 66;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] items-center">
+    <div ref={caja} className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] items-center">
       <div className="flex flex-col gap-3">
         {LOYALTY_MODES.map((option) => {
           const active = option === mode;
@@ -24,27 +59,33 @@ export default function ProgramShowcase() {
             <button
               key={option}
               type="button"
-              onClick={() => setMode(option)}
+              onClick={() => elegir(option)}
               aria-pressed={active}
-              className={`text-left rounded-2xl border p-5 transition-all ${
+              className={`sl-tap text-left rounded-2xl border p-5 transition-all duration-300 ${
                 active
-                  ? "border-[#0e7c66] bg-white shadow-[0_12px_30px_-18px_rgba(14,124,102,0.9)] translate-x-1"
-                  : "border-[#e6ece9] bg-[#fbfcfb] hover:border-[#cfd8d4]"
+                  ? "border-[#f2b134] bg-white/10 shadow-[0_18px_40px_-24px_rgba(242,177,52,0.8)] translate-x-1"
+                  : "border-white/12 bg-white/5 hover:border-white/30"
               }`}
             >
               <span className="flex items-center gap-3">
                 <span
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${active ? "bg-[#f2b134]" : "bg-[#cfd8d4]"}`}
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${active ? "bg-[#f2b134] sl-pulse" : "bg-white/30"}`}
                   aria-hidden
                 />
-                <span className="font-bold text-lg">{m.rewards.modes[option].label}</span>
+                <span className="font-bold text-lg text-white">{m.rewards.modes[option].label}</span>
               </span>
-              <span className="block text-sm text-[#4b5560] mt-1 pl-[1.4rem]">{m.rewards.modes[option].hint}</span>
-              {active && (
-                <span className="mt-3 ml-[1.4rem] inline-flex items-center gap-2 rounded-lg bg-[#0e7c66]/10 px-3 py-1.5 text-xs font-semibold text-[#0b6552]">
-                  {t.modesStaff[option]}
+              <span className="block text-sm text-white/65 mt-1 pl-[1.4rem]">{m.rewards.modes[option].hint}</span>
+              <span
+                className={`grid transition-all duration-300 ml-[1.4rem] ${
+                  active ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <span className="overflow-hidden">
+                  <span className="inline-flex items-center gap-2 rounded-lg bg-[#f2b134]/15 px-3 py-1.5 text-xs font-semibold text-[#ffd98a]">
+                    {t.modesStaff[option]}
+                  </span>
                 </span>
-              )}
+              </span>
             </button>
           );
         })}

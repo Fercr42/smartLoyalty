@@ -47,6 +47,45 @@
   border-radius: 0.25em;
 }
 
+/* Resplandores que se mueven despacio dentro de las secciones oscuras. */
+@keyframes sl-aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(6%, -4%, 0) scale(1.12); }
+  66%  { transform: translate3d(-5%, 5%, 0) scale(0.95); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.sl-aurora {
+  animation: sl-aurora 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Brillo que cruza el botón principal cada tanto. */
+@keyframes sl-shine {
+  0%, 72% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.sl-shine { position: relative; overflow: hidden; }
+.sl-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+  transform: translateX(-120%);
+  animation: sl-shine 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Latido suave para los puntos que marcan algo vivo. */
+@keyframes sl-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.55; }
+}
+.sl-pulse { animation: sl-pulse 2.4s ease-in-out infinite; }
+
+/* Respuesta al toque, para que en celular también se sienta. */
+.sl-tap { transition: transform 0.18s ease; }
+.sl-tap:active { transform: scale(0.97); }
+
 /* Aparición al hacer scroll (la clase la pone el componente Reveal). */
 .sl-reveal-hidden {
   opacity: 0;
@@ -95,14 +134,30 @@
 details[open] .sl-faq-body { grid-template-rows: 1fr; }
 .sl-faq-body > div { overflow: hidden; }
 
+/* Barra fina arriba que muestra cuánto se ha leído de la página. */
+.sl-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  z-index: 50;
+  background: linear-gradient(90deg, #19c58a, #f2b134);
+  transform-origin: 0 50%;
+  transition: transform 0.12s linear;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sl-float,
   .sl-float-slow,
   .sl-rise,
   .sl-marquee,
-  .sl-glow {
+  .sl-glow,
+  .sl-aurora,
+  .sl-pulse {
     animation: none;
   }
+  .sl-shine::after { animation: none; opacity: 0; }
+  .sl-tap { transition: none; }
   .sl-reveal-hidden,
   .sl-reveal-shown,
   .sl-parallax > *,
