@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Movimiento de la página de ventas. Suave y corto: la página se lee igual
+   si el visitante pidió menos animación (prefers-reduced-motion).
+--------------------------------------------------------------------------- */
+
+@keyframes sl-float {
+  0%, 100% { transform: translateY(0) rotate(var(--sl-tilt, 0deg)); }
+  50% { transform: translateY(-10px) rotate(var(--sl-tilt, 0deg)); }
+}
+
+@keyframes sl-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sl-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes sl-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
+}
+
+.sl-float { animation: sl-float 7s ease-in-out infinite; }
+.sl-float-slow { animation: sl-float 11s ease-in-out infinite; }
+.sl-rise { animation: sl-rise 0.7s ease-out both; }
+.sl-marquee { animation: sl-marquee 38s linear infinite; }
+.sl-glow { animation: sl-glow 6s ease-in-out infinite; }
+
+/* Trazo de marcador detrás de la palabra clave del titular. */
+.sl-mark {
+  background-image: linear-gradient(
+    104deg,
+    rgba(242, 177, 52, 0) 0.5%,
+    rgba(242, 177, 52, 0.9) 2%,
+    rgba(242, 177, 52, 0.8) 96%,
+    rgba(242, 177, 52, 0) 99%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 40%;
+  background-position: 0 80%;
+  padding: 0 0.12em;
+  border-radius: 0.25em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-float,
+  .sl-float-slow,
+  .sl-rise,
+  .sl-marquee,
+  .sl-glow {
+    animation: none;
+  }
+}
