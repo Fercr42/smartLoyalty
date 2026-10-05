@@ -47,6 +47,54 @@
   border-radius: 0.25em;
 }
 
+/* Aparición al hacer scroll (la clase la pone el componente Reveal). */
+.sl-reveal-hidden {
+  opacity: 0;
+  transform: translateY(22px);
+}
+.sl-reveal-shown {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Las tarjetas del héroe siguen apenas al mouse. */
+.sl-parallax > * {
+  transform: translate3d(var(--sl-x, 0px), var(--sl-y, 0px), 0);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* La cinta de rubros se detiene al pasar el mouse por encima. */
+.sl-marquee-wrap:hover .sl-marquee {
+  animation-play-state: paused;
+}
+
+/* Tarjetas que se levantan al pasar el mouse. */
+.sl-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.sl-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 40px -28px rgba(7, 32, 27, 0.75);
+  border-color: #0e7c66;
+}
+
+/* Botones con un empujón al tocarlos. */
+.sl-press {
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.sl-press:hover { transform: translateY(-2px); }
+.sl-press:active { transform: translateY(0); }
+
+/* Preguntas frecuentes: la respuesta se abre con altura animada. */
+.sl-faq-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+}
+details[open] .sl-faq-body { grid-template-rows: 1fr; }
+.sl-faq-body > div { overflow: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   .sl-float,
   .sl-float-slow,
@@ -55,4 +103,15 @@
   .sl-glow {
     animation: none;
   }
+  .sl-reveal-hidden,
+  .sl-reveal-shown,
+  .sl-parallax > *,
+  .sl-lift,
+  .sl-press,
+  .sl-faq-body {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .sl-faq-body { grid-template-rows: 1fr; }
 }

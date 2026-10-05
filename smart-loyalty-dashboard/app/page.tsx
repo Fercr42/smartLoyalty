@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import BrandLogo from "./components/brandLogo";
+import HeroParallax from "./components/heroParallax";
 import ProgramShowcase from "./components/programShowcase";
+import Reveal from "./components/reveal";
+import StickyHeader from "./components/stickyHeader";
 import RoiCalculator from "./components/roiCalculator";
 import { fmt } from "./i18n/config";
 import { LanguageSwitcher } from "./i18n/client";
@@ -28,7 +31,7 @@ export default async function Landing() {
 
   return (
     <div className="bg-white text-[#111418]">
-      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[#e6ece9]">
+      <StickyHeader>
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link href="/" aria-label="Smart Loyalty" className="shrink-0">
             <BrandLogo size={30} />
@@ -53,13 +56,13 @@ export default async function Landing() {
             </Link>
             <Link
               href="/demo"
-              className="text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap bg-[#0e7c66] text-white hover:bg-[#0b6552]"
+              className="sl-press text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg whitespace-nowrap bg-[#0e7c66] text-white hover:bg-[#0b6552]"
             >
               {t.ctaDemo}
             </Link>
           </div>
         </nav>
-      </header>
+      </StickyHeader>
 
       <main>
         {/* Héroe oscuro: el titular, la tarjeta del cliente flotando y lo que ve el empleado. */}
@@ -82,13 +85,13 @@ export default async function Landing() {
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/demo"
-                  className="px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#07201b] font-bold text-lg hover:bg-[#ffc04d]"
+                  className="sl-press px-6 py-3.5 rounded-xl bg-[#f2b134] text-[#07201b] font-bold text-lg hover:bg-[#ffc04d]"
                 >
                   {t.ctaDemo}
                 </Link>
                 <Link
                   href="/registro"
-                  className="px-5 py-3.5 rounded-xl font-semibold border border-white/25 text-white hover:bg-white/10"
+                  className="sl-press px-5 py-3.5 rounded-xl font-semibold border border-white/25 text-white hover:bg-white/10"
                 >
                   {fmt(t.ctaTrial, vars)}
                 </Link>
@@ -97,11 +100,13 @@ export default async function Landing() {
               <LanguageSwitcher className="sm:hidden self-start border-white/25 bg-white/10 text-white" />
             </div>
 
-            <HeroStack t={t} />
+            <HeroParallax>
+              <HeroStack t={t} />
+            </HeroParallax>
           </div>
 
           {/* Cinta con los rubros: el visitante se busca a sí mismo. */}
-          <div className="relative border-t border-white/10 py-4 overflow-hidden">
+          <div className="sl-marquee-wrap relative border-t border-white/10 py-4 overflow-hidden">
             <div className="flex w-max gap-10 sl-marquee" aria-hidden>
               {[...t.niches, ...t.niches].map((n, i) => (
                 <span key={`${n.name}-${i}`} className="flex items-center gap-10 text-sm font-semibold text-white/55 whitespace-nowrap">
@@ -139,15 +144,15 @@ export default async function Landing() {
 
         {/* Antes y después: el problema que ya tiene el dueño y qué cambia. */}
         <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8">
-          <div className="flex flex-col gap-3 max-w-2xl">
+          <Reveal className="flex flex-col gap-3 max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.storyEyebrow}</p>
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
               {t.storyTitle}
             </h2>
             <p className="text-[#4b5560]">{t.storyLead}</p>
-          </div>
+          </Reveal>
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-6 flex flex-col gap-4">
+            <Reveal className="sl-lift rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-6 flex flex-col gap-4">
               <h3 className="font-bold text-[#6b7580]">{t.storyBeforeTitle}</h3>
               <ul className="flex flex-col gap-3">
                 {t.storyBefore.map((item) => (
@@ -157,8 +162,8 @@ export default async function Landing() {
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="rounded-2xl border-2 border-[#0e7c66] bg-white p-6 flex flex-col gap-4">
+            </Reveal>
+            <Reveal delay={120} className="sl-lift rounded-2xl border-2 border-[#0e7c66] bg-white p-6 flex flex-col gap-4">
               <h3 className="font-bold text-[#0b6552]">{t.storyAfterTitle}</h3>
               <ul className="flex flex-col gap-3">
                 {t.storyAfter.map((item) => (
@@ -168,7 +173,7 @@ export default async function Landing() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
           </div>
         </section>
 
@@ -181,7 +186,7 @@ export default async function Landing() {
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {t.niches.map((n) => (
-              <li key={n.name} className="rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-5 flex flex-col gap-3">
+              <li key={n.name} className="sl-lift rounded-2xl border border-[#e6ece9] bg-[#fbfcfb] p-5 flex flex-col gap-3">
                 <h3 className="font-bold text-lg leading-snug">{n.name}</h3>
                 <p className="flex items-center gap-2 text-sm font-semibold text-[#0b6552]">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f2b134] shrink-0" aria-hidden />
@@ -200,7 +205,7 @@ export default async function Landing() {
             </h2>
             <ol className="grid gap-6 md:grid-cols-3">
               {t.steps.map((step, i) => (
-                <li key={step.title} className="flex flex-col gap-3">
+                <Reveal key={step.title} delay={i * 110} className="flex flex-col gap-3">
                   <span
                     className={`${display.className} w-10 h-10 rounded-full bg-[#111418] text-white grid place-items-center font-extrabold`}
                   >
@@ -208,7 +213,7 @@ export default async function Landing() {
                   </span>
                   <h3 className="text-lg font-bold">{step.title}</h3>
                   <p className="text-[#4b5560]">{step.text}</p>
-                </li>
+                </Reveal>
               ))}
             </ol>
           </div>
@@ -222,11 +227,11 @@ export default async function Landing() {
             <p className="text-[#4b5560]">{t.featuresLead}</p>
           </div>
           <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-            {t.features.map((f) => (
-              <div key={f.title} className="flex flex-col gap-2 border-t-2 border-[#111418] pt-4">
+            {t.features.map((f, i) => (
+              <Reveal key={f.title} delay={(i % 4) * 90} className="flex flex-col gap-2 border-t-2 border-[#111418] pt-4">
                 <h3 className="font-bold">{f.title}</h3>
                 <p className="text-sm text-[#4b5560]">{f.text}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
@@ -241,11 +246,11 @@ export default async function Landing() {
               <p className="text-white/80">{t.automationsLead}</p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2">
-              {t.automations.map((a) => (
-                <li key={a.title} className="rounded-xl bg-white/10 border border-white/15 p-4">
+              {t.automations.map((a, i) => (
+                <Reveal key={a.title} delay={i * 130} className="sl-lift rounded-xl bg-white/10 border border-white/15 p-4">
                   <p className="font-bold">{a.title}</p>
                   <p className="text-sm text-white/80">{a.text}</p>
-                </li>
+                </Reveal>
               ))}
             </ul>
           </div>
@@ -301,7 +306,11 @@ export default async function Landing() {
                     +
                   </span>
                 </summary>
-                <p className="mt-2 text-[#4b5560]">{fmt(item.a, vars)}</p>
+                <div className="sl-faq-body">
+                  <div>
+                    <p className="mt-2 text-[#4b5560]">{fmt(item.a, vars)}</p>
+                  </div>
+                </div>
               </details>
             ))}
           </div>

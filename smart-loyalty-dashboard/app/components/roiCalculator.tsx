@@ -1,7 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/client";
 import { PLAN_PRICE_USD } from "../lib/plan";
+
+// El número del resultado viaja hasta su valor nuevo en lugar de saltar.
+function useCountUp(value: number) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setShown(value);
+      from.current = value;
+      return;
+    }
+    const inicio = performance.now();
+    const desde = from.current;
+    let frame = requestAnimationFrame(function paso(ahora) {
+      const t = Math.min((ahora - inicio) / 450, 1);
+      const suave = 1 - Math.pow(1 - t, 3);
+      setShown(Math.round(desde + (value - desde) * suave));
+      if (t < 1) frame = requestAnimationFrame(paso);
+      else from.current = value;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return shown;
+}
 
 // Calculadora de la página principal: cuánto deja que una parte de los clientes vuelva una vez más.
 // Son los números que escribe el dueño; no promete resultados.
@@ -15,6 +41,7 @@ export default function RoiCalculator() {
   const [returning, setReturning] = useState(10);
 
   const extra = Math.round(customers * WEEKS_PER_MONTH * (returning / 100) * ticket);
+  const animado = useCountUp(extra);
   const number = (value: number) => value.toLocaleString(dateLocale);
 
   const field = "w-full accent-[#0e7c66]";
@@ -71,7 +98,7 @@ export default function RoiCalculator() {
 
       <div className="rounded-3xl bg-[#111418] text-white p-7 flex flex-col justify-center gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f2b134]">{t.roiResult}</p>
-        <p className="text-5xl sm:text-6xl font-extrabold tabular-nums leading-none">{number(extra)}</p>
+        <p className="text-5xl sm:text-6xl font-extrabold tabular-nums leading-none">{number(animado)}</p>
         <p className="text-sm text-white/70">{t.roiNote}</p>
         <p className="text-sm text-white/70">{f(t.roiCost, { price: PLAN_PRICE_USD })}</p>
       </div>
