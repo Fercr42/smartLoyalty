@@ -11,6 +11,7 @@ import {
   WALLET_TEMPLATE_VERSION,
   type WalletCompany,
 } from "../../../lib/google-wallet";
+import { refreshApplePasses } from "../../../lib/apple-wallet-updates";
 import { companyLocale, fmt } from "../../../i18n/config";
 import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
@@ -53,6 +54,8 @@ async function refreshWalletCard(
   stamps: number,
   origin: string
 ) {
+  // Apple Wallet: avisar al iPhone para que descargue el pase con los puntos nuevos.
+  await refreshApplePasses(company.id, [memberId]).catch((e) => console.error("Apple Wallet", e));
   if (!walletIssuerId()) return;
   try {
     if (company.loyalty?.walletTemplate !== WALLET_TEMPLATE_VERSION && (await applyClassSettings(company))) {

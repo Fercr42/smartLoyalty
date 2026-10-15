@@ -25,4 +25,7 @@ export const pass = {
   reviewDirectBody: "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
   rateVisit: "⭐ Califica tu visita",
   reviewWalletHint: "Abre tu tarjeta y toca “⭐ Califica tu visita”.",
+  latestPromo: "Última promoción",
+  balanceChanged: "Ahora tienes %@",
+  cardCode: "Código de tarjeta",
 };

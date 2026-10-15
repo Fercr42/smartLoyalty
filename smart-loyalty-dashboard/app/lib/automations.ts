@@ -9,6 +9,7 @@ import {
 import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
 import { createMemberCoupon } from "./coupons";
+import { applePassSaved } from "./apple-wallet-updates";
 import { walletCardSaved } from "./google-wallet";
 import { planState, type Plan } from "./plan";
 import { cleanRewards } from "./rewards";
@@ -29,10 +30,11 @@ type CompanyData = {
   loyalty?: { rewards?: unknown };
 };
 
-// ¿Hay cómo avisarle? Un celular suscrito ligado a su tarjeta, o su tarjeta guardada de verdad en Google Wallet.
+// ¿Hay cómo avisarle? Un celular suscrito ligado a su tarjeta, o su tarjeta guardada de verdad en Google o Apple Wallet.
 export async function canReach(companyRef: DocumentReference, memberId: string) {
   const device = await companyRef.collection("subscribers").where("memberId", "==", memberId).limit(1).get();
   if (!device.empty) return true;
+  if (await applePassSaved(companyRef.id, memberId).catch(() => false)) return true;
   return walletCardSaved(companyRef.id, memberId).catch(() => false);
 }
 
