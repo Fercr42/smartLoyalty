@@ -207,8 +207,6 @@ details[open] .sl-faq-body { grid-template-rows: 1fr; }
 .pn-indicator {
   position: absolute;
   border-radius: 0.85rem;
-  background: #19c58a;
-  box-shadow: 0 10px 28px -12px rgba(25, 197, 138, 0.85);
   transition: top 0.45s cubic-bezier(0.22, 1, 0.36, 1), left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -222,10 +220,11 @@ details[open] .sl-faq-body { grid-template-rows: 1fr; }
 
 /* Contenido de la sección: sube al elegirla; las tarjetas llegan una tras otra. */
 @keyframes pn-in {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: none; }
+  0% { opacity: 0; transform: translateY(26px) scale(0.96) rotate(-0.6deg); }
+  65% { opacity: 1; transform: translateY(-4px) scale(1.006) rotate(0.2deg); }
+  100% { opacity: 1; transform: none; }
 }
-.pn-section > * { animation: pn-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.pn-section > * { animation: pn-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .pn-section > *:nth-child(2) { animation-delay: 0.06s; }
 .pn-section > *:nth-child(3) { animation-delay: 0.12s; }
 .pn-section > *:nth-child(4) { animation-delay: 0.18s; }
@@ -246,7 +245,11 @@ details[open] .sl-faq-body { grid-template-rows: 1fr; }
   border: 1px solid #dfe7e3;
   border-radius: 1.25rem;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -34px rgba(7, 32, 27, 0.55);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, translate 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pn-card:hover {
+  translate: 0 -3px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 26px 50px -34px rgba(7, 32, 27, 0.6);
 }
 .pn-card:focus-within {
   border-color: #9fd9c4;
@@ -267,3 +270,253 @@ details[open] .sl-faq-body { grid-template-rows: 1fr; }
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Panel del dueño: animaciones divertidas.
+--------------------------------------------------------------------------- */
+
+/* Pastilla del indicador: al llegar a la sección se aplasta como gelatina y suelta un anillo. */
+.pn-blob {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #19c58a;
+  box-shadow: 0 10px 28px -12px rgba(25, 197, 138, 0.85);
+  animation: pn-jelly 0.65s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.pn-blob::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: pn-ring 0.8s 0.38s ease-out both;
+}
+@keyframes pn-jelly {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.08, 0.86); }
+  55% { transform: scale(0.96, 1.08); }
+  75% { transform: scale(1.02, 0.97); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes pn-ring {
+  from { box-shadow: 0 0 0 0 rgba(25, 197, 138, 0.75); }
+  to { box-shadow: 0 0 0 14px rgba(25, 197, 138, 0); }
+}
+
+/* Cada ícono tiene su propio movimiento: al pasar el mouse y al quedar elegido. */
+.pn-ico { display: inline-grid; transform-origin: 50% 60%; }
+.pn-ico-inicio, .pn-ico-negocio { --pn-a: pn-hop; }
+.pn-ico-clientes { --pn-a: pn-wave-ico; }
+.pn-ico-mensajes { --pn-a: pn-shout; }
+.pn-ico-resultados { --pn-a: pn-grow; transform-origin: 50% 100%; }
+.pn-ico-automatizaciones { --pn-a: pn-zap; }
+.pn-ico-tarjeta { --pn-a: pn-flip; }
+.pn-ico-recompensas { --pn-a: pn-rattle; }
+.pn-ico-plan { --pn-a: pn-swing; transform-origin: 50% 0; }
+.pn-tab:hover .pn-ico,
+.pn-tab[aria-current] .pn-ico {
+  animation-name: var(--pn-a);
+  animation-duration: 0.75s;
+  animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.pn-tab:hover .pn-label { translate: 3px 0; }
+.pn-label { transition: translate 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pn-tab:active { scale: 0.95; }
+
+@keyframes pn-hop {
+  0%, 100% { transform: none; }
+  30% { transform: translateY(-6px) scale(1.1, 0.92); }
+  55% { transform: translateY(0) scale(0.9, 1.1); }
+  75% { transform: translateY(-2px); }
+}
+@keyframes pn-wave-ico {
+  0%, 100% { transform: none; }
+  20% { transform: rotate(-16deg); }
+  45% { transform: rotate(14deg); }
+  70% { transform: rotate(-8deg); }
+}
+@keyframes pn-shout {
+  0%, 100% { transform: none; }
+  20% { transform: scale(1.25) rotate(-12deg); }
+  40% { transform: scale(1.15) rotate(10deg); }
+  60% { transform: scale(1.2) rotate(-8deg); }
+  80% { transform: scale(1.05) rotate(4deg); }
+}
+@keyframes pn-grow {
+  0% { transform: scaleY(0.2); }
+  60% { transform: scaleY(1.25); }
+  100% { transform: none; }
+}
+@keyframes pn-zap {
+  0%, 100% { transform: none; opacity: 1; filter: none; }
+  15% { opacity: 0.3; transform: skewX(-14deg) scale(1.2); }
+  30% { opacity: 1; filter: drop-shadow(0 0 6px #f2b134); }
+  45% { opacity: 0.4; transform: skewX(10deg); }
+  60% { opacity: 1; filter: drop-shadow(0 0 8px #f2b134); }
+}
+@keyframes pn-flip {
+  from { transform: perspective(200px) rotateY(0); }
+  to { transform: perspective(200px) rotateY(360deg); }
+}
+@keyframes pn-rattle {
+  0%, 100% { transform: none; }
+  15% { transform: translateY(-4px) rotate(-14deg); }
+  30% { transform: translateY(-4px) rotate(12deg); }
+  45% { transform: translateY(-3px) rotate(-10deg); }
+  60% { transform: translateY(-2px) rotate(6deg); }
+  80% { transform: scale(1.15); }
+}
+@keyframes pn-swing {
+  0%, 100% { transform: none; }
+  25% { transform: rotate(18deg); }
+  50% { transform: rotate(-12deg); }
+  75% { transform: rotate(6deg); }
+}
+
+/* Título: las letras caen y rebotan; al pasarles el mouse saltan. */
+.pn-letter {
+  display: inline-block;
+  animation: pn-drop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  transition: translate 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+.pn-letter:hover { translate: 0 -0.14em; color: #0e7c66; }
+@keyframes pn-drop {
+  0% { opacity: 0; transform: translateY(-0.7em) rotate(-10deg) scale(0.5); }
+  60% { opacity: 1; transform: translateY(0.08em) rotate(3deg) scale(1.06); }
+  100% { opacity: 1; transform: none; }
+}
+.pn-desc { animation: pn-fade 0.6s 0.35s ease both; }
+@keyframes pn-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* La rayita bajo el título crece y luego se estira un par de veces. */
+.pn-underline {
+  animation: pn-underline 0.7s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both, pn-stretch 1.4s 1s ease-in-out 2;
+}
+@keyframes pn-stretch {
+  0%, 100% { width: 3.5rem; }
+  50% { width: 6rem; background: #f2b134; }
+}
+
+/* Manito que saluda en Inicio. */
+.pn-hand {
+  transform-origin: 70% 75%;
+  animation: pn-hand 1.8s 0.6s ease-in-out 2 both;
+}
+@keyframes pn-hand {
+  0%, 60%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(16deg); }
+  20%, 40% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
+/* Logo: flota suave, se tambalea al pasar el mouse y gira con la sorpresa. */
+.pn-mark { animation: pn-bob 4s ease-in-out infinite; transition: scale 0.2s ease; }
+.pn-mark:hover { animation: pn-wobble 0.6s ease-in-out; }
+.pn-mark:active { scale: 0.88; }
+@keyframes pn-bob {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-3px) rotate(-3deg); }
+}
+@keyframes pn-wobble {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg) scale(1.08); }
+  50% { transform: rotate(10deg) scale(1.08); }
+  75% { transform: rotate(-5deg); }
+}
+.pn-spin { animation: pn-spin 0.9s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pn-spin { from { transform: rotate(0) scale(0.6); } to { transform: rotate(720deg) scale(1); } }
+
+/* Cerrar sesión: dice adiós moviéndose de lado. */
+.pn-bye:hover { animation: pn-bye 0.5s ease-in-out; }
+@keyframes pn-bye {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(-3px) rotate(-3deg); }
+  75% { transform: translateX(3px) rotate(3deg); }
+}
+
+/* Luciérnagas que suben por la barra verde. */
+.pn-flies { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.pn-fly {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 9999px;
+  opacity: 0;
+  box-shadow: 0 0 10px currentColor;
+  animation: pn-fly 12s linear infinite;
+}
+@keyframes pn-fly {
+  0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  12% { opacity: 0.85; }
+  50% { transform: translate(var(--dx), -50vh) scale(1); opacity: 0.6; }
+  85% { opacity: 0.5; }
+  100% { transform: translate(0, -100vh) scale(0.7) rotate(180deg); opacity: 0; }
+}
+
+/* Chispas y confeti (los crea app/lib/fun.ts). */
+.pn-fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.pn-spark {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  border-radius: 9999px;
+  animation: pn-spark 0.75s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.pn-star {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+}
+@keyframes pn-spark {
+  0% { transform: translate(0, 0) scale(1.2) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(var(--rot)); opacity: 0.4; }
+}
+.pn-confetti {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  animation: pn-fall var(--t) cubic-bezier(0.3, 0.1, 0.6, 1) var(--d) forwards;
+}
+.pn-pop {
+  position: absolute;
+  border-radius: 2px;
+  animation: pn-pop var(--t) cubic-bezier(0.25, 0.6, 0.5, 1) forwards;
+}
+@keyframes pn-pop {
+  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  30% { transform: translate(calc(var(--dx) * 0.7), var(--dy)) rotate(calc(var(--rot) * 0.4)) scale(1); }
+  85% { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 420px)) rotate(var(--rot)); opacity: 0; }
+}
+@keyframes pn-fall {
+  to { transform: translate(var(--dx), 110vh) rotate(var(--rot)); }
+}
+
+/* Botón "Activar plan": un brillo pasa cada pocos segundos. */
+.pn-shine { position: relative; overflow: hidden; isolation: isolate; }
+.pn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+  transform: translateX(-130%);
+  animation: pn-shine 3.4s 1s ease-in-out infinite;
+}
+@keyframes pn-shine {
+  0%, 60% { transform: translateX(-130%); }
+  100% { transform: translateX(130%); }
+}
+
+/* Botones dentro de las secciones se hunden un poquito al tocarlos. */
+.pn-section button:not(:disabled):active { scale: 0.96; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-blob, .pn-blob::after, .pn-tab:hover .pn-ico, .pn-tab[aria-current] .pn-ico,
+  .pn-letter, .pn-desc, .pn-hand, .pn-mark, .pn-mark:hover, .pn-spin, .pn-bye:hover,
+  .pn-fly, .pn-shine::after, .pn-spark, .pn-confetti, .pn-pop, .pn-underline {
+    animation: none;
+  }
+  .pn-fly, .pn-spark, .pn-confetti, .pn-pop { display: none; }
+  .pn-shine::after { display: none; }
+  .pn-card:hover, .pn-letter:hover, .pn-tab:hover .pn-label { translate: none; }
+  .pn-tab:active, .pn-mark:active, .pn-section button:not(:disabled):active { scale: none; }
+}

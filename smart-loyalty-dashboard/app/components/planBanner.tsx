@@ -41,7 +41,7 @@ export default function PlanBanner({ plan }: { plan: PlanState }) {
       {!failed && (
         <a
           href="#plan"
-          className={`sl-press text-sm font-semibold px-4 py-2 rounded-xl ${expired ? "bg-[#d9452b] text-white" : "bg-[#19c58a] text-[#07201b]"}`}
+          className={`sl-press pn-shine text-sm font-semibold px-4 py-2 rounded-xl ${expired ? "bg-[#d9452b] text-white" : "bg-[#19c58a] text-[#07201b]"}`}
         >
           {t.activate}
         </a>
