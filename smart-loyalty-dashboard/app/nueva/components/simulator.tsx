@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { confettiPop } from "../../lib/fun";
-import { formatColones } from "../../lib/format-money";
 import { QRCodeSVG } from "qrcode.react";
 import CafeLunaLogo from "./cafeLunaLogo";
+import { useNvCopy } from "../lib/use-copy";
 
 // Simulador: el visitante elige cómo premia su negocio, "escanea" compras y ve lo que vive su cliente:
 // la tarjeta que se llena y la notificación que llega a la pantalla de bloqueo. Nada se guarda.
@@ -12,18 +12,17 @@ import CafeLunaLogo from "./cafeLunaLogo";
 type Mode = "sellos" | "puntos" | "cashback";
 type Notif = { title: string; body: string; key: number };
 
-const MODES: { id: Mode; label: string; hint: string }[] = [
-  { id: "sellos", label: "Sellos", hint: "1 sello por visita. Con 10, café gratis." },
-  { id: "puntos", label: "Puntos", hint: "2 puntos por cada ₡100. Con 400, café gratis." },
-  { id: "cashback", label: "Cashback", hint: "5% de cada compra vuelve como saldo." },
-];
-const AMOUNTS = [4000, 8000, 12000];
+const MODE_IDS: Mode[] = ["sellos", "puntos", "cashback"];
 const GOAL = { sellos: 10, puntos: 400 };
 
 export default function Simulator() {
-  const [mode, setMode] = useState<Mode>("puntos");
-  const [amount, setAmount] = useState(12000);
-  const [value, setValue] = useState(0); // sellos, puntos o colones de saldo
+  const c = useNvCopy();
+  const t = c.sim;
+  // Montos en la moneda del idioma: colones en español, dólares en los otros.
+  const money = (units: number) => c.money(units * t.minor);
+  const [mode, setMode] = useState<Mode>("sellos");
+  const [amount, setAmount] = useState(t.amounts[t.amounts.length - 1]);
+  const [value, setValue] = useState(0); // sellos, puntos o saldo (en colones o centavos)
   const [shown, setShown] = useState(0); // valor que se ve mientras cuenta
   const [notif, setNotif] = useState<Notif | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -65,19 +64,19 @@ export default function Simulator() {
       let line = "";
       if (mode === "sellos") {
         after = Math.min(GOAL.sellos, before + 1);
-        line = `+1 sello`;
-        if (after === GOAL.sellos && before < GOAL.sellos) push("¡Tu café gratis está listo! ☕", "Muéstralo en caja en tu próxima visita.");
-        else if (after === GOAL.sellos - 2) push("Ya casi lo logras", "Te faltan 2 sellos para tu café gratis.");
+        line = t.lineStamp;
+        if (after === GOAL.sellos && before < GOAL.sellos) push(t.readyTitle, t.readyStamps);
+        else if (after === GOAL.sellos - 2) push(t.almostTitle, t.almostStamps);
       } else if (mode === "puntos") {
-        const earned = Math.round(amount * 0.02);
+        const earned = Math.round(amount * t.pointsPerUnit);
         after = before + earned;
-        line = `${formatColones(amount)} · +${earned} puntos`;
-        if (after >= GOAL.puntos && before < GOAL.puntos) push("¡Tu café gratis está listo! ☕", "Tienes 400 puntos. Muéstralo en caja.");
-        else if (after >= GOAL.puntos * 0.7 && before < GOAL.puntos * 0.7) push("Ya casi lo logras", `Te faltan ${GOAL.puntos - after} puntos para tu café gratis.`);
+        line = t.linePoints(money(amount), earned);
+        if (after >= GOAL.puntos && before < GOAL.puntos) push(t.readyTitle, t.readyPoints);
+        else if (after >= GOAL.puntos * 0.7 && before < GOAL.puntos * 0.7) push(t.almostTitle, t.almostPoints(GOAL.puntos - after));
       } else {
-        const back = Math.round(amount * 0.05);
+        const back = Math.round(amount * t.minor * 0.05); // 5% en la unidad menor (colón o centavo)
         after = before + back;
-        line = `${formatColones(amount)} · +${formatColones(back)} de saldo`;
+        line = t.lineCash(money(amount), c.money(back));
       }
       setValue(after);
       setLog((l) => [line, ...l].slice(0, 4));
@@ -90,7 +89,7 @@ export default function Simulator() {
   const redeem = () => {
     if (mode === "sellos") setValue(0);
     if (mode === "puntos") setValue((v) => v - GOAL.puntos);
-    setLog((l) => ["Premio canjeado en caja", ...l].slice(0, 4));
+    setLog((l) => [t.redeemed, ...l].slice(0, 4));
     setNotif(null);
   };
 
@@ -99,33 +98,33 @@ export default function Simulator() {
   const ready = mode !== "cashback" && value >= goal;
   const status =
     mode === "cashback"
-      ? `Saldo para tu próxima compra: ${formatColones(shown)}`
+      ? t.statusCash(c.money(shown))
       : ready
-        ? "Premio listo: café gratis"
+        ? t.statusReady
         : mode === "sellos"
-          ? `Te faltan ${goal - shown} sellos para tu café gratis`
-          : `Te faltan ${Math.max(0, goal - shown)} puntos para tu café gratis`;
+          ? t.statusStamps(goal - shown)
+          : t.statusPoints(Math.max(0, goal - shown));
 
   return (
     <div className="nv-sim-grid">
       <div className="nv-sim-controls">
-        <p className="nv-sim-step">Elige cómo premias</p>
-        <div className="nv-seg" role="group" aria-label="Tipo de programa">
-          {MODES.map((m) => (
-            <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => choose(m.id)} className="nv-seg-btn">
-              {m.label}
+        <p className="nv-sim-step">{t.choose}</p>
+        <div className="nv-seg" role="group" aria-label={t.programLabel}>
+          {MODE_IDS.map((m) => (
+            <button key={m} type="button" aria-pressed={mode === m} onClick={() => choose(m)} className="nv-seg-btn">
+              {t.modes[m]}
             </button>
           ))}
         </div>
-        <p className="nv-sim-hint">{MODES.find((m) => m.id === mode)!.hint}</p>
+        <p className="nv-sim-hint">{t.hints[mode]}</p>
 
         {mode !== "sellos" && (
           <>
-            <p className="nv-sim-step">Monto de la compra</p>
-            <div className="nv-chips" role="group" aria-label="Monto de la compra">
-              {AMOUNTS.map((a) => (
+            <p className="nv-sim-step">{t.amount}</p>
+            <div className="nv-chips" role="group" aria-label={t.amount}>
+              {t.amounts.map((a) => (
                 <button key={a} type="button" aria-pressed={amount === a} onClick={() => setAmount(a)} className="nv-chip">
-                  {formatColones(a)}
+                  {money(a)}
                 </button>
               ))}
             </div>
@@ -133,26 +132,26 @@ export default function Simulator() {
         )}
 
         <div className="nv-sim-actions">
-          <button type="button" onClick={scan} className="nv-btn nv-btn-primary" data-cursor="Escanear" disabled={scanning}>
-            {scanning ? "Escaneando…" : "Escanear compra"}
+          <button type="button" onClick={scan} className="nv-btn nv-btn-primary" data-cursor={t.cursorScan} disabled={scanning}>
+            {scanning ? t.scanning : t.scan}
           </button>
           {ready && (
             <button type="button" onClick={redeem} className="nv-btn nv-btn-ghost">
-              Canjear premio
+              {t.redeem}
             </button>
           )}
         </div>
 
-        <ul className="nv-sim-log" aria-label="Últimas compras">
-          {log.length === 0 && <li className="nv-sim-log-empty">Todavía no hay compras. Escanea la primera.</li>}
+        <ul className="nv-sim-log" aria-label={t.logLabel}>
+          {log.length === 0 && <li className="nv-sim-log-empty">{t.logEmpty}</li>}
           {log.map((l, i) => (
             <li key={`${l}-${i}`}>{l}</li>
           ))}
         </ul>
-        <p className="nv-sim-note">Es una demostración: nada de esto se guarda.</p>
+        <p className="nv-sim-note">{t.note}</p>
       </div>
 
-      <div className="nv-phone" aria-label="Celular del cliente">
+      <div className="nv-phone" aria-label={t.phone}>
         <div className="nv-phone-screen">
           <div className="nv-phone-top" aria-hidden>
             <span>9:41</span>
@@ -160,7 +159,7 @@ export default function Simulator() {
             <span>100%</span>
           </div>
           <p className="nv-phone-date" aria-hidden>
-            sábado
+            {t.day}
           </p>
 
           <div className="nv-notif-slot" aria-live="polite">
@@ -171,7 +170,7 @@ export default function Simulator() {
                 </span>
                 <div>
                   <p className="nv-notif-head">
-                    Café Luna <span>ahora</span>
+                    Café Luna <span>{t.now}</span>
                   </p>
                   <p className="nv-notif-title">{notif.title}</p>
                   <p className="nv-notif-body">{notif.body}</p>
@@ -186,8 +185,8 @@ export default function Simulator() {
               <CafeLunaLogo size={30} />
               <p className="nv-wallet-name">Café Luna</p>
               <p className="nv-wallet-field nv-wallet-field-right" aria-live="polite">
-                <span>{mode === "sellos" ? "SELLOS" : mode === "puntos" ? "PUNTOS" : "SALDO"}</span>
-                {mode === "cashback" ? formatColones(shown) : shown.toLocaleString("es-CR")}
+                <span>{t.head[mode]}</span>
+                {mode === "cashback" ? c.money(shown) : shown.toLocaleString(c.numberLocale)}
               </p>
             </div>
 
@@ -208,21 +207,21 @@ export default function Simulator() {
 
             <div className="nv-wallet-fields">
               <p className="nv-wallet-field">
-                <span>MIEMBRO</span>Ana Solís
+                <span>{t.member}</span>Ana Solís
               </p>
               <p className="nv-wallet-field">
-                <span>PREMIO</span>
-                {mode === "cashback" ? "5% de vuelta" : "Café gratis"}
+                <span>{t.reward}</span>
+                {mode === "cashback" ? t.rewardCash : t.rewardFree}
               </p>
             </div>
 
             <div className="nv-wallet-qr" aria-hidden>
               <QRCodeSVG value="https://smartloyalty.app" size={74} level="M" bgColor="#ffffff" fgColor="#1b120d" />
             </div>
-            <p className="nv-wallet-caption">Muestra este código en caja</p>
+            <p className="nv-wallet-caption">{t.showCode}</p>
           </div>
           <p className="nv-phone-foot" aria-hidden>
-            Se actualiza sola en Google Wallet
+            {t.foot}
           </p>
         </div>
       </div>
