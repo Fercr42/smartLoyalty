@@ -68,3 +68,20 @@ describe("puntos por monto de compra", () => {
     expect(cleanLoyalty({ rule: { points: 0, per: -3 }, currency: " ₡ " })).toEqual({ mode: "points", rule: DEFAULT_RULE, percent: 5, currency: "₡" });
   });
 });
+
+import { reviewDelayMinutes } from "../../app/lib/rewards";
+
+describe("retraso de la encuesta de reseña", () => {
+  it("son 2 minutos por defecto y entiende el formato viejo en horas", () => {
+    expect(reviewDelayMinutes(undefined)).toBe(2);
+    expect(reviewDelayMinutes({})).toBe(2);
+    expect(reviewDelayMinutes({ delayMinutes: 2 })).toBe(2);
+    expect(reviewDelayMinutes({ delayHours: 4 })).toBe(240);
+    expect(reviewDelayMinutes({ delayMinutes: 60, delayHours: 4 })).toBe(60);
+  });
+
+  it("se mantiene entre 2 minutos y 48 horas", () => {
+    expect(reviewDelayMinutes({ delayMinutes: 0.5 })).toBe(2);
+    expect(reviewDelayMinutes({ delayMinutes: 99999 })).toBe(2880);
+  });
+});

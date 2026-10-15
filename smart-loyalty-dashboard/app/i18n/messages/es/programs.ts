@@ -80,6 +80,7 @@ export const rewards = {
   reviewUrlPlaceholder: "Enlace de reseñas · https://g.page/r/.../review",
   reviewUrlHint: "En tu Perfil de Negocio de Google: “Pedir reseñas” → copia el enlace.",
   send: "Enviar",
+  delay2min: "2 minutos después de la visita",
   delay1: "1 hora después de la visita",
   delay2: "2 horas después de la visita",
   delay4: "4 horas después de la visita",

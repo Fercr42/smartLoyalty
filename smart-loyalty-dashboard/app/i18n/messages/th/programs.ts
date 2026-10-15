@@ -79,6 +79,7 @@ export const rewards: Messages["rewards"] = {
   reviewUrlPlaceholder: "ลิงก์รีวิว · https://g.page/r/.../review",
   reviewUrlHint: "ใน Google Business Profile: “ขอรีวิว” → คัดลอกลิงก์",
   send: "ส่ง",
+  delay2min: "2 นาทีหลังใช้บริการ",
   delay1: "1 ชั่วโมงหลังใช้บริการ",
   delay2: "2 ชั่วโมงหลังใช้บริการ",
   delay4: "4 ชั่วโมงหลังใช้บริการ",

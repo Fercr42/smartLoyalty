@@ -1,7 +1,17 @@
 import { connect } from "http2";
 import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
 import { adminDb } from "../firebase/admin";
-import { appleConfig, parseSerial, passJson, packPass, passSerial, type AppleCompany, type AppleMember } from "./apple-wallet";
+import {
+  appleConfig,
+  newPassAuthToken,
+  parseSerial,
+  passJson,
+  packPass,
+  passSerial,
+  validPassAuth,
+  type AppleCompany,
+  type AppleMember,
+} from "./apple-wallet";
 import { renderPassImages } from "./apple-pass-images";
 
 // Registros de iPhones que guardaron un pase y avisos por APNs para que pidan la versión nueva.
@@ -79,20 +89,41 @@ export async function applePassSaved(companyId: string, memberId: string) {
   return !snap.empty;
 }
 
+// ¿La llamada del iPhone trae el token de esta tarjeta? (servicio web de Apple)
+export async function checkPassAuth(header: string | null, serial: string) {
+  const parsed = parseSerial(serial);
+  if (!parsed) return false;
+  const member = await adminDb()
+    .collection("companies")
+    .doc(parsed.companyId)
+    .collection("walletMembers")
+    .doc(parsed.memberId)
+    .get();
+  return validPassAuth(header, member.data()?.appleAuthToken);
+}
+
 // Arma el .pkpass del cliente con sus datos actuales. Las tarjetas unidas a otra muestran la principal.
+// null si el negocio o la tarjeta no existen (el pase no crea clientes nuevos).
 export async function buildMemberPass(companyId: string, memberId: string, origin: string) {
   const config = appleConfig();
   if (!config) throw new Error("Apple Wallet no está configurado");
   const companyRef = adminDb().collection("companies").doc(companyId);
-  const [company, member] = await Promise.all([companyRef.get(), companyRef.collection("walletMembers").doc(memberId).get()]);
-  if (!company.exists) return null;
+  const memberRef = companyRef.collection("walletMembers").doc(memberId);
+  const [company, member] = await Promise.all([companyRef.get(), memberRef.get()]);
+  if (!company.exists || !member.exists) return null;
+  // Token del pase: se crea una sola vez por tarjeta y se reusa en cada versión del pase.
+  let authToken: string = member.data()?.appleAuthToken ?? "";
+  if (!authToken) {
+    authToken = newPassAuthToken();
+    await memberRef.update({ appleAuthToken: authToken });
+  }
   let data = (member.data() ?? {}) as AppleMember & { mergedInto?: string };
   if (data.mergedInto) {
     const main = await companyRef.collection("walletMembers").doc(data.mergedInto).get();
     if (main.exists) data = { ...(main.data() as AppleMember), applePromo: data.applePromo ?? main.data()?.applePromo };
   }
   const companyData = { ...company.data(), id: companyId } as AppleCompany;
-  const json = passJson({ company: companyData, memberId, member: data, origin, config });
+  const json = passJson({ company: companyData, memberId, member: data, origin, config, authToken });
   const images = await renderPassImages(companyData, origin, data.stamps ?? 0);
   return packPass(json, images, config);
 }

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { PKPass } from "passkit-generator";
 import { cleanDesign } from "./card-design";
 import { cardImageVersion } from "./card-version";
@@ -22,7 +22,6 @@ export type AppleConfig = {
   signerKey: string;
   passphrase?: string;
   wwdr: string;
-  authSecret: string;
 };
 
 // Acepta el PEM tal cual, con "\n" escritos como texto (así quedan en Vercel) o en base64.
@@ -42,10 +41,8 @@ export function appleConfig(env: Record<string, string | undefined> = process.en
     signerKey: readPem(env.APPLE_WALLET_KEY),
     passphrase: env.APPLE_WALLET_KEY_PASSPHRASE || undefined,
     wwdr: readPem(env.APPLE_WALLET_WWDR),
-    authSecret: env.APPLE_WALLET_AUTH_SECRET?.trim() ?? "",
   };
-  const complete =
-    config.passTypeId && config.teamId && config.signerCert && config.signerKey && config.wwdr && config.authSecret.length >= 16;
+  const complete = config.passTypeId && config.teamId && config.signerCert && config.signerKey && config.wwdr;
   return complete ? config : null;
 }
 
@@ -62,14 +59,15 @@ export function parseSerial(serial: string) {
     : null;
 }
 
-// Token que el iPhone manda en cada llamada ("ApplePass {token}"). Se deriva del secreto: no hay que guardarlo.
-export const passAuthToken = (serial: string, secret: string) =>
-  createHmac("sha256", secret).update(`pass:${serial}`).digest("base64url");
+// Token que el iPhone manda en cada llamada ("ApplePass {token}"). Es aleatorio y propio de cada tarjeta
+// (se guarda en walletMembers.appleAuthToken): no se puede adivinar a partir del número de serie.
+export const newPassAuthToken = () => randomBytes(24).toString("base64url");
 
-export function validPassAuth(header: string | null, serial: string, secret: string) {
+export function validPassAuth(header: string | null, expected: string | undefined) {
+  if (!expected) return false;
   const given = Buffer.from((header ?? "").replace(/^ApplePass\s+/i, ""));
-  const expected = Buffer.from(passAuthToken(serial, secret));
-  return given.length === expected.length && timingSafeEqual(given, expected);
+  const wanted = Buffer.from(expected);
+  return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
 
 export type AppleMember = { stamps?: number; name?: string; applePromo?: Promo };
@@ -105,12 +103,14 @@ export function passJson({
   member,
   origin,
   config,
+  authToken,
 }: {
   company: AppleCompany;
   memberId: string;
   member: AppleMember;
   origin: string;
-  config: Pick<AppleConfig, "passTypeId" | "teamId" | "authSecret">;
+  config: Pick<AppleConfig, "passTypeId" | "teamId">;
+  authToken: string;
 }) {
   const locale = companyLocale(company);
   const m = messages[locale];
@@ -171,7 +171,7 @@ export function passJson({
     passTypeIdentifier: config.passTypeId,
     teamIdentifier: config.teamId,
     serialNumber: serial,
-    authenticationToken: passAuthToken(serial, config.authSecret),
+    authenticationToken: authToken,
     // Apple solo acepta HTTPS: en desarrollo (localhost) el pase no se actualiza solo.
     ...(https ? { webServiceURL: `${origin}/api/wallet/apple` } : {}),
     organizationName: name,

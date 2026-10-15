@@ -1,4 +1,5 @@
 import { adminDb } from "../../firebase/admin";
+import { dataImageResponse } from "../../lib/data-image";
 
 export const runtime = "nodejs";
 
@@ -9,13 +10,5 @@ export async function GET(
 ) {
   const { companyId } = await params;
   const snap = await adminDb().collection("companies").doc(companyId).collection("assets").doc("walletHero").get();
-  const match = /^data:(image\/[\w+.-]+);base64,(.+)$/.exec(snap.data()?.data ?? "");
-  if (!match) return new Response("Sin portada", { status: 404 });
-
-  return new Response(Buffer.from(match[2], "base64"), {
-    headers: {
-      "Content-Type": match[1],
-      "Cache-Control": "public, max-age=300, s-maxage=86400",
-    },
-  });
+  return dataImageResponse(snap.data()?.data, "Sin portada");
 }

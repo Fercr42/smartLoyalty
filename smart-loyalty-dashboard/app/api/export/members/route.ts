@@ -1,16 +1,13 @@
 import { NextRequest } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "../../../firebase/admin";
+import { cell } from "../../../lib/csv";
 
 export const runtime = "nodejs";
 
 // Lista de clientes en CSV para abrir en Excel.
 // Separador ";" (Excel en español lo usa) y BOM para que respete los acentos.
 const SEP = ";";
-const cell = (value: unknown) => {
-  const text = String(value ?? "");
-  return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
 const day = (t?: Timestamp) => (t?.toDate ? t.toDate().toISOString().slice(0, 10) : "");
 
 export async function GET(req: NextRequest) {

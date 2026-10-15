@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { appleConfig, parseSerial, validPassAuth } from "../../../../../../../lib/apple-wallet";
-import { buildMemberPass } from "../../../../../../../lib/apple-wallet-updates";
+import { appleConfig, parseSerial } from "../../../../../../../lib/apple-wallet";
+import { buildMemberPass, checkPassAuth } from "../../../../../../../lib/apple-wallet-updates";
 import { publicOrigin } from "../../../../../../../lib/origin";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pass
   if (!config) return new Response(null, { status: 503 });
   const parsed = parseSerial(serial);
   if (passTypeId !== config.passTypeId || !parsed) return new Response(null, { status: 404 });
-  if (!validPassAuth(req.headers.get("authorization"), serial, config.authSecret)) {
+  if (!(await checkPassAuth(req.headers.get("authorization"), serial))) {
     return new Response(null, { status: 401 });
   }
   try {
