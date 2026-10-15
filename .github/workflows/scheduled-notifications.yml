@@ -15,10 +15,6 @@ jobs:
       - name: Enviar notificaciones pendientes
         # CRON_SECRET: el mismo valor en Vercel y en Settings > Secrets > Actions de GitHub.
         run: |
-          code=$(curl -sS -o respuesta.json -w "%{http_code}" -X POST --max-time 120 \
+          curl -fsS -X POST --max-time 120 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://smartloyalty.app/api/cron/scheduled)
-          if [ "$code" -ge 400 ]; then
-            echo "::error::El sitio respondió $code: $(head -c 300 respuesta.json)"
-            exit 1
-          fi
+            https://smartloyalty.app/api/cron/scheduled
