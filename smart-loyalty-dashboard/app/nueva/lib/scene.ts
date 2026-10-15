@@ -6,6 +6,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { stage } from "./stage";
+import type { NvCopy } from "../copy";
 
 // Escena del hero: una tarjeta de lealtad de cristal y miles de partículas ("visitas")
 // que cambian de figura según la sección: galaxia, sellos, ondas de aviso, estrella de reseña y esfera.
@@ -21,7 +22,8 @@ const FACE_H = 2.94;
 const STAMP_R = 0.135;
 export const STAMPS = [0.66, 0.3].flatMap((y) => [-0.76, -0.38, 0, 0.38, 0.76].map((x) => ({ x, y })));
 
-type Options = { mobile: boolean; reduced: boolean };
+type CardText = NvCopy["card"];
+type Options = { mobile: boolean; reduced: boolean; card: CardText };
 
 // ---------------------------------------------------------------------------
 // Figuras de las partículas. Cada partícula tiene una posición en cada figura y la escena mezcla
@@ -255,11 +257,11 @@ function drawQr(ctx: CanvasRenderingContext2D, x: number, y: number, size: numbe
 }
 
 // Cara de la tarjeta: un pase de Apple Wallet de "Café Luna" con 10 sellos, datos y código.
-function drawFace(ctx: CanvasRenderingContext2D, lit: number) {
+function drawFace(ctx: CanvasRenderingContext2D, lit: number, t: CardText) {
   const { width: w, height: h } = ctx.canvas;
   const X = (x: number) => (x / FACE_W + 0.5) * w;
   const Y = (y: number) => (0.5 - y / FACE_H) * h;
-  const sans = "'Geist Variable', 'Geist', -apple-system, 'Helvetica Neue', system-ui, sans-serif";
+  const sans = "'Geist Variable', 'Geist', -apple-system, 'Helvetica Neue', 'Noto Sans Thai Variable', system-ui, sans-serif";
   const cream = "#f6ead8";
   const label = "#d9b98f";
   ctx.clearRect(0, 0, w, h);
@@ -282,10 +284,10 @@ function drawFace(ctx: CanvasRenderingContext2D, lit: number) {
   ctx.textAlign = "right";
   ctx.fillStyle = label;
   ctx.font = `600 22px ${sans}`;
-  ctx.fillText("SELLOS", w - 40, 60);
+  ctx.fillText(t.stamps, w - 40, 60);
   ctx.fillStyle = cream;
   ctx.font = `500 58px ${sans}`;
-  ctx.fillText(`${lit} de 10`, w - 40, 108);
+  ctx.fillText(t.of(lit), w - 40, 108);
   ctx.textAlign = "left";
 
   // Franja (strip) con los sellos.
@@ -337,9 +339,9 @@ function drawFace(ctx: CanvasRenderingContext2D, lit: number) {
 
   // Campos secundarios.
   const fields = [
-    { l: "MIEMBRO", v: "Ana Solís", x: 40 },
-    { l: "FALTAN", v: lit >= 10 ? "¡Listo!" : `${10 - lit} sellos`, x: w * 0.42 },
-    { l: "PREMIO", v: "Café gratis", x: w * 0.66 },
+    { l: t.member, v: "Ana Solís", x: 40 },
+    { l: t.left, v: lit >= 10 ? t.done : t.leftValue(10 - lit), x: w * 0.42 },
+    { l: t.reward, v: t.rewardValue, x: w * 0.66 },
   ];
   fields.forEach((f) => {
     ctx.fillStyle = label;
@@ -361,7 +363,7 @@ function drawFace(ctx: CanvasRenderingContext2D, lit: number) {
   ctx.textAlign = "center";
   ctx.fillStyle = label;
   ctx.font = `500 23px ${sans}`;
-  ctx.fillText("Muestra este código en caja", w / 2, qy + qs + 58);
+  ctx.fillText(t.showCode, w / 2, qy + qs + 58);
   ctx.textAlign = "left";
   ctx.restore();
 }
@@ -392,7 +394,7 @@ function roundedCard() {
   return geo;
 }
 
-export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Options) {
+export function createScene(canvas: HTMLCanvasElement, { mobile, reduced, card: cardText }: Options) {
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: "high-performance" });
@@ -476,7 +478,7 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
 
   let shown = -1;
   const redrawFace = () => {
-    drawFace(faceCtx, Math.round(stage.stamps));
+    drawFace(faceCtx, Math.round(stage.stamps), cardText);
     faceTex.needsUpdate = true;
     shown = Math.round(stage.stamps);
   };

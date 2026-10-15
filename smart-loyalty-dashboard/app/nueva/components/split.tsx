@@ -1,6 +1,14 @@
 // Texto partido en letras o palabras para animarlo. Los lectores de pantalla leen el texto entero
 // (una copia oculta) y no las piezas sueltas.
 
+// Letras "visibles" (grafemas): en tailandés una consonante con su vocal y su tono es una sola pieza.
+export function graphemes(text: string): string[] {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].map((s) => s.segment);
+  }
+  return [...text];
+}
+
 export function Chars({ text, className = "" }: { text: string; className?: string }) {
   let i = 0;
   return (
@@ -9,7 +17,7 @@ export function Chars({ text, className = "" }: { text: string; className?: stri
       <span aria-hidden className="nv-chars">
         {text.split(" ").map((word, w) => (
           <span key={w} className="nv-word">
-            {[...word].map((ch, c) => (
+            {graphemes(word).map((ch, c) => (
               <span key={c} className="nv-char-mask">
                 <span className="nv-char" style={{ ["--i" as string]: i++ }}>
                   {ch}

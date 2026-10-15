@@ -2,6 +2,7 @@ import Link from "next/link";
 import "@fontsource-variable/bricolage-grotesque/standard.css";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/noto-sans-thai";
 import "lenis/dist/lenis.css";
 import "./nueva.css";
 import Scene3D from "./components/scene3d";
@@ -12,64 +13,15 @@ import Magnetic from "./components/magnetic";
 import Simulator from "./components/simulator";
 import Pricing from "./components/pricing";
 import StepQr from "./components/stepQr";
-import { Chars, Words } from "./components/split";
+import { Chars, Words, graphemes } from "./components/split";
+import { NV_COPY } from "./copy";
+import { LanguageSwitcher } from "../i18n/client";
+import type { Locale } from "../i18n/config";
 import { TRIAL_DAYS } from "../lib/plan";
 
-// Portada en español: escena 3D, scroll animado, simulador y precios. La usa app/page.tsx.
+// Portada: escena 3D, scroll animado, simulador y precios, en español, inglés y tailandés. La usa app/page.tsx.
 
-const BEATS = [
-  {
-    verb: "Suma.",
-    text: "Cada visita suma un sello. Tu empleado escanea con su PIN y la tarjeta del cliente se actualiza sola. Con 10, el café va por la casa.",
-    data: "Compra escaneada: +1 sello",
-  },
-  {
-    verb: "Avisa.",
-    text: "Tus promociones llegan a la pantalla de bloqueo. A todos, solo a los frecuentes o a los que llevan semanas sin venir.",
-    data: "Viernes 5:00 p. m.: puntos dobles",
-  },
-  {
-    verb: "Recomienda.",
-    text: "Dos minutos después de la compra llega una encuesta corta. A quien quedó contento se le pide la reseña en Google.",
-    data: "Encuesta enviada, reseña pedida",
-  },
-];
-
-const NICHES = [
-  "Restaurantes y cafés",
-  "Barberías",
-  "Salones de belleza",
-  "Spas",
-  "Gimnasios",
-  "Lavacar",
-  "Veterinarias",
-  "Minisúper",
-];
-
-const STEPS = [
-  {
-    title: "Pon tu QR a la vista",
-    text: "Te registras, subes tu logo y descargas tu código. Lo pones en el mostrador, la caja, las mesas o el espejo.",
-    art: "qr",
-  },
-  {
-    title: "Tus clientes se unen en un toque",
-    text: "Escanean, activan las notificaciones y guardan su tarjeta. Sin descargar ninguna app.",
-    art: "tap",
-  },
-  {
-    title: "Tú los haces volver",
-    text: "Sumas según el monto, mandas promociones, das cupones y ves en tus estadísticas quién regresa.",
-    art: "chart",
-  },
-];
-
-const FIGURES = [
-  { n: 10, unit: "min", label: "desde que te registras hasta tener tu QR impreso" },
-  { n: 0, unit: "apps", label: "que tus clientes tienen que descargar" },
-  { n: 2, unit: "min", label: "después de la compra sale la encuesta de reseña" },
-  { n: 3, unit: "idiomas", label: "español, inglés y tailandés, según el celular de cada cliente" },
-];
+const STEP_ART = ["qr", "tap", "chart"];
 
 function StepArt({ kind }: { kind: string }) {
   if (kind === "qr") return <StepQr />;
@@ -92,9 +44,10 @@ function StepArt({ kind }: { kind: string }) {
   );
 }
 
-export default function NuevaLanding() {
+export default function NuevaLanding({ locale }: { locale: Locale }) {
+  const t = NV_COPY[locale];
   return (
-    <div className="nv" data-nv>
+    <div className={`nv nv-lang-${locale}`} data-nv>
       <Scene3D />
       <div className="nv-veil" aria-hidden />
       <Loader />
@@ -102,27 +55,28 @@ export default function NuevaLanding() {
       <Choreo />
 
       <a href="#contenido" className="nv-skip">
-        Saltar al contenido
+        {t.nav.skip}
       </a>
 
       <header className="nv-nav" data-nav>
-        <Link href="/" className="nv-brand" aria-label="Smart Loyalty, inicio">
+        <Link href="/" className="nv-brand" aria-label={t.nav.home}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/mark.png" alt="" width={28} height={28} />
           <span>Smart Loyalty</span>
         </Link>
-        <nav aria-label="Secciones" className="nv-nav-links">
-          <a href="#como-funciona">Cómo funciona</a>
-          <a href="#pruebalo">Pruébalo</a>
-          <a href="#precios">Precios</a>
+        <nav aria-label={t.nav.sections} className="nv-nav-links">
+          <a href="#como-funciona">{t.nav.how}</a>
+          <a href="#pruebalo">{t.nav.try}</a>
+          <a href="#precios">{t.nav.pricing}</a>
         </nav>
         <div className="nv-nav-actions">
+          <LanguageSwitcher className="nv-lang" />
           <Link href="/panel" className="nv-nav-login">
-            Entrar
+            {t.nav.login}
           </Link>
           <Magnetic>
-            <Link href="/registro" className="nv-btn nv-btn-primary nv-btn-sm" data-cursor="Empezar">
-              Probar gratis
+            <Link href="/registro" className="nv-btn nv-btn-primary nv-btn-sm" data-cursor={t.nav.cursorStart}>
+              {t.nav.tryFree}
             </Link>
           </Magnetic>
         </div>
@@ -130,48 +84,45 @@ export default function NuevaLanding() {
 
       <div className="nv-hud" aria-hidden>
         <span data-hud-num>01 / 07</span>
-        <span data-hud-name>Inicio</span>
+        <span data-hud-name>{t.hud.hero}</span>
       </div>
 
       <main id="contenido">
         {/* 1 · Hero */}
-        <section className="nv-hero" data-scene="hero" data-hud="Inicio">
+        <section className="nv-hero" data-scene="hero" data-hud={t.hud.hero}>
           <h1 className="nv-hero-title">
-            <Chars text="Clientes" className="nv-line" />
-            <Chars text="que vuelven." className="nv-line nv-line-indent" />
+            <Chars text={t.hero.line1} className="nv-line" />
+            <Chars text={t.hero.line2} className="nv-line nv-line-indent" />
           </h1>
           <div className="nv-hero-foot">
-            <p className="nv-hero-lead">
-              La tarjeta de lealtad de tu negocio, en el celular de tus clientes. Suma puntos, avisa tus promociones y consigue reseñas en
-              Google, sin que nadie descargue una app.
-            </p>
+            <p className="nv-hero-lead">{t.hero.lead}</p>
             <div className="nv-hero-cta">
               <Magnetic>
-                <Link href="/registro" className="nv-btn nv-btn-primary nv-btn-lg" data-cursor="Empezar">
-                  Probar {TRIAL_DAYS} días gratis
+                <Link href="/registro" className="nv-btn nv-btn-primary nv-btn-lg" data-cursor={t.nav.cursorStart}>
+                  {t.hero.cta(TRIAL_DAYS)}
                 </Link>
               </Magnetic>
-              <a href="#como-funciona" className="nv-link" data-cursor="Bajar">
-                Ver cómo funciona
+              <a href="#como-funciona" className="nv-link" data-cursor={t.hero.cursorDown}>
+                {t.hero.how}
               </a>
             </div>
-            <p className="nv-hero-note">Sin tarjeta de crédito. Tu QR listo en 10 minutos.</p>
+            <p className="nv-hero-note">{t.hero.note}</p>
           </div>
           <div className="nv-scroll-cue" aria-hidden>
             <span />
-            Desliza
+            {t.hero.scroll}
           </div>
         </section>
 
         {/* 2 · Propuesta de valor: sección fija con tres escenas */}
-        <section id="como-funciona" className="nv-value" data-pin="value" data-hud="Cómo funciona">
+        <section id="como-funciona" className="nv-value" data-pin="value" data-hud={t.hud.how}>
           <div className="nv-value-inner">
-            <h2 className="nv-value-title">Tres cosas que la tarjeta de cartón nunca hizo</h2>
+            <h2 className="nv-value-title">{t.value.title}</h2>
             <div className="nv-beats">
-              {BEATS.map((b, i) => (
+              {t.value.beats.map((b, i) => (
                 <article key={b.verb} className="nv-beat" data-beat>
                   <p className="nv-beat-verb" aria-hidden>
-                    {[...b.verb].map((ch, c) => (
+                    {graphemes(b.verb).map((ch, c) => (
                       <span key={c} className="nv-beat-char-mask">
                         <span className="nv-beat-char" style={{ ["--i" as string]: c }}>
                           {ch}
@@ -185,14 +136,12 @@ export default function NuevaLanding() {
                     <span className="nv-beat-dot" aria-hidden />
                     {b.data}
                   </p>
-                  <span className="sr-only">
-                    Paso {i + 1} de {BEATS.length}
-                  </span>
+                  <span className="sr-only">{t.value.stepOf(i + 1, t.value.beats.length)}</span>
                 </article>
               ))}
             </div>
             <div className="nv-ticks" aria-hidden>
-              {BEATS.map((b) => (
+              {t.value.beats.map((b) => (
                 <span key={b.verb} data-tick>
                   {b.verb.replace(".", "")}
                 </span>
@@ -205,26 +154,26 @@ export default function NuevaLanding() {
         </section>
 
         {/* 3 · Producto: simulador */}
-        <section id="pruebalo" className="nv-sim" data-scene="sim" data-hud="Pruébalo">
+        <section id="pruebalo" className="nv-sim" data-scene="sim" data-hud={t.hud.try}>
           <div className="nv-container">
             <h2 className="nv-h2" data-reveal>
-              <Words text="Pruébalo aquí mismo." />
+              <Words text={t.sim.title} />
             </h2>
             <p className="nv-lead" data-reveal>
-              <Words text="Así lo vive tu cliente. Elige cómo premias, escanea una compra y mira qué le llega al celular." />
+              <Words text={t.sim.lead} />
             </p>
             <Simulator />
           </div>
         </section>
 
         {/* 4 · Cifras y rubros */}
-        <section className="nv-numbers" data-scene="numbers" data-hud="Lo que viene listo">
+        <section className="nv-numbers" data-scene="numbers" data-hud={t.hud.ready}>
           <div className="nv-container">
             <h2 className="nv-h2" data-reveal>
-              <Words text="Lo que ya viene listo" />
+              <Words text={t.figures.title} />
             </h2>
             <dl className="nv-figures">
-              {FIGURES.map((f, i) => (
+              {t.figures.items.map((f, i) => (
                 <div key={f.label} className="nv-figure" data-speed={i % 2 ? 0.35 : 0}>
                   <dt className="nv-figure-n">
                     <span data-count={f.n}>{f.n}</span>
@@ -235,10 +184,10 @@ export default function NuevaLanding() {
               ))}
             </dl>
           </div>
-          <div className="nv-marquee" aria-label={`Hecho para: ${NICHES.join(", ")}`}>
-            <p className="nv-marquee-title">Hecho para negocios donde el cliente vuelve</p>
+          <div className="nv-marquee" aria-label={`${t.figures.madeFor}: ${t.figures.niches.join(", ")}`}>
+            <p className="nv-marquee-title">{t.figures.nichesTitle}</p>
             <div className="nv-marquee-track" data-marquee aria-hidden>
-              {[...NICHES, ...NICHES].map((n, i) => (
+              {[...t.figures.niches, ...t.figures.niches].map((n, i) => (
                 <span key={i} className={i % 2 ? "is-outline" : ""}>
                   {n}
                   <i className="nv-marquee-star" />
@@ -249,22 +198,22 @@ export default function NuevaLanding() {
         </section>
 
         {/* 5 · Proceso: tres pasos en horizontal */}
-        <section className="nv-steps" data-hscroll data-scene="steps" data-hud="Tres pasos">
+        <section className="nv-steps" data-hscroll data-scene="steps" data-hud={t.hud.steps}>
           <div className="nv-steps-track" data-htrack>
             <div className="nv-steps-intro">
               <h2 className="nv-h2" data-reveal>
-                <Words text="Listo en tres pasos" />
+                <Words text={t.steps.title} />
               </h2>
-              <p className="nv-lead">Sin técnicos, sin instalar nada en caja. Si tienes celular, ya tienes todo.</p>
+              <p className="nv-lead">{t.steps.lead}</p>
             </div>
-            {STEPS.map((s, i) => (
+            {t.steps.items.map((s, i) => (
               <article key={s.title} className="nv-step">
                 <span className="nv-step-num" data-step-num aria-hidden>
                   {i + 1}
                 </span>
-                <StepArt kind={s.art} />
+                <StepArt kind={STEP_ART[i]} />
                 <h3 className="nv-step-title">
-                  <span className="sr-only">Paso {i + 1}: </span>
+                  <span className="sr-only">{t.steps.stepLabel(i + 1)}</span>
                   {s.title}
                 </h3>
                 <p className="nv-step-text">{s.text}</p>
@@ -274,34 +223,31 @@ export default function NuevaLanding() {
         </section>
 
         {/* 6 · Precios (fondo claro) */}
-        <section id="precios" className="nv-pricing" data-opaque data-hud="Precios">
+        <section id="precios" className="nv-pricing" data-opaque data-hud={t.hud.pricing}>
           <div className="nv-container">
             <h2 className="nv-h2 nv-h2-dark" data-reveal>
-              <Words text="Un plan para cada etapa de tu negocio" />
+              <Words text={t.pricing.title} />
             </h2>
-            <p className="nv-lead nv-lead-dark">
-              Empiezas con {TRIAL_DAYS} días gratis con todo lo de Pro. Después eliges plan y pagas con SINPE Móvil, PayPal o tarjeta. Cancelas
-              cuando quieras.
-            </p>
+            <p className="nv-lead nv-lead-dark">{t.pricing.lead(TRIAL_DAYS)}</p>
             <Pricing />
           </div>
         </section>
 
         {/* 7 · Cierre */}
-        <section className="nv-final" data-final data-scene="final" data-hud="Empieza">
+        <section className="nv-final" data-final data-scene="final" data-hud={t.hud.start}>
           <h2 className="nv-final-title">
-            <Chars text="Tu próximo cliente frecuente" className="nv-line" />
-            <Chars text="ya está en tu negocio." className="nv-line" />
+            <Chars text={t.final.line1} className="nv-line" />
+            <Chars text={t.final.line2} className="nv-line" />
           </h2>
-          <p className="nv-final-lead">{TRIAL_DAYS} días gratis. Sin tarjeta de crédito.</p>
+          <p className="nv-final-lead">{t.final.lead(TRIAL_DAYS)}</p>
           <div className="nv-final-cta">
             <Magnetic strength={0.5}>
-              <Link href="/registro" className="nv-orb" data-cursor="¡Vamos!">
-                <span>Registrar mi negocio</span>
+              <Link href="/registro" className="nv-orb" data-cursor={t.final.cursor}>
+                <span>{t.final.cta}</span>
               </Link>
             </Magnetic>
             <Link href="/demo" className="nv-link">
-              Prefiero agendar una demo
+              {t.final.demo}
             </Link>
           </div>
         </section>
@@ -313,27 +259,27 @@ export default function NuevaLanding() {
           <img src="/brand/mark.png" alt="" width={36} height={36} />
           <p>
             Smart Loyalty
-            <span>Hecho en Costa Rica para negocios donde el cliente vuelve.</span>
+            <span>{t.footer.tagline}</span>
           </p>
         </div>
-        <nav className="nv-footer-cols" aria-label="Pie de página">
+        <nav className="nv-footer-cols" aria-label={t.footer.label}>
           <div>
-            <p>Producto</p>
-            <a href="#como-funciona">Cómo funciona</a>
-            <a href="#pruebalo">Pruébalo</a>
-            <a href="#precios">Precios</a>
-            <Link href="/demo">Agendar demo</Link>
+            <p>{t.footer.product}</p>
+            <a href="#como-funciona">{t.nav.how}</a>
+            <a href="#pruebalo">{t.nav.try}</a>
+            <a href="#precios">{t.nav.pricing}</a>
+            <Link href="/demo">{t.footer.demo}</Link>
           </div>
           <div>
-            <p>Cuenta</p>
-            <Link href="/panel">Entrar</Link>
-            <Link href="/registro">Registrar mi negocio</Link>
+            <p>{t.footer.account}</p>
+            <Link href="/panel">{t.nav.login}</Link>
+            <Link href="/registro">{t.footer.signup}</Link>
           </div>
           <div>
-            <p>Ayuda</p>
-            <Link href="/soporte">Soporte</Link>
-            <Link href="/privacidad">Privacidad</Link>
-            <Link href="/terminos">Términos</Link>
+            <p>{t.footer.help}</p>
+            <Link href="/soporte">{t.footer.support}</Link>
+            <Link href="/privacidad">{t.footer.privacy}</Link>
+            <Link href="/terminos">{t.footer.terms}</Link>
           </div>
         </nav>
         <p className="nv-footer-copy">© {new Date().getFullYear()} Smart Loyalty</p>

@@ -2,12 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { intro } from "../lib/intro";
+import { useNvCopy } from "../lib/use-copy";
 
 // Intro de menos de 2 segundos: un contador de "visitas" llega a 100 y una cortina sube.
 export default function Loader() {
   const root = useRef<HTMLDivElement>(null);
   const num = useRef<HTMLSpanElement>(null);
   const [gone, setGone] = useState(false);
+  const t = useNvCopy().loader;
 
   useEffect(() => {
     intro.reset();
@@ -39,12 +41,12 @@ export default function Loader() {
 
   if (gone) return null;
   return (
-    <div ref={root} className="nv-loader" role="status" aria-label="Cargando">
+    <div ref={root} className="nv-loader" role="status" aria-label={t.aria}>
       <div className="nv-loader-inner">
         <span className="nv-loader-num" ref={num}>
           000
         </span>
-        <span className="nv-loader-label">visitas</span>
+        <span className="nv-loader-label">{t.label}</span>
         <span className="nv-loader-bar">
           <i />
         </span>
