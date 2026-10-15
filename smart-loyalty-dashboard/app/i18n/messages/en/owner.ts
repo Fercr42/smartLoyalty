@@ -143,3 +143,21 @@ export const customers: Messages["customers"] = {
   loadError: "Couldn't load the customer list.",
   namesHint: "Customers enter their name on their card (your QR page).",
 };
+
+export const reviewQueue: Messages["reviewQueue"] = {
+  "title": "Review surveys",
+  "lead": "Surveys go out a few minutes after the purchase, when the send checker runs (about every 5 minutes).",
+  "scheduled": "Scheduled",
+  "none": "No surveys scheduled right now.",
+  "sendsIn": "Goes out in {min} min",
+  "late": "{min} min late · goes out on the next check",
+  "retrying": "Retrying the send",
+  "sent": "Recently sent",
+  "noneSent": "No survey has been sent yet.",
+  "reachedOne": "Reached 1 phone",
+  "reachedMany": "Reached {count} phones",
+  "wallet": "Saved on their Wallet card",
+  "notReached": "Didn't reach any phone: we'll ask again on their next purchase",
+  "refresh": "Refresh",
+  "loadError": "Couldn't load the surveys."
+};

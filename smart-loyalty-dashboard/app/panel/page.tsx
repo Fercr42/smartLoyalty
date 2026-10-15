@@ -10,6 +10,7 @@ import CompanyQR from "../components/companyQR";
 import NotificationComposer from "../components/notificationComposer";
 import WalletCardEditor from "../components/walletCardEditor";
 import LoyaltyEditor from "../components/loyaltyEditor";
+import ReviewQueue from "../components/reviewQueue";
 import StatsPanel from "../components/statsPanel";
 import CustomersList from "../components/customersList";
 import PlanBanner from "../components/planBanner";
@@ -189,9 +190,14 @@ export default function Panel() {
           )}
 
           {tab === "recompensas" && (
-            <Card>
-              <LoyaltyEditor />
-            </Card>
+            <>
+              <Card>
+                <LoyaltyEditor />
+              </Card>
+              <Card title={m.reviewQueue.title}>
+                <ReviewQueue />
+              </Card>
+            </>
           )}
 
           {tab === "negocio" && (
