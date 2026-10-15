@@ -170,3 +170,100 @@ details[open] .sl-faq-body { grid-template-rows: 1fr; }
   }
   .sl-faq-body { grid-template-rows: 1fr; }
 }
+
+/* ---------------------------------------------------------------------------
+   Panel del dueño: barra lateral verde bosque con brillo lento, indicador menta
+   que se desliza a la sección elegida y contenido que sube al cambiar de sección.
+--------------------------------------------------------------------------- */
+
+.pn-rail {
+  background: #07201b;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.pn-rail::before,
+.pn-rail::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(60px);
+  pointer-events: none;
+  animation: sl-aurora 26s ease-in-out infinite;
+}
+.pn-rail::before {
+  width: 22rem; height: 22rem; top: -8rem; left: -9rem;
+  background: radial-gradient(circle, rgba(25, 197, 138, 0.32), transparent 70%);
+}
+.pn-rail::after {
+  width: 18rem; height: 18rem; bottom: -7rem; right: -9rem;
+  background: radial-gradient(circle, rgba(242, 177, 52, 0.16), transparent 70%);
+  animation-duration: 34s;
+  animation-direction: reverse;
+}
+
+/* Indicador de la sección activa: se mueve con top/left/width/height medidos en JS. */
+.pn-indicator {
+  position: absolute;
+  border-radius: 0.85rem;
+  background: #19c58a;
+  box-shadow: 0 10px 28px -12px rgba(25, 197, 138, 0.85);
+  transition: top 0.45s cubic-bezier(0.22, 1, 0.36, 1), left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Entrada del menú: una sola vez, en cascada. */
+@keyframes pn-item-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+.pn-item { animation: pn-item-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Contenido de la sección: sube al elegirla; las tarjetas llegan una tras otra. */
+@keyframes pn-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.pn-section > * { animation: pn-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.pn-section > *:nth-child(2) { animation-delay: 0.06s; }
+.pn-section > *:nth-child(3) { animation-delay: 0.12s; }
+.pn-section > *:nth-child(4) { animation-delay: 0.18s; }
+.pn-section > *:nth-child(n + 5) { animation-delay: 0.24s; }
+
+/* Línea menta que se dibuja bajo el título de la sección. */
+@keyframes pn-underline {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.pn-underline {
+  transform-origin: 0 50%;
+  animation: pn-underline 0.7s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pn-card {
+  background: #fff;
+  border: 1px solid #dfe7e3;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -34px rgba(7, 32, 27, 0.55);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.pn-card:focus-within {
+  border-color: #9fd9c4;
+  box-shadow: 0 0 0 4px rgba(25, 197, 138, 0.12), 0 18px 40px -34px rgba(7, 32, 27, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-rail::before,
+  .pn-rail::after,
+  .pn-item,
+  .pn-section > *,
+  .pn-underline {
+    animation: none;
+  }
+  .pn-indicator,
+  .pn-card { transition: none; }
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
