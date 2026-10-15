@@ -5,6 +5,7 @@ import { useI18n } from "../i18n/client";
 import { formatColones } from "../lib/format-money";
 import { PLANS, planState, priceCrc, type Period, type Plan, type PlanState, type Tier } from "../lib/plan";
 import PlanCards from "./planCards";
+import { useIsNativeApp } from "../lib/use-native";
 
 // "Tu plan": elegir Esencial, Pro o Multi-local y pagar con SINPE Móvil (mensual o anual) o PayPal (mensual).
 
@@ -72,11 +73,13 @@ export default function BillingPanel({
   const [receipt, setReceipt] = useState("");
   const [renewing, setRenewing] = useState(false);
 
+  const inApp = useIsNativeApp();
   const paidWithPaypal = plan.status === "active" && plan.provider === "paypal";
   const paidWithSinpe = plan.status === "active" && plan.provider === "sinpe";
   const manualActive = plan.status === "active" && (!plan.provider || plan.provider === "manual");
   // Mostrar la elección de plan si no hay plan pagado, si PayPal se canceló o si quiere renovar por SINPE.
-  const choosing = !manualActive && (!paidWithPaypal || plan.canceled) && (!paidWithSinpe || renewing);
+  // En la app no se muestran precios ni pagos (Apple y Google exigen su propio cobro para suscripciones).
+  const choosing = !inApp && !manualActive && (!paidWithPaypal || plan.canceled) && (!paidWithSinpe || renewing);
   const paypalPlan = PAYPAL_PLANS[tier];
   const showPaypal = choosing && method === "paypal" && period === "month" && Boolean(CLIENT_ID && paypalPlan);
 
@@ -217,7 +220,7 @@ export default function BillingPanel({
         {paidWithSinpe && plan.paidUntil && (
           <>
             <p className="text-gray-800 font-medium">{f(t.activeSinpe, { tier: names[plan.tier], date: formatDate(plan.paidUntil) })}</p>
-            {!renewing && !pending && (
+            {!renewing && !pending && !inApp && (
               <button onClick={() => setRenewing(true)} className="self-start text-sm border rounded px-3 py-1.5 hover:bg-gray-50">
                 {t.renew}
               </button>
@@ -234,6 +237,7 @@ export default function BillingPanel({
           </p>
         )}
         {notice && <p className={`text-sm ${notice.ok ? "text-green-700" : "text-red-600"}`}>{notice.text}</p>}
+        {inApp && <p className="text-sm text-gray-600">{t.inApp}</p>}
       </div>
 
       {/* Elegir plan y pagar */}

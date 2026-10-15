@@ -13,6 +13,7 @@ export const auth: Messages["auth"] = {
   creating: "Creating account...",
   noAccount: "No account yet? Create one",
   haveAccount: "Already have an account? Log in",
+  googleInApp: "Signed up with Google? Enter your email and tap \"Forgot my password\" to create a password and sign in to the app.",
   forgot: "I forgot my password",
   resetSent: "We sent you an email to change your password.",
   verifySent: "We sent you an email to confirm your address. Check your inbox (and spam).",
@@ -160,4 +161,23 @@ export const reviewQueue: Messages["reviewQueue"] = {
   "notReached": "Didn't reach any phone: we'll ask again on their next purchase",
   "refresh": "Refresh",
   "loadError": "Couldn't load the surveys."
+};
+
+export const appHome: Messages["appHome"] = {
+  "metaTitle": "Smart Loyalty Business",
+  "title": "Who are you?",
+  "lead": "Choose how you'll use the app on this phone. You can change it later.",
+  "owner": "I'm the owner",
+  "ownerHint": "Dashboard, messages, stats and alerts for your business.",
+  "staff": "I'm staff",
+  "staffHint": "Scan cards, add points and redeem rewards.",
+  "scanBusiness": "Scan the business QR",
+  "scanBusinessHint": "Scan the counter QR or type the business code the owner gave you.",
+  "businessCode": "Business code",
+  "continue": "Continue",
+  "invalidCode": "That isn't a Smart Loyalty QR or code.",
+  "scanFailed": "Couldn't open the camera. Type the code.",
+  "back": "Back",
+  "change": "Switch owner / staff",
+  "noAccount": "Don't have an account yet? Sign up at smartloyalty.app in your browser."
 };

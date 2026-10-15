@@ -1,0 +1,17 @@
+{
+  "appId": "app.smartloyalty.negocios",
+  "appName": "Smart Loyalty Negocios",
+  "webDir": "www",
+  "server": {
+    "url": "https://smartloyalty.app/app",
+    "cleartext": false,
+    "allowNavigation": ["smartloyalty.app", "www.smartloyalty.app"]
+  },
+  "appendUserAgent": "SmartLoyaltyApp",
+  "backgroundColor": "#f4f7f5",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "always" },
+  "plugins": {
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
+  }
+}

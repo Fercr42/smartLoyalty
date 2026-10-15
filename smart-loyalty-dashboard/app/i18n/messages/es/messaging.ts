@@ -100,6 +100,7 @@ export const ai = {
 };
 
 export const billing = {
+  "inApp": "Tu plan se administra desde smartloyalty.app en el navegador.",
   "sdkError": "No se pudo cargar PayPal. Recarga la página.",
   "activateFailed": "No se pudo activar el plan",
   "activated": "¡Listo! Tu plan está activo.",

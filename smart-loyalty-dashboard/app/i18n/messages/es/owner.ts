@@ -13,6 +13,7 @@ export const auth = {
   creating: "Creando cuenta...",
   noAccount: "¿No tienes cuenta? Crear una",
   haveAccount: "¿Ya tienes cuenta? Entrar",
+  googleInApp: "¿Te registraste con Google? Escribe tu correo y toca \"Olvidé mi contraseña\" para crear una contraseña y entrar en la app.",
   forgot: "Olvidé mi contraseña",
   resetSent: "Te enviamos un correo para cambiar tu contraseña.",
   verifySent: "Te enviamos un correo para confirmar tu dirección. Revisa tu bandeja (y el spam).",
@@ -160,4 +161,23 @@ export const reviewQueue = {
   "notReached": "No llegó a ningún celular: se volverá a pedir en su próxima compra",
   "refresh": "Actualizar",
   "loadError": "No se pudieron cargar las encuestas."
+};
+
+export const appHome = {
+  "metaTitle": "Smart Loyalty Negocios",
+  "title": "¿Quién eres?",
+  "lead": "Elige cómo vas a usar la app en este celular. Puedes cambiarlo después.",
+  "owner": "Soy el dueño",
+  "ownerHint": "Panel, mensajes, estadísticas y avisos de tu negocio.",
+  "staff": "Soy empleado",
+  "staffHint": "Escanea tarjetas, suma puntos y canjea premios.",
+  "scanBusiness": "Escanear el QR del negocio",
+  "scanBusinessHint": "Escanea el QR del mostrador o escribe el código del negocio que te dio el dueño.",
+  "businessCode": "Código del negocio",
+  "continue": "Continuar",
+  "invalidCode": "Ese no es un QR o código de Smart Loyalty.",
+  "scanFailed": "No se pudo abrir la cámara. Escribe el código.",
+  "back": "Volver",
+  "change": "Cambiar dueño / empleado",
+  "noAccount": "¿Aún no tienes cuenta? Regístrate en smartloyalty.app desde el navegador."
 };
