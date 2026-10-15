@@ -6,7 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { app, db } from "../firebase/config";
 import { DEFAULT_BG, DEFAULT_BRAND, safeColor, textOn } from "../lib/colors";
 import { formatDay } from "../lib/format";
-import { getMemberId, setMemberId } from "../lib/member-id";
+import { getMemberId, memberIdFromUrl, setMemberId } from "../lib/member-id";
 import ProtectCard from "./protectCard";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { cardImageVersion } from "../lib/card-version";
@@ -128,25 +128,6 @@ export default function JoinClient({
     [companyId]
   );
 
-  // iPhone: el ícono de la pantalla de inicio no ve los datos de Safari. En Safari, el enlace y el manifest
-  // llevan ?m={tarjeta} para que "Agregar a pantalla de inicio" use la misma tarjeta. Dentro del ícono se quita.
-  useEffect(() => {
-    if (!isIOS()) return;
-    const url = new URL(window.location.href);
-    if (isStandalone()) {
-      getMemberId(companyId); // primero adopta la tarjeta del enlace (si este ícono aún no tiene una)
-      if (url.searchParams.has("m")) {
-        url.searchParams.delete("m");
-        window.history.replaceState(null, "", url.pathname + url.search);
-      }
-      return;
-    }
-    const memberId = getMemberId(companyId);
-    url.searchParams.set("m", memberId);
-    window.history.replaceState(null, "", url.pathname + url.search);
-    const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    if (manifest) manifest.href = `/join/${companyId}/manifest.webmanifest?m=${memberId}`;
-  }, [companyId]);
 
   // Vuelve a leer el diseño y los puntos (el ícono de inicio en iPhone se reanuda sin recargar la página).
   const refreshCard = useCallback(() => {
@@ -157,6 +138,43 @@ export default function JoinClient({
       .catch(() => {});
     loadMemberCard().catch(() => {});
   }, [companyId, loadMemberCard]);
+
+  // iPhone: el ícono de la pantalla de inicio no ve los datos de Safari. En Safari, el enlace y el manifest
+  // llevan ?m={tarjeta} para que "Agregar a pantalla de inicio" use la misma tarjeta. Dentro del ícono se quita.
+  useEffect(() => {
+    if (!isIOS()) return;
+    const url = new URL(window.location.href);
+    if (isStandalone()) {
+      const current = getMemberId(companyId); // adopta la tarjeta del enlace si este ícono aún no tiene una
+      const fromUrl = memberIdFromUrl(window.location.search);
+      if (url.searchParams.has("m")) {
+        url.searchParams.delete("m");
+        window.history.replaceState(null, "", url.pathname + url.search);
+      }
+      // Ícono que ya había creado su propia tarjeta: si está vacía, usar la de Safari (la que tiene los puntos).
+      if (fromUrl && fromUrl !== current) {
+        fetch("/api/loyalty/member", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companyId, memberId: current }),
+        })
+          .then((r) => r.json())
+          .then((card) => {
+            const empty = !card.enabled || (!card.stamps && !card.name && !card.linked && !card.coupons?.length);
+            if (!empty) return;
+            setMemberId(companyId, fromUrl);
+            refreshCard();
+          })
+          .catch(() => {});
+      }
+      return;
+    }
+    const memberId = getMemberId(companyId);
+    url.searchParams.set("m", memberId);
+    window.history.replaceState(null, "", url.pathname + url.search);
+    const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (manifest) manifest.href = `/join/${companyId}/manifest.webmanifest?m=${memberId}`;
+  }, [companyId, refreshCard]);
 
   useEffect(() => {
     const onVisible = () => {
