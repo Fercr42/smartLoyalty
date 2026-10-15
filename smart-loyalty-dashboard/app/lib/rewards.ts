@@ -33,12 +33,3 @@ export function nextRewardText(rewards: Reward[], stamps: number, t: RewardLabel
   const next = rewards.find((r) => r.stamps > stamps);
   return next ? fill(t.next, { reward: next.title, count: formatPoints(next.stamps - stamps, locale) }) : "";
 }
-
-// Cuántos minutos después de la compra se pide la reseña. Antes se guardaba en horas (delayHours).
-export const REVIEW_DELAY_DEFAULT_MIN = 2;
-export function reviewDelayMinutes(reviews?: { delayMinutes?: unknown; delayHours?: unknown } | null) {
-  const minutes = Number(reviews?.delayMinutes);
-  const hours = Number(reviews?.delayHours);
-  const value = Number.isFinite(minutes) && minutes > 0 ? minutes : Number.isFinite(hours) && hours > 0 ? hours * 60 : REVIEW_DELAY_DEFAULT_MIN;
-  return Math.min(Math.max(Math.round(value), 2), 48 * 60);
-}

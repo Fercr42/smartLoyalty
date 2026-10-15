@@ -17,7 +17,7 @@ import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
 import { planState, type Plan } from "../../../lib/plan";
 import { cleanLoyalty, earnedFor, formatBalance, MAX_SALE } from "../../../lib/loyalty-mode";
-import { cleanRewards, reviewDelayMinutes } from "../../../lib/rewards";
+import { cleanRewards } from "../../../lib/rewards";
 import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
 
@@ -70,7 +70,7 @@ async function refreshWalletCard(
 // Primer punto de un cliente: programar una notificación para pedirle reseña en Google (una sola vez).
 async function maybeRequestReview(
   companyRef: DocumentReference,
-  company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number; delayMinutes?: number; survey?: boolean } },
+  company: WalletCompany & { reviews?: { enabled?: boolean; url?: string; delayHours?: number; survey?: boolean } },
   memberId: string,
   origin: string
 ) {
@@ -85,7 +85,7 @@ async function maybeRequestReview(
     if (member.data()?.reviewRequestedAt) return;
     // Sin celular ligado ni tarjeta guardada en Wallet no hay cómo avisarle: no se marca y se intenta en otra visita.
     if (!(await canReach(companyRef, memberId))) return;
-    const delayMinutes = reviewDelayMinutes(reviews);
+    const delayHours = Math.min(Math.max(Number(reviews.delayHours) || 2, 1), 48);
     const pass = messages[companyLocale(company as { language?: unknown })].pass;
     await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp() });
     await scheduleNotification(
@@ -101,7 +101,7 @@ async function maybeRequestReview(
         memberIds: [memberId],
         link: survey ? `${origin}/encuesta/${company.id}?m=${memberId}` : `${origin}/r/${company.id}`,
       },
-      Date.now() + delayMinutes * 60_000,
+      Date.now() + delayHours * 3_600_000,
       "none"
     );
   } catch (e) {

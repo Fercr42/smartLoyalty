@@ -8,7 +8,7 @@ import { useI18n } from "../i18n/client";
 import { cleanBusinessType, type BusinessType } from "../lib/business-types";
 import { cleanLoyalty, DEFAULT_PERCENT, DEFAULT_RULE, earnedFor, formatBalance, LOYALTY_MODES, type LoyaltyMode } from "../lib/loyalty-mode";
 import { publicOrigin } from "../lib/origin";
-import { cleanRewards, MAX_REWARDS, REVIEW_DELAY_DEFAULT_MIN, reviewDelayMinutes } from "../lib/rewards";
+import { cleanRewards, MAX_REWARDS } from "../lib/rewards";
 import { syncWalletCards } from "../lib/walletClient";
 import AiFeedbackSummary from "./aiFeedbackSummary";
 
@@ -51,7 +51,7 @@ export default function LoyaltyEditor() {
   const [scanUrl, setScanUrl] = useState("");
   const [reviewEnabled, setReviewEnabled] = useState(false);
   const [reviewUrl, setReviewUrl] = useState("");
-  const [reviewDelay, setReviewDelay] = useState(String(REVIEW_DELAY_DEFAULT_MIN));
+  const [reviewDelay, setReviewDelay] = useState("2");
   const [reviewClicks, setReviewClicks] = useState(0);
   const [reviewSurvey, setReviewSurvey] = useState(true);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
@@ -86,7 +86,7 @@ export default function LoyaltyEditor() {
         const reviews = snap.data()?.reviews ?? {};
         setReviewEnabled(Boolean(reviews.enabled));
         setReviewUrl(reviews.url ?? "");
-        setReviewDelay(String(reviewDelayMinutes(reviews)));
+        setReviewDelay(String(reviews.delayHours ?? 2));
         setReviewClicks(reviews.clicks ?? 0);
         setReviewSurvey(reviews.survey !== false);
         const stats = snap.data()?.feedbackStats;
@@ -160,7 +160,7 @@ export default function LoyaltyEditor() {
     try {
       await setDoc(
         doc(db, "companies", user.uid),
-        { reviews: { enabled: reviewEnabled, url: reviewUrl.trim(), delayMinutes: Number(reviewDelay), survey: reviewSurvey } },
+        { reviews: { enabled: reviewEnabled, url: reviewUrl.trim(), delayHours: Number(reviewDelay), survey: reviewSurvey } },
         { merge: true }
       );
       setReviewNotice({
@@ -437,11 +437,10 @@ export default function LoyaltyEditor() {
               onChange={(e) => setReviewDelay(e.target.value)}
               className="border p-2 rounded text-sm"
             >
-              <option value="2">{t.delay2min}</option>
-              <option value="60">{t.delay1}</option>
-              <option value="120">{t.delay2}</option>
-              <option value="240">{t.delay4}</option>
-              <option value="1440">{t.delay24}</option>
+              <option value="1">{t.delay1}</option>
+              <option value="2">{t.delay2}</option>
+              <option value="4">{t.delay4}</option>
+              <option value="24">{t.delay24}</option>
             </select>
             <button disabled={savingReview} className="bg-gray-900 text-white px-4 py-2 rounded disabled:opacity-50">
               {savingReview ? m.common.saving : m.common.save}

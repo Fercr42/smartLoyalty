@@ -1,5 +1,4 @@
 import { adminDb } from "../../../firebase/admin";
-import { dataImageResponse } from "../../../lib/data-image";
 
 export const runtime = "nodejs";
 
@@ -19,5 +18,13 @@ export async function GET(
   if (!docId) return new Response("No encontrado", { status: 404 });
 
   const snap = await adminDb().collection("companies").doc(companyId).collection("assets").doc(docId).get();
-  return dataImageResponse(snap.data()?.data, "Sin imagen");
+  const match = /^data:(image\/[\w+.-]+);base64,(.+)$/.exec(snap.data()?.data ?? "");
+  if (!match) return new Response("Sin imagen", { status: 404 });
+
+  return new Response(Buffer.from(match[2], "base64"), {
+    headers: {
+      "Content-Type": match[1],
+      "Cache-Control": "public, max-age=300, s-maxage=86400",
+    },
+  });
 }

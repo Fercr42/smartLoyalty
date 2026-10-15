@@ -79,7 +79,6 @@ export const rewards: Messages["rewards"] = {
   reviewUrlPlaceholder: "Review link · https://g.page/r/.../review",
   reviewUrlHint: "In your Google Business Profile: “Ask for reviews” → copy the link.",
   send: "Send",
-  delay2min: "2 minutes after the visit",
   delay1: "1 hour after the visit",
   delay2: "2 hours after the visit",
   delay4: "4 hours after the visit",

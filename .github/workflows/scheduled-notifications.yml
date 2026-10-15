@@ -13,5 +13,4 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Enviar notificaciones pendientes
-        # CRON_SECRET: el mismo valor en Vercel y en Settings > Secrets > Actions de GitHub.
-        run: curl -fsS -X POST --max-time 120 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" https://smartloyalty.app/api/cron/scheduled
+        run: curl -fsS -X POST --max-time 120 https://smartloyalty.app/api/cron/scheduled

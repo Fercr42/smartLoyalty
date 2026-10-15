@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { appleConfig } from "../../../../../../../../../lib/apple-wallet";
-import { checkPassAuth, DEVICE_ID, PUSH_TOKEN, registerDevice, unregisterDevice } from "../../../../../../../../../lib/apple-wallet-updates";
+import { appleConfig, validPassAuth } from "../../../../../../../../../lib/apple-wallet";
+import { DEVICE_ID, PUSH_TOKEN, registerDevice, unregisterDevice } from "../../../../../../../../../lib/apple-wallet-updates";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ async function check(req: NextRequest, params: Params["params"]) {
   const { deviceId, passTypeId, serial } = await params;
   if (!config) return { error: new Response(null, { status: 503 }) };
   if (passTypeId !== config.passTypeId || !DEVICE_ID.test(deviceId)) return { error: new Response(null, { status: 404 }) };
-  if (!(await checkPassAuth(req.headers.get("authorization"), serial))) {
+  if (!validPassAuth(req.headers.get("authorization"), serial, config.authSecret)) {
     return { error: new Response(null, { status: 401 }) };
   }
   return { deviceId, serial };

@@ -61,6 +61,7 @@ variables `APPLE_WALLET_*` están puestas. Necesitas una cuenta de Apple Develop
    openssl base64 -A -in pass.pem   # APPLE_WALLET_CERT
    openssl base64 -A -in pass.key   # APPLE_WALLET_KEY
    openssl base64 -A -in wwdr.pem   # APPLE_WALLET_WWDR
+   openssl rand -hex 32             # APPLE_WALLET_AUTH_SECRET (no lo cambies después)
    ```
    `APPLE_WALLET_TEAM_ID` es el Team ID de tu cuenta (Membership details). `NEXT_PUBLIC_APP_URL` debe ser
    la URL pública con `https://`: Apple solo actualiza los pases por HTTPS.
