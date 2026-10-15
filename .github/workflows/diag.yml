@@ -1,0 +1,22 @@
+name: Diagnóstico producción
+on:
+  push:
+    branches: [diag-prod]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probar endpoints
+        run: |
+          probe() {
+            code=$(curl -sS -o body.txt -w "%{http_code}" -X "$1" -H "Content-Type: application/json" ${3:+-d "$3"} "https://smartloyalty.app$2")
+            echo "::notice::$1 $2 -> $code $(head -c 200 body.txt | tr '\n' ' ')"
+          }
+          probe POST /api/loyalty/staff '{"action":"login","companyId":"x"}'
+          probe POST /api/notifications '{}'
+          probe GET /api/billing/sinpe
+          probe POST /api/loyalty/member '{"companyId":"x"}'
+          probe POST /api/wallet/google '{"companyId":"x"}'
+          probe GET /api/admin/sinpe
+          probe GET /api/cron/scheduled
+          probe GET "/card-image/abcdefghij12?variant=card"
