@@ -86,9 +86,11 @@ function deleteSubscriber(companyId: string, token: string) {
 export default function JoinClient({
   companyId,
   walletEnabled,
+  appleWalletEnabled = false,
 }: {
   companyId: string;
   walletEnabled: boolean;
+  appleWalletEnabled?: boolean;
 }) {
   const { m, f, dateLocale, locale, te } = useI18n();
   const t = m.join;
@@ -103,6 +105,10 @@ export default function JoinClient({
   const [editingName, setEditingName] = useState(false);
   const [nameError, setNameError] = useState("");
   const [savingName, setSavingName] = useState(false);
+
+  // Solo en el navegador (la página se dibuja primero en el servidor).
+  const browser = typeof window !== "undefined";
+  const ios = browser && isIOS();
 
   const loadMemberCard = useCallback(
     async (extra: { birthday?: string; name?: string } = {}) => {
@@ -486,8 +492,25 @@ export default function JoinClient({
         </div>
       )}
 
-      {/* Google Wallet no existe en iPhone; ahí irá Apple Wallet más adelante. */}
-      {walletEnabled && !isIOS() && (
+      {/* iPhone: Apple Wallet. Es un enlace normal: Safari abre el pase y ofrece guardarlo. */}
+      {appleWalletEnabled && ios && (
+        <div className="w-full border-t pt-4 mt-2">
+          <p className="text-sm text-gray-600 mb-3">{t.walletLead}</p>
+          <a
+            href={browser ? `/api/wallet/apple?companyId=${encodeURIComponent(companyId)}&memberId=${encodeURIComponent(getMemberId(companyId))}` : undefined}
+            className="flex w-full items-center justify-center gap-2 bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+              <path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76a4.25 4.25 0 0 0-3.6 2.18c-1.54 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.74 2.2 1.1-.05 1.52-.71 2.85-.71 1.33 0 1.7.71 2.87.69 1.18-.02 1.93-1.07 2.65-2.13a9.5 9.5 0 0 0 1.2-2.47 3.83 3.83 0 0 1-2.31-3.52ZM14.18 6.15c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.55 1.31-.56.65-1.05 1.69-.92 2.68.97.08 1.96-.49 2.57-1.23Z" />
+            </svg>
+            {t.appleWalletAdd}
+          </a>
+          {browser && isStandalone() && <p className="text-xs text-gray-500 mt-2">{t.appleWalletHint}</p>}
+        </div>
+      )}
+
+      {/* Google Wallet no existe en iPhone. */}
+      {walletEnabled && !ios && (
         <div className="w-full border-t pt-4 mt-2">
           <p className="text-sm text-gray-600 mb-3">{t.walletLead}</p>
           <button

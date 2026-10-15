@@ -17,7 +17,7 @@ export default function StickyHeader({ children }: { children: ReactNode }) {
       className={`sticky top-0 z-30 border-b transition-all duration-300 ${
         scrolled
           ? "bg-white/95 backdrop-blur border-[#e6ece9] shadow-[0_10px_30px_-24px_rgba(7,32,27,0.8)]"
-          : "bg-white/80 backdrop-blur border-transparent"
+          : "bg-white/95 backdrop-blur border-transparent"
       }`}
     >
       <div className={`transition-all duration-300 ${scrolled ? "py-0" : "py-1"}`}>{children}</div>

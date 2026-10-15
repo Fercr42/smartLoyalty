@@ -47,6 +47,8 @@ export const join: Messages["join"] = {
   walletOpening: "Opening...",
   walletAdd: "Add to Google Wallet",
   walletFailed: "Couldn't create the card. Please try again.",
+  appleWalletAdd: "Add to Apple Wallet",
+  appleWalletHint: "If it doesn't open, open this page in Safari.",
 };
 
 export const protect: Messages["protect"] = {

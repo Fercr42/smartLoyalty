@@ -47,6 +47,8 @@ export const join = {
   walletOpening: "Abriendo...",
   walletAdd: "Agregar a Google Wallet",
   walletFailed: "No se pudo crear la tarjeta. Inténtalo de nuevo.",
+  appleWalletAdd: "Agregar a Apple Wallet",
+  appleWalletHint: "Si no se abre, abre esta página en Safari.",
 };
 
 export const protect = {

@@ -24,4 +24,7 @@ export const pass: Messages["pass"] = {
   reviewDirectBody: "Your opinion means a lot. Tap here to leave us a Google review.",
   rateVisit: "⭐ Rate your visit",
   reviewWalletHint: "Open your card and tap “⭐ Rate your visit”.",
+  latestPromo: "Latest promotion",
+  balanceChanged: "You now have %@",
+  cardCode: "Card code",
 };
