@@ -44,3 +44,13 @@ describe("describeLink", () => {
     expect(describeLink("Ver menú", "https://fercr42.github.io/rancho-potrillos/")).toBe("Ver menú");
   });
 });
+
+import { memberIdFromUrl } from "../../app/lib/member-id";
+
+describe("tarjeta del ícono de inicio en iPhone", () => {
+  it("toma la tarjeta del enlace solo si es un código válido", () => {
+    expect(memberIdFromUrl("?m=3F9A12BC-1111-4222-8333-444455556666")).toBe("3f9a12bc-1111-4222-8333-444455556666");
+    expect(memberIdFromUrl("?m=hola")).toBe("");
+    expect(memberIdFromUrl("")).toBe("");
+  });
+});

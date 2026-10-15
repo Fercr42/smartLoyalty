@@ -11,6 +11,9 @@ export async function GET(
   { params }: { params: Promise<{ companyId: string }> }
 ) {
   const { companyId } = await params;
+  // ?m= lleva la tarjeta del cliente al ícono de inicio (ver lib/member-id.ts).
+  const memberId = new URL(req.url).searchParams.get("m") ?? "";
+  const startUrl = /^[0-9a-f-]{36}$/i.test(memberId) ? `/join/${companyId}?m=${memberId}` : `/join/${companyId}`;
   const cookie = req.headers.get("cookie")?.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([a-z]{2})`))?.[1];
   let name = messages[pickLocale(cookie, req.headers.get("accept-language"))].join.appName;
   let logoUrl = "";
@@ -31,7 +34,7 @@ export async function GET(
     {
       name,
       short_name: name.slice(0, 12),
-      start_url: `/join/${companyId}`,
+      start_url: startUrl,
       scope: "/",
       display: "standalone",
       background_color: bg,
