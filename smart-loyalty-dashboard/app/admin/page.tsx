@@ -8,6 +8,7 @@ import CampaignResults from "../components/campaignResults";
 import StatsPanel from "../components/statsPanel";
 import CustomersList from "../components/customersList";
 import SinpeReview from "../components/sinpeReview";
+import ReviewReset from "../components/reviewReset";
 import { auth } from "../firebase/config";
 
 // Administrador de Smart Loyalty: todos los restaurantes, planes, pruebas por vencer e ingresos.
@@ -346,7 +347,7 @@ export default function AdminPage() {
               </button>
             </div>
             <p className="text-sm text-gray-500 -mt-4">
-              Solo lectura. El dueño ve lo mismo en su panel; desde aquí no se envían mensajes ni se cambia su configuración.
+              El dueño ve lo mismo en su panel; desde aquí no se envían mensajes ni se cambia su configuración.
             </p>
             <div className="bg-white border rounded-xl p-5">
               <StatsPanel companyId={openRestaurant.id} />
@@ -359,6 +360,7 @@ export default function AdminPage() {
               <CampaignResults companyId={openRestaurant.id} />
             </div>
             <AdminFeedback companyId={openRestaurant.id} />
+            <ReviewReset companyId={openRestaurant.id} />
           </section>
         )}
         </div>
