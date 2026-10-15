@@ -6,10 +6,18 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probar versiones de vista previa
+      - name: Probar endpoints
         run: |
-          for pair in "71e7905 https://smart-loyalty-h1j7mrl0a-fernando-rodriguezs-projects-5769aba8.vercel.app" "3453276 https://smart-loyalty-29k7ayu3e-fernando-rodriguezs-projects-5769aba8.vercel.app"; do
-            sha=${pair%% *}; base=${pair#* }
-            code=$(curl -sS -o body.txt -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"action":"login","companyId":"x"}' "$base/api/loyalty/staff")
-            echo "::notice::$sha staff -> $code $(head -c 150 body.txt | tr '\n' ' ')"
-          done
+          probe() {
+            code=$(curl -sS -o body.txt -w "%{http_code}" -X "$1" -H "Content-Type: application/json" ${3:+-d "$3"} "https://smartloyalty.app$2")
+            echo "::notice::$1 $2 -> $code $(head -c 160 body.txt | tr '\n' ' ')"
+          }
+          probe POST /api/loyalty/staff '{"action":"login","companyId":"x"}'
+          probe POST /api/notifications '{}'
+          probe GET /api/billing/sinpe
+          probe POST /api/loyalty/member '{"companyId":"x"}'
+          probe POST /api/wallet/google '{"companyId":"x"}'
+          probe POST /api/wallet/apple '{"companyId":"x"}'
+          probe GET /api/admin/sinpe
+          probe GET /api/cron/scheduled
+          probe GET "/card-image/abcdefghij12?variant=card"
