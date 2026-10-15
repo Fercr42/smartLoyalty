@@ -128,6 +128,26 @@ export default function JoinClient({
     [companyId]
   );
 
+  // iPhone: el ícono de la pantalla de inicio no ve los datos de Safari. En Safari, el enlace y el manifest
+  // llevan ?m={tarjeta} para que "Agregar a pantalla de inicio" use la misma tarjeta. Dentro del ícono se quita.
+  useEffect(() => {
+    if (!isIOS()) return;
+    const url = new URL(window.location.href);
+    if (isStandalone()) {
+      getMemberId(companyId); // primero adopta la tarjeta del enlace (si este ícono aún no tiene una)
+      if (url.searchParams.has("m")) {
+        url.searchParams.delete("m");
+        window.history.replaceState(null, "", url.pathname + url.search);
+      }
+      return;
+    }
+    const memberId = getMemberId(companyId);
+    url.searchParams.set("m", memberId);
+    window.history.replaceState(null, "", url.pathname + url.search);
+    const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (manifest) manifest.href = `/join/${companyId}/manifest.webmanifest?m=${memberId}`;
+  }, [companyId]);
+
   // Vuelve a leer el diseño y los puntos (el ícono de inicio en iPhone se reanuda sin recargar la página).
   const refreshCard = useCallback(() => {
     getDoc(doc(db, "companies", companyId))
