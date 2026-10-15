@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import JoinClient from "../../components/joinClient";
-import { appleWalletEnabled } from "../../lib/apple-wallet";
 import { getI18n } from "../../i18n/server";
 
 type Props = { params: Promise<{ companyId: string }> };
@@ -16,11 +15,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function JoinPage({ params }: Props) {
   const { companyId } = await params;
-  return (
-    <JoinClient
-      companyId={companyId}
-      walletEnabled={Boolean(process.env.GOOGLE_WALLET_ISSUER_ID)}
-      appleWalletEnabled={appleWalletEnabled()}
-    />
-  );
+  return <JoinClient companyId={companyId} walletEnabled={Boolean(process.env.GOOGLE_WALLET_ISSUER_ID)} />;
 }

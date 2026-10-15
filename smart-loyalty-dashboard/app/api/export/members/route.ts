@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         d.id.slice(0, 8).toUpperCase(),
         m.email ?? "",
         m.birthday ?? "",
-        [m.platform === "google" ? "Google Wallet" : "", m.appleWallet === true ? "Apple Wallet" : ""].filter(Boolean).join(" + ") || "Web",
+        m.platform === "google" ? "Google Wallet" : "Web",
         m.stamps ?? 0,
         m.totalVisits ?? 0,
         day(m.createdAt),

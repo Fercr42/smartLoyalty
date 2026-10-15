@@ -8,8 +8,6 @@ import {
   walletIssuerId,
   type WalletCompany,
 } from "./google-wallet";
-import { appleWalletEnabled } from "./apple-wallet";
-import { appleHolders, refreshApplePasses } from "./apple-wallet-updates";
 import { companyLocale } from "../i18n/config";
 import { messages } from "../i18n/messages";
 import { planState } from "./plan";
@@ -308,39 +306,10 @@ export async function sendNotification(companyId: string, payload: StoredNotific
     walletMembers.docs.forEach((d) => reached.add(d.id));
   }
 
-  // Apple Wallet no tiene mensajes como Google: la promo va al reverso del pase y, al cambiar,
-  // el iPhone la muestra como notificación. Se avisa a los iPhones para que descarguen el pase.
-  let apple = 0;
-  if (appleWalletEnabled()) {
-    try {
-      const promo = { title: payload.title.slice(0, 80), body: walletBody.slice(0, 400), at: Date.now() };
-      const holders = new Set(await appleHolders(companyId));
-      if (!memberIds) {
-        await companyRef.update({ appleWalletPromo: promo });
-        apple = await refreshApplePasses(companyId, null);
-        holders.forEach((id) => reached.add(id));
-      } else {
-        const ids = [...memberIds];
-        for (let i = 0; i < ids.length; i += 500) {
-          const batch = db.batch();
-          ids.slice(i, i + 500).forEach((id) =>
-            batch.set(companyRef.collection("walletMembers").doc(id), { applePromo: promo }, { merge: true })
-          );
-          await batch.commit();
-        }
-        apple = await refreshApplePasses(companyId, ids);
-        ids.filter((id) => holders.has(id)).forEach((id) => reached.add(id));
-      }
-    } catch (e) {
-      console.error("Apple Wallet promo", e);
-    }
-  }
-
   await notificationRef.update({
     sent,
     failed,
     wallet,
-    appleWallet: apple,
     recipients: [...reached].slice(0, 20_000),
     recipientCount: reached.size,
   });

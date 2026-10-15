@@ -24,7 +24,4 @@ export const pass: Messages["pass"] = {
   reviewDirectBody: "ความคิดเห็นของคุณสำคัญมาก แตะที่นี่เพื่อรีวิวเราบน Google",
   rateVisit: "⭐ ให้คะแนนการมาใช้บริการ",
   reviewWalletHint: "เปิดบัตรของคุณแล้วแตะ “⭐ ให้คะแนนการมาใช้บริการ”",
-  latestPromo: "โปรโมชันล่าสุด",
-  balanceChanged: "ตอนนี้คุณมี %@",
-  cardCode: "รหัสบัตร",
 };

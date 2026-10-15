@@ -34,25 +34,25 @@ export default async function Landing() {
     <div className="bg-[#07201b] text-white">
       <ScrollProgress />
       <StickyHeader>
-        <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 text-[#0b1f1a]">
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link href="/" aria-label="Smart Loyalty" className="shrink-0">
             <BrandLogo size={30} />
           </Link>
-          <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-[#33403b]">
-            <a href="#como-funciona" className="transition-colors hover:text-[#0e7c66]">{t.navHow}</a>
-            <a href="#nichos" className="transition-colors hover:text-[#0e7c66]">{t.navNiches}</a>
-            <a href="#funciones" className="transition-colors hover:text-[#0e7c66]">{t.navFeatures}</a>
-            <a href="#numeros" className="transition-colors hover:text-[#0e7c66]">{t.roiEyebrow}</a>
-            <a href="#preguntas" className="transition-colors hover:text-[#0e7c66]">{t.navFaq}</a>
+          <div className="hidden lg:flex items-center gap-6 text-sm text-[#4b5560]">
+            <a href="#como-funciona" className="transition-colors hover:text-white">{t.navHow}</a>
+            <a href="#nichos" className="transition-colors hover:text-white">{t.navNiches}</a>
+            <a href="#funciones" className="transition-colors hover:text-white">{t.navFeatures}</a>
+            <a href="#numeros" className="transition-colors hover:text-white">{t.roiEyebrow}</a>
+            <a href="#preguntas" className="transition-colors hover:text-white">{t.navFaq}</a>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <LanguageSwitcher className="hidden sm:block border-[#b9c6c0] text-[#0b1f1a] font-medium hover:bg-[#f4f7f5]" />
-            <Link href="/panel" className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap text-[#0b1f1a] hover:bg-[#eef3f1] hover:text-[#0e7c66]">
+            <LanguageSwitcher className="hidden sm:block border-[#cfd8d4]" />
+            <Link href="/panel" className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap hover:bg-[#f4f7f5]">
               {t.login}
             </Link>
             <Link
               href="/registro"
-              className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap text-[#0e7c66] border-2 border-[#0e7c66] hover:bg-[#e8f5f1]"
+              className="hidden sm:block text-sm font-semibold px-3 py-2 rounded-lg whitespace-nowrap border border-[#cfd8d4] hover:bg-[#f4f7f5]"
             >
               {t.tryFree}
             </Link>

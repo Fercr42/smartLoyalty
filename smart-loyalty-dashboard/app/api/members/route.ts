@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         since: ms(m.createdAt),
         email: typeof m.email === "string" ? m.email : "",
         birthday: typeof m.birthday === "string" ? m.birthday : "",
-        wallet: m.platform === "google" || m.appleWallet === true,
+        wallet: m.platform === "google",
         push: withPush.has(d.id),
       };
     })

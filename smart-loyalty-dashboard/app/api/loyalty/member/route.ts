@@ -8,7 +8,6 @@ import { memberCoupons } from "../../../lib/coupons";
 import { kickCron } from "../../../lib/cron-kick";
 import { publicOrigin } from "../../../lib/origin";
 import { updateMemberName, type WalletCompany } from "../../../lib/google-wallet";
-import { refreshApplePasses } from "../../../lib/apple-wallet-updates";
 import { cleanName } from "../../../lib/member-name";
 import { cleanLoyalty } from "../../../lib/loyalty-mode";
 import { cleanRewards } from "../../../lib/rewards";
@@ -84,7 +83,6 @@ export async function POST(req: NextRequest) {
     await updateMemberName({ ...company.data(), id: companyId } as WalletCompany, memberRef.id, publicOrigin(req.nextUrl.origin), name).catch(
       (e) => console.error("Wallet nombre", e) // el nombre ya quedó guardado
     );
-    await refreshApplePasses(companyId, [memberRef.id]).catch((e) => console.error("Apple Wallet nombre", e));
   }
 
   return Response.json({
