@@ -7,7 +7,6 @@ import ProgramShowcase from "./components/programShowcase";
 import ScrollProgress from "./components/scrollProgress";
 import Reveal from "./components/reveal";
 import StickyHeader from "./components/stickyHeader";
-import RoiCalculator from "./components/roiCalculator";
 import PricingSection from "./components/pricingSection";
 import { fmt } from "./i18n/config";
 import { LanguageSwitcher } from "./i18n/client";
@@ -43,7 +42,7 @@ export default async function Landing() {
             <a href="#como-funciona" className="transition-colors hover:text-[#0e7c66]">{t.navHow}</a>
             <a href="#nichos" className="transition-colors hover:text-[#0e7c66]">{t.navNiches}</a>
             <a href="#funciones" className="transition-colors hover:text-[#0e7c66]">{t.navFeatures}</a>
-            <a href="#numeros" className="transition-colors hover:text-[#0e7c66]">{t.roiEyebrow}</a>
+            <a href="#comparar" className="transition-colors hover:text-[#0e7c66]">{t.compareEyebrow}</a>
             <a href="#precios" className="transition-colors hover:text-[#0e7c66]">{t.pricingEyebrow}</a>
             <a href="#preguntas" className="transition-colors hover:text-[#0e7c66]">{t.navFaq}</a>
           </div>
@@ -267,16 +266,16 @@ export default async function Landing() {
           </div>
         </section>
 
-        {/* Calculadora: el dueño mueve sus propios números. */}
-        <section id="numeros" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
+        {/* Comparación con lo que el dueño ya usa (cartón, WhatsApp). */}
+        <section id="comparar" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
           <div className="flex flex-col gap-3 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.roiEyebrow}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.compareEyebrow}</p>
             <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
-              {t.roiTitle}
+              {t.compareTitle}
             </h2>
-            <p className="text-white/70">{t.roiLead}</p>
+            <p className="text-white/70">{t.compareLead}</p>
           </div>
-          <RoiCalculator />
+          <Comparison t={t} />
         </section>
 
         {/* Los tres planes. */}
@@ -400,6 +399,50 @@ function Highlighted({ text, mark }: { text: string; mark: string }) {
       <span className="sl-mark">{mark}</span>
       {text.slice(at + mark.length)}
     </>
+  );
+}
+
+// Tabla: cartón, WhatsApp a mano y Smart Loyalty. "yes"/"no" se dibujan como marca; "-" no aplica.
+function Comparison({ t }: { t: Messages["landing"] }) {
+  const cell = (value: string, highlight: boolean) => {
+    if (value === "yes") return <span className="text-[#19c58a] font-bold" aria-label={t.compareYes}>✓</span>;
+    if (value === "no") return <span className="text-white/35" aria-label={t.compareNo}>✕</span>;
+    if (value === "-") return <span className="text-white/35">—</span>;
+    return <span className={highlight ? "font-semibold text-white" : "text-white/70"}>{value}</span>;
+  };
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-white/12">
+      <table className="w-full min-w-[620px] text-sm">
+        <thead>
+          <tr className="border-b border-white/12">
+            <th className="p-4" />
+            {t.compareColumns.map((col, i) => (
+              <th
+                key={col}
+                scope="col"
+                className={`p-4 text-center font-semibold ${i === 2 ? "bg-[#0b352c] text-[#9fe3cd]" : "text-white/70"}`}
+              >
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/10">
+          {t.compareRows.map((row) => (
+            <tr key={row.label}>
+              <th scope="row" className="p-4 text-left font-medium text-white/85">
+                {row.label}
+              </th>
+              {row.cells.map((value, i) => (
+                <td key={i} className={`p-4 text-center ${i === 2 ? "bg-[#0b352c]" : ""}`}>
+                  {cell(value, i === 2)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
