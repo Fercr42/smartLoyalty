@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Smart Loyalty Negocios</string>
+    <string name="title_activity_main">Smart Loyalty Negocios</string>
+    <string name="package_name">app.smartloyalty.negocios</string>
+    <string name="custom_url_scheme">app.smartloyalty.negocios</string>
+</resources>

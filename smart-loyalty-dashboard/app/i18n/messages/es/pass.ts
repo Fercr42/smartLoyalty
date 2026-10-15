@@ -23,6 +23,8 @@ export const pass = {
   reviewFallback: "tu visita",
   reviewSurveyBody: "Califica tu visita en 10 segundos. Tu opinión nos ayuda a mejorar.",
   reviewDirectBody: "Tu opinión nos ayuda mucho. Toca aquí para dejarnos una reseña en Google.",
+  ownerFeedbackTitle: "Nueva opinión: {stars}",
+  ownerFeedbackNoComment: "Un cliente calificó su visita.",
   rateVisit: "⭐ Califica tu visita",
   reviewWalletHint: "Abre tu tarjeta y toca “⭐ Califica tu visita”.",
   latestPromo: "Última promoción",

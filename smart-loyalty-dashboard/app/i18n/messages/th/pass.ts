@@ -22,6 +22,8 @@ export const pass: Messages["pass"] = {
   reviewFallback: "ร้านของเรา",
   reviewSurveyBody: "ให้คะแนนการมาครั้งนี้ใน 10 วินาที ความคิดเห็นของคุณช่วยให้เราดีขึ้น",
   reviewDirectBody: "ความคิดเห็นของคุณสำคัญมาก แตะที่นี่เพื่อรีวิวเราบน Google",
+  ownerFeedbackTitle: "ความคิดเห็นใหม่: {stars}",
+  ownerFeedbackNoComment: "ลูกค้าให้คะแนนการมาใช้บริการ",
   rateVisit: "⭐ ให้คะแนนการมาใช้บริการ",
   reviewWalletHint: "เปิดบัตรของคุณแล้วแตะ “⭐ ให้คะแนนการมาใช้บริการ”",
   latestPromo: "โปรโมชันล่าสุด",

@@ -23,6 +23,8 @@ import BrandLogo from "../components/brandLogo";
 import { auth, db } from "../firebase/config";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
 import { planState, type PlanState } from "../lib/plan";
+import { nativePlatform, nativePushReady, registerNativePush } from "../lib/native";
+import { useIsNativeApp } from "../lib/use-native";
 
 // Panel del dueño: una sección a la vez, con menú lateral (computadora) o pestañas (celular).
 const TABS = ["inicio", "clientes", "mensajes", "resultados", "automatizaciones", "tarjeta", "recompensas", "negocio", "plan"] as const;
@@ -36,6 +38,19 @@ const tabFromHash = (): TabId => {
 
 export default function Panel() {
   const { user, loading } = useAuth();
+  const inApp = useIsNativeApp();
+
+  // App del dueño: registrar este celular para recibir avisos (opiniones de clientes).
+  useEffect(() => {
+    if (!user || !nativePushReady()) return;
+    registerNativePush(async (token) => {
+      await fetch("/api/owner/devices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ token, platform: nativePlatform() }),
+      }).catch(() => {});
+    }).catch(console.error);
+  }, [user]);
   const { m } = useI18n();
   const [plan, setPlan] = useState<PlanState | null>(null);
   const [companyName, setCompanyName] = useState("");
@@ -115,6 +130,11 @@ export default function Panel() {
             <button onClick={handleLogout} className="text-sm border rounded-md px-3 py-1.5 text-gray-700 hover:bg-gray-100">
               {m.common.logout}
             </button>
+            {inApp && (
+              <a href="/app?cambiar=1" aria-label={m.appHome.change} className="text-sm border rounded-md px-2 py-1.5 text-gray-700">
+                ⇄
+              </a>
+            )}
           </div>
         </div>
       </header>

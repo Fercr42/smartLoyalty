@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../firebase/admin";
+import { companyLocale, fmt } from "../../i18n/config";
+import { messages } from "../../i18n/messages";
+import { notifyOwner } from "../../lib/owner-push";
 
 export const runtime = "nodejs";
 
@@ -50,6 +53,15 @@ export async function POST(req: NextRequest) {
     "feedbackStats.count": FieldValue.increment(1),
     "feedbackStats.sum": FieldValue.increment(rating),
   });
+
+  // Aviso al dueño en su app (si la tiene). No bloquea la respuesta al cliente si falla.
+  const pass = messages[companyLocale(company.data())].pass;
+  await notifyOwner(
+    body.companyId,
+    fmt(pass.ownerFeedbackTitle, { stars: "★".repeat(rating) + "☆".repeat(5 - rating) }),
+    comment || pass.ownerFeedbackNoComment,
+    "/panel#resultados"
+  ).catch((e) => console.error("Aviso al dueño", e));
 
   const url = company.data()?.reviews?.url;
   const askReview = rating >= 4 && typeof url === "string" && /^https:\/\/\S+$/.test(url);

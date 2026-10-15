@@ -10,6 +10,7 @@ import {
 import { auth, provider } from "../firebase/config";
 import BrandLogo from "./brandLogo";
 import { LanguageSwitcher, useI18n } from "../i18n/client";
+import { useIsNativeApp } from "../lib/use-native";
 
 const MIN_PASSWORD = 8;
 
@@ -23,6 +24,8 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // Dentro de la app: Google no permite su inicio de sesión en apps así, y el registro se hace en la web.
+  const inApp = useIsNativeApp();
 
   // Firebase devuelve códigos; cada uno con su explicación.
   const explain = (err: unknown) => {
@@ -98,6 +101,10 @@ export default function Auth() {
       <div className="bg-white border border-[#dfe7e3] rounded-2xl p-8 max-w-sm w-full text-center flex flex-col gap-4">
         <h1 className="text-xl font-semibold text-gray-900">{t.title}</h1>
 
+        {inApp ? (
+          <p className="text-xs text-gray-600 text-left">{t.googleInApp}</p>
+        ) : (
+          <>
         <button
           onClick={loginWithGoogle}
           className="w-full border border-[#cfd8d4] rounded-xl py-3 font-semibold text-gray-900 hover:bg-[#f4f7f5]"
@@ -110,6 +117,8 @@ export default function Auth() {
           {t.or}
           <span className="h-px flex-1 bg-[#e6ece9]" />
         </div>
+          </>
+        )}
 
         <form onSubmit={submit} className="flex flex-col gap-3 text-left">
           <label htmlFor="auth-email" className="flex flex-col gap-1 text-xs text-gray-600">
@@ -145,6 +154,9 @@ export default function Auth() {
         </form>
 
         <div className="flex flex-col gap-1 text-sm">
+          {inApp ? (
+            <p className="text-xs text-gray-500">{m.appHome.noAccount}</p>
+          ) : (
           <button
             type="button"
             onClick={() => {
@@ -156,6 +168,7 @@ export default function Auth() {
           >
             {mode === "signUp" ? t.haveAccount : t.noAccount}
           </button>
+          )}
           {mode === "signIn" && (
             <button type="button" onClick={reset} className="text-gray-600 hover:underline text-xs">
               {t.forgot}

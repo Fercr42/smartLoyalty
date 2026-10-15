@@ -100,6 +100,7 @@ export const ai: Messages["ai"] = {
 };
 
 export const billing: Messages["billing"] = {
+  "inApp": "จัดการแพ็กเกจได้ที่ smartloyalty.app ผ่านเบราว์เซอร์",
   "sdkError": "โหลด PayPal ไม่สำเร็จ โปรดโหลดหน้าใหม่",
   "activateFailed": "เปิดใช้แพ็กเกจไม่สำเร็จ",
   "activated": "เรียบร้อย! แพ็กเกจของคุณเปิดใช้งานแล้ว",

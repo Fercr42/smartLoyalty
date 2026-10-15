@@ -6,6 +6,8 @@ import { formatDay } from "../lib/format";
 import { cleanLoyalty, earnedFor, formatBalance, needsSale, type LoyaltyConfig } from "../lib/loyalty-mode";
 import { nextRewardText, type Reward } from "../lib/rewards";
 import { useI18n } from "../i18n/client";
+import { haptic, hasNativeScanner, nativeScan } from "../lib/native";
+import { useIsNativeApp } from "../lib/use-native";
 
 type Company = { name: string; logoUrl?: string; brandColor?: string; rewards: Reward[]; loyalty?: unknown };
 type Member = { memberId: string; code: string; stamps: number; totalVisits: number; name?: string };
@@ -16,6 +18,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   const { m, f, dateLocale, locale, te } = useI18n();
   const t = m.scanner;
   const sessionKey = `staff-session:${companyId}`;
+  const inApp = useIsNativeApp();
   const [token, setToken] = useState<string | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [pin, setPin] = useState("");
@@ -93,6 +96,20 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
   const startCamera = async () => {
     setNotice(null);
     setMember(null);
+    // En la app: escáner nativo del teléfono (más rápido y sin permisos del navegador).
+    if (hasNativeScanner()) {
+      try {
+        const text = await nativeScan();
+        if (text) {
+          haptic("LIGHT");
+          lookup(text);
+        }
+      } catch (e) {
+        console.error(e);
+        setNotice({ ok: false, text: t.cameraFailed });
+      }
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -165,6 +182,7 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
       setNotice({ ok: false, text: te(data.error) ?? t.stampFailed });
       return;
     }
+    haptic("MEDIUM");
     setMember((m) => m && { ...m, stamps: data.stamps, totalVisits: m.totalVisits + 1 });
     setNotice({ ok: true, text: f(t.stampOk, { count: formatBalance(added, loyalty, locale), total: formatBalance(data.stamps, loyalty, locale) }) });
   };
@@ -236,6 +254,11 @@ export default function StaffScanner({ companyId }: { companyId: string }) {
             </button>
           )}
         </header>
+        {inApp && !token && (
+          <a href="/app?cambiar=1" className="text-sm text-gray-600 text-center -mt-2">
+            {m.appHome.change}
+          </a>
+        )}
 
         {!token ? (
           <form onSubmit={login} className="bg-white rounded-2xl border p-6 flex flex-col gap-3">

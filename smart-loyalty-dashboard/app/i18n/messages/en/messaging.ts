@@ -100,6 +100,7 @@ export const ai: Messages["ai"] = {
 };
 
 export const billing: Messages["billing"] = {
+  "inApp": "Your plan is managed at smartloyalty.app in your browser.",
   "sdkError": "Couldn't load PayPal. Reload the page.",
   "activateFailed": "Couldn't activate the plan",
   "activated": "Done! Your plan is active.",

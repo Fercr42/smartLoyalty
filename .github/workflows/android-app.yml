@@ -1,0 +1,75 @@
+name: App Android (dueños y empleados)
+
+# Compila la app "Smart Loyalty Negocios" para Android.
+# - Siempre: APK de prueba (se instala directo en un celular Android). Se descarga en Actions > la ejecución > Artifacts.
+# - Con los secretos de firma: también el .aab firmado para subir a Google Play.
+# Secretos opcionales (Settings > Secrets and variables > Actions):
+#   GOOGLE_SERVICES_JSON          contenido de google-services.json (Firebase) para avisos push
+#   ANDROID_KEYSTORE_BASE64       llave de firma en base64 (base64 -w0 upload.jks)
+#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+on:
+  push:
+    branches: [main]
+    paths: ["smart-loyalty-app/**", ".github/workflows/android-app.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: smart-loyalty-app
+    env:
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: smart-loyalty-app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npx cap sync android
+
+      - name: Firebase (avisos push)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi
+
+      - name: APK de prueba
+        working-directory: smart-loyalty-app/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smart-loyalty-negocios-prueba-apk
+          path: smart-loyalty-app/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Llave de firma
+        id: keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "path=$RUNNER_TEMP/upload.jks" >> "$GITHUB_OUTPUT"
+          fi
+      - name: AAB firmado para Google Play
+        if: steps.keystore.outputs.path != ''
+        working-directory: smart-loyalty-app/android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+      - if: steps.keystore.outputs.path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-loyalty-negocios-google-play-aab
+          path: smart-loyalty-app/android/app/build/outputs/bundle/release/app-release.aab
