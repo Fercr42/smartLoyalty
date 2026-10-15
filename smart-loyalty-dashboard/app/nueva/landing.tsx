@@ -20,8 +20,8 @@ import { TRIAL_DAYS } from "../lib/plan";
 const BEATS = [
   {
     verb: "Suma.",
-    text: "Cada compra se convierte en sellos, puntos o cashback. Tu empleado escanea con su PIN y la tarjeta del cliente se actualiza sola.",
-    data: "₡12.000 en caja = +240 puntos",
+    text: "Cada visita suma un sello. Tu empleado escanea con su PIN y la tarjeta del cliente se actualiza sola. Con 10, el café va por la casa.",
+    data: "Compra escaneada: +1 sello",
   },
   {
     verb: "Avisa.",

@@ -254,8 +254,8 @@ function drawQr(ctx: CanvasRenderingContext2D, x: number, y: number, size: numbe
     for (let c = 0; c < n; c++) if (QR.isDark(r, c)) ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
 }
 
-// Cara de la tarjeta: un pase de Apple Wallet de "Café Luna" con puntos, 10 sellos, datos y código.
-function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number) {
+// Cara de la tarjeta: un pase de Apple Wallet de "Café Luna" con 10 sellos, datos y código.
+function drawFace(ctx: CanvasRenderingContext2D, lit: number) {
   const { width: w, height: h } = ctx.canvas;
   const X = (x: number) => (x / FACE_W + 0.5) * w;
   const Y = (y: number) => (0.5 - y / FACE_H) * h;
@@ -274,7 +274,7 @@ function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number) {
   ctx.save();
   ctx.clip();
 
-  // Encabezado: logo + nombre a la izquierda, puntos a la derecha.
+  // Encabezado: logo + nombre a la izquierda, sellos a la derecha.
   drawCafeLunaLogo(ctx, 74, 78, 36);
   ctx.fillStyle = cream;
   ctx.font = `600 46px ${sans}`;
@@ -282,10 +282,10 @@ function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number) {
   ctx.textAlign = "right";
   ctx.fillStyle = label;
   ctx.font = `600 22px ${sans}`;
-  ctx.fillText("PUNTOS", w - 40, 60);
+  ctx.fillText("SELLOS", w - 40, 60);
   ctx.fillStyle = cream;
   ctx.font = `500 58px ${sans}`;
-  ctx.fillText(points.toLocaleString("es-CR"), w - 40, 108);
+  ctx.fillText(`${lit} de 10`, w - 40, 108);
   ctx.textAlign = "left";
 
   // Franja (strip) con los sellos.
@@ -338,7 +338,7 @@ function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number) {
   // Campos secundarios.
   const fields = [
     { l: "MIEMBRO", v: "Ana Solís", x: 40 },
-    { l: "SELLOS", v: `${lit} de 10`, x: w * 0.42 },
+    { l: "FALTAN", v: lit >= 10 ? "¡Listo!" : `${10 - lit} sellos`, x: w * 0.42 },
     { l: "PREMIO", v: "Café gratis", x: w * 0.66 },
   ];
   fields.forEach((f) => {
@@ -474,11 +474,11 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
   face.position.z = 0.062;
   card.add(face);
 
-  let shown = { points: -1, lit: -1 };
+  let shown = -1;
   const redrawFace = () => {
-    drawFace(faceCtx, Math.round(stage.points), Math.round(stage.stamps));
+    drawFace(faceCtx, Math.round(stage.stamps));
     faceTex.needsUpdate = true;
-    shown = { points: Math.round(stage.points), lit: Math.round(stage.stamps) };
+    shown = Math.round(stage.stamps);
   };
   document.fonts?.ready.then(redrawFace).catch(() => {});
   redrawFace();
@@ -610,8 +610,8 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
     card.visible = cur.s > 0.02;
     uniforms.uCenter.value.set(cur.x, cur.y, cur.z);
 
-    // Cara: solo se vuelve a dibujar cuando cambian los puntos o los sellos.
-    if (Math.round(stage.points) !== shown.points || Math.round(stage.stamps) !== shown.lit) redrawFace();
+    // Cara: solo se vuelve a dibujar cuando cambian los sellos.
+    if (Math.round(stage.stamps) !== shown) redrawFace();
 
     // Cursor en el plano z = 0.
     if (!reduced) {
@@ -629,7 +629,7 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
 
     // Con movimiento reducido solo se dibuja cuando algo cambió.
     if (reduced) {
-      const sig = JSON.stringify([stage.shape, stage.card, stage.points, stage.stamps, stage.fade, camera.aspect]);
+      const sig = JSON.stringify([stage.shape, stage.card, stage.stamps, stage.fade, camera.aspect]);
       if (sig === lastSig) return;
       lastSig = sig;
     }

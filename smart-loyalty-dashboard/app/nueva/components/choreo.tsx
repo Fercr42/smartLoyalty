@@ -189,7 +189,6 @@ export default function Choreo() {
           // Sin animación: las tres escenas una debajo de otra, sin fijar la sección.
           value.classList.add("is-static");
           stage.stamps = 10;
-          stage.points = 1240;
           ScrollTrigger.create({ trigger: value, start: "top 60%", end: "bottom 40%", onToggle: (s) => s.isActive && apply("suma") });
         } else {
           ScrollTrigger.create({
@@ -201,10 +200,9 @@ export default function Choreo() {
             onUpdate: (self) => {
               const p = self.progress;
               show(p < 0.34 ? 0 : p < 0.67 ? 1 : 2);
-              // Durante "Suma" los sellos se encienden uno a uno y los puntos suben.
+              // Durante "Suma" los sellos se encienden uno a uno.
               const lit = Math.min(10, Math.max(0, ((p - 0.03) / 0.27) * 10));
               stage.stamps = lit;
-              stage.points = Math.round(lit) * 124;
               const bar = value.querySelector<HTMLElement>("[data-progress]");
               if (bar) bar.style.transform = `scaleY(${p})`;
             },
