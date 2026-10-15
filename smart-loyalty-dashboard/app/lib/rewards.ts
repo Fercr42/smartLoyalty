@@ -42,3 +42,18 @@ export function reviewDelayMinutes(reviews?: { delayMinutes?: unknown; delayHour
   const value = Number.isFinite(minutes) && minutes > 0 ? minutes : Number.isFinite(hours) && hours > 0 ? hours * 60 : REVIEW_DELAY_DEFAULT_MIN;
   return Math.min(Math.max(Math.round(value), 2), 48 * 60);
 }
+
+// ¿Pedirle la reseña en esta visita? Si ya respondió la encuesta, nunca más. Si no respondió,
+// se le vuelve a pedir en otra compra, con al menos REVIEW_RETRY_DAYS de espera y hasta REVIEW_MAX_TRIES veces.
+export const REVIEW_RETRY_DAYS = 7;
+export const REVIEW_MAX_TRIES = 3;
+export function shouldAskReview(
+  member: { reviewAnsweredAt?: unknown; reviewRequestedAt?: { toMillis?: () => number } | null; reviewRequests?: unknown },
+  now = Date.now()
+) {
+  if (member.reviewAnsweredAt) return false;
+  const last = member.reviewRequestedAt?.toMillis?.() ?? 0;
+  const tries = Number(member.reviewRequests) || (last ? 1 : 0);
+  if (tries >= REVIEW_MAX_TRIES) return false;
+  return !last || now - last >= REVIEW_RETRY_DAYS * 86_400_000;
+}

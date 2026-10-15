@@ -236,6 +236,8 @@ export async function sendNotification(companyId: string, payload: StoredNotific
   let sent = 0;
   let failed = 0;
   const dead: string[] = [];
+  const memberOfToken = new Map(targetSubs.map((d) => [d.id, d.data().memberId as string | undefined]));
+  const delivered = new Set<string>(); // clientes con al menos una notificación aceptada por el celular
   for (let i = 0; i < tokens.length; i += 500) {
     const chunk = tokens.slice(i, i + 500);
     const message: MulticastMessage = {
@@ -257,6 +259,8 @@ export async function sendNotification(companyId: string, payload: StoredNotific
     failed += res.failureCount;
     res.responses.forEach((r, j) => {
       if (r.error && DEAD_TOKEN.includes(r.error.code)) dead.push(chunk[j]);
+      const member = memberOfToken.get(chunk[j]);
+      if (r.success && member) delivered.add(member);
     });
   }
 
@@ -333,6 +337,20 @@ export async function sendNotification(companyId: string, payload: StoredNotific
       }
     } catch (e) {
       console.error("Apple Wallet promo", e);
+    }
+  }
+
+  // Encuesta de reseña que no le llegó a nadie: no cuenta como pedida, se puede volver a programar.
+  if (payload.kind === "review" && memberIds) {
+    // Llegó si algún celular la aceptó o si quedó en su tarjeta de Wallet.
+    const walletReached = new Set([...reached].filter((id) => !targetSubs.some((d) => d.data().memberId === id)));
+    const missed = [...memberIds].filter((id) => !delivered.has(id) && !walletReached.has(id));
+    for (const id of missed) {
+      await companyRef
+        .collection("walletMembers")
+        .doc(id)
+        .update({ reviewRequestedAt: FieldValue.delete(), reviewRequests: FieldValue.increment(-1) })
+        .catch(() => {});
     }
   }
 
