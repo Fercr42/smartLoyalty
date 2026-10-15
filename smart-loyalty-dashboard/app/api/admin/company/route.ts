@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminDb } from "../../../firebase/admin";
 import { requireAdmin } from "../../../lib/admin-auth";
-import { planState } from "../../../lib/plan";
+import { isTier, planState } from "../../../lib/plan";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
   const admin = await requireAdmin(req);
   if (admin instanceof Response) return admin;
 
-  const { companyId, action } = await req.json().catch(() => ({}));
+  const { companyId, action, tier: rawTier } = await req.json().catch(() => ({}));
+  const tier = isTier(rawTier) ? rawTier : "pro";
   if (typeof companyId !== "string" || !/^[A-Za-z0-9]{10,64}$/.test(companyId)) {
     return Response.json({ error: "Restaurante inválido" }, { status: 400 });
   }
@@ -30,12 +31,13 @@ export async function POST(req: NextRequest) {
       plan = {
         status: "active",
         provider: "manual",
+        tier,
         paidUntil: Math.max(now, current.provider === "manual" && current.paidUntil ? current.paidUntil : now) + 30 * DAY,
         ...audit,
       };
       break;
     case "activate_forever":
-      plan = { status: "active", provider: "manual", ...audit };
+      plan = { status: "active", provider: "manual", tier, ...audit };
       break;
     case "extend_trial":
       plan = {

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminAuth, adminDb } from "../../firebase/admin";
 import { publicOrigin } from "../../lib/origin";
-import { PLAN_EXPIRED_MESSAGE, planState } from "../../lib/plan";
+import { PLAN_EXPIRED_MESSAGE, planState, UPGRADE_MESSAGE } from "../../lib/plan";
 import {
   InputError,
   parseNotificationInput,
@@ -31,7 +31,23 @@ export async function POST(req: NextRequest) {
     const companyRef = adminDb().collection("companies").doc(uid);
     const company = await companyRef.get();
     if (!company.exists) return bad("Primero registra tu empresa");
-    if (!planState(company.data()?.plan).allowed) return bad(PLAN_EXPIRED_MESSAGE, 402);
+    const plan = planState(company.data()?.plan);
+    if (!plan.allowed) return bad(PLAN_EXPIRED_MESSAGE, 402);
+    // Límites del plan Esencial.
+    const { features } = plan;
+    if (!features.segments && input.audience !== "all") return bad(UPGRADE_MESSAGE, 402);
+    if (!features.scheduling && input.schedule) return bad(UPGRADE_MESSAGE, 402);
+    if (!features.coupons && input.coupon) return bad(UPGRADE_MESSAGE, 402);
+    if (features.campaignsPerMonth !== null) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const sent = await companyRef.collection("notifications").where("createdAt", ">=", monthStart).select("kind").get();
+      // Solo cuentan los envíos manuales; los automáticos ("casi lo logras") no.
+      const manual = sent.docs.filter((d) => !d.data().kind).length;
+      if (manual >= features.campaignsPerMonth) {
+        return bad(`Ya enviaste las ${features.campaignsPerMonth} campañas de este mes. El plan Pro no tiene límite.`, 402);
+      }
+    }
 
     const payload = await prepareNotification(companyRef, input);
     if (input.schedule) {

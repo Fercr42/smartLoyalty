@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { adminAuth, adminDb } from "../firebase/admin";
 import { AI_DAILY_LIMIT } from "./ai-context";
-import { PLAN_EXPIRED_MESSAGE, planState } from "./plan";
+import { PLAN_EXPIRED_MESSAGE, planState, UPGRADE_MESSAGE } from "./plan";
 
 // Llamadas a la IA desde el servidor (las claves nunca llegan al navegador).
 // AI_PROVIDER=gemini (por defecto, plan gratis de Google) o AI_PROVIDER=claude.
@@ -39,7 +39,9 @@ export async function aiOwner(req: NextRequest) {
   const companyRef = adminDb().collection("companies").doc(uid);
   const company = await companyRef.get();
   if (!company.exists) return fail("Primero registra tu empresa", 400);
-  if (!planState(company.data()?.plan).allowed) return fail(PLAN_EXPIRED_MESSAGE, 402);
+  const plan = planState(company.data()?.plan);
+  if (!plan.allowed) return fail(PLAN_EXPIRED_MESSAGE, 402);
+  if (!plan.features.ai) return fail(UPGRADE_MESSAGE, 402);
   if (!hasKey()) return fail("La IA todavía no está configurada.", 503);
   return { uid, companyRef, company: company.data()! };
 }

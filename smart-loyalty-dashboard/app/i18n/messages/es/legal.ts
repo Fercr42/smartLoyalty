@@ -124,7 +124,7 @@ export const legal = {
         h: "Precio, prueba y pagos",
         p: [
           "La prueba gratis dura {days} días con todas las funciones y no pide tarjeta.",
-          "Después cuesta {price} USD al mes. El cobro es automático con PayPal hasta que canceles.",
+          "Después cuesta desde {price} USD al mes según el plan (Esencial, Pro o Multi-local). Con PayPal el cobro es automático hasta que canceles; con SINPE Móvil pagas cada mes o cada año y no hay cobros automáticos.",
           "Si un cobro falla, mantenemos el acceso unos días mientras PayPal reintenta.",
         ],
       },
