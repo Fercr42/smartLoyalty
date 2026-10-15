@@ -1,24 +1,10 @@
 import { adminDb } from "../firebase/admin";
-import type { Tier } from "./plan";
 
 // Cobro mensual con PayPal Subscriptions. PAYPAL_ENV=sandbox (pruebas) o live (dinero real).
 
 const DAY = 86_400_000;
 const base = () => (process.env.PAYPAL_ENV === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com");
-// Un plan de PayPal por cada plan (se crean en PayPal con el precio en USD).
-// NEXT_PUBLIC_PAYPAL_PLAN_ID es el plan viejo de US$100: quienes ya lo tienen siguen como Pro.
-export const paypalPlanIds = (): Record<Tier, string> => ({
-  esencial: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ESENCIAL ?? "",
-  pro: process.env.NEXT_PUBLIC_PAYPAL_PLAN_PRO ?? "",
-  multi: process.env.NEXT_PUBLIC_PAYPAL_PLAN_MULTI ?? "",
-});
-export function tierForPaypalPlan(planId: string): Tier | null {
-  if (!planId) return null;
-  const ids = paypalPlanIds();
-  const tier = (Object.keys(ids) as Tier[]).find((t) => ids[t] === planId);
-  if (tier) return tier;
-  return planId === process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID ? "pro" : null;
-}
+export const paypalPlanId = () => process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID ?? "";
 
 export class BillingMismatch extends Error {}
 
@@ -97,13 +83,12 @@ export async function applySubscription(sub: PaypalSubscription, expectedCompany
   if (!companyId || (expectedCompanyId && companyId !== expectedCompanyId)) {
     throw new BillingMismatch("La suscripción no pertenece a esta cuenta");
   }
-  const tier = tierForPaypalPlan(sub.plan_id);
-  if (!tier) throw new BillingMismatch("La suscripción es de otro plan");
+  if (sub.plan_id !== paypalPlanId()) throw new BillingMismatch("La suscripción es de otro plan");
 
   const ref = adminDb().collection("companies").doc(companyId);
   const current = (await ref.get()).data()?.plan ?? {};
   const nextBilling = sub.billing_info?.next_billing_time ? Date.parse(sub.billing_info.next_billing_time) : 0;
-  const base = { provider: "paypal", tier, period: "month", subscriptionId: sub.id, updatedAt: Date.now() };
+  const base = { provider: "paypal", subscriptionId: sub.id, updatedAt: Date.now() };
 
   let plan: Record<string, unknown>;
   if (sub.status === "ACTIVE" || sub.status === "APPROVED") {

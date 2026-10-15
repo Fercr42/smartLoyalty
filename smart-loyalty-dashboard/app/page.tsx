@@ -8,12 +8,11 @@ import ScrollProgress from "./components/scrollProgress";
 import Reveal from "./components/reveal";
 import StickyHeader from "./components/stickyHeader";
 import RoiCalculator from "./components/roiCalculator";
-import PricingSection from "./components/pricingSection";
 import { fmt } from "./i18n/config";
 import { LanguageSwitcher } from "./i18n/client";
 import { getI18n } from "./i18n/server";
 import type { Messages } from "./i18n/messages";
-import { ENTRY_PRICE_USD, TRIAL_DAYS } from "./lib/plan";
+import { PLAN_PRICE_USD, TRIAL_DAYS } from "./lib/plan";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -29,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Landing() {
   const { m } = await getI18n();
   const t = m.landing;
-  const vars = { days: TRIAL_DAYS, price: ENTRY_PRICE_USD };
+  const vars = { days: TRIAL_DAYS, price: PLAN_PRICE_USD };
 
   return (
     <div className="bg-[#07201b] text-white">
@@ -44,7 +43,6 @@ export default async function Landing() {
             <a href="#nichos" className="transition-colors hover:text-[#0e7c66]">{t.navNiches}</a>
             <a href="#funciones" className="transition-colors hover:text-[#0e7c66]">{t.navFeatures}</a>
             <a href="#numeros" className="transition-colors hover:text-[#0e7c66]">{t.roiEyebrow}</a>
-            <a href="#precios" className="transition-colors hover:text-[#0e7c66]">{t.pricingEyebrow}</a>
             <a href="#preguntas" className="transition-colors hover:text-[#0e7c66]">{t.navFaq}</a>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -277,18 +275,6 @@ export default async function Landing() {
             <p className="text-white/70">{t.roiLead}</p>
           </div>
           <RoiCalculator />
-        </section>
-
-        {/* Los tres planes. */}
-        <section id="precios" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 flex flex-col gap-8 scroll-mt-16">
-          <div className="flex flex-col gap-3 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0e7c66]">{t.pricingEyebrow}</p>
-            <h2 className={`${display.className} text-3xl sm:text-4xl font-extrabold tracking-tight text-balance`}>
-              {t.pricingTitle}
-            </h2>
-            <p className="text-white/70">{t.pricingLead}</p>
-          </div>
-          <PricingSection />
         </section>
 
         {/* Invitación a la demo, antes de las preguntas. */}

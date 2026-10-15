@@ -7,7 +7,6 @@ import BrandLogo from "../components/brandLogo";
 import CampaignResults from "../components/campaignResults";
 import StatsPanel from "../components/statsPanel";
 import CustomersList from "../components/customersList";
-import SinpeReview from "../components/sinpeReview";
 import { auth } from "../firebase/config";
 
 // Administrador de Smart Loyalty: todos los restaurantes, planes, pruebas por vencer e ingresos.
@@ -26,7 +25,6 @@ type Restaurant = {
     allowed: boolean;
     paidUntil?: number;
     provider: string | null;
-    tier?: string;
     canceled?: boolean;
     trialEndsAt: number | null;
   };
@@ -48,12 +46,9 @@ const FILTERS = [
 ] as const;
 type FilterId = (typeof FILTERS)[number]["id"];
 
-// "acción:plan" (el plan va aparte a la API).
 const ACTIONS = [
-  { id: "activate_30:pro", label: "Activar 30 días · Pro (pago manual)" },
-  { id: "activate_30:esencial", label: "Activar 30 días · Esencial (pago manual)" },
-  { id: "activate_30:multi", label: "Activar 30 días · Multi-local (pago manual)" },
-  { id: "activate_forever:pro", label: "Activar sin vencimiento · Pro" },
+  { id: "activate_30", label: "Activar 30 días (pago manual)" },
+  { id: "activate_forever", label: "Activar sin vencimiento" },
   { id: "extend_trial", label: "Extender prueba 7 días" },
   { id: "expire", label: "Desactivar plan" },
 ];
@@ -62,15 +57,11 @@ const DAY = 86_400_000;
 const formatDate = (ms: number | null | undefined) =>
   ms ? new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-const TIER_NAMES: Record<string, string> = { esencial: "Esencial", pro: "Pro", multi: "Multi-local" };
-
 function planLabel(r: Restaurant, now: number) {
   const p = r.plan;
   if (p.status === "trial") return { text: `Prueba · ${p.daysLeft} ${p.daysLeft === 1 ? "día" : "días"}`, tone: (p.trialEndsAt ?? 0) - now <= 3 * DAY ? "warn" : "info" };
-  const tier = TIER_NAMES[p.tier ?? ""] ?? "";
-  if (p.status === "active" && p.provider === "paypal") return { text: `${tier} · ${p.canceled ? "PayPal cancelado" : "PayPal"}`, tone: p.canceled ? "warn" : "ok" };
-  if (p.status === "active" && p.provider === "sinpe") return { text: `${tier} · SINPE hasta ${formatDate(p.paidUntil)}`, tone: (p.paidUntil ?? 0) - now <= 5 * DAY ? "warn" : "ok" };
-  if (p.status === "active") return { text: `${tier} · ${p.paidUntil ? "manual con fecha" : "manual"}`, tone: "ok" };
+  if (p.status === "active" && p.provider === "paypal") return { text: p.canceled ? "PayPal · cancelado" : "PayPal · pagando", tone: p.canceled ? "warn" : "ok" };
+  if (p.status === "active") return { text: p.paidUntil ? "Manual · con fecha" : "Activo manual", tone: "ok" };
   if (p.status === "none") return { text: "Sin registro completo", tone: "muted" };
   return { text: "Vencido", tone: "bad" };
 }
@@ -116,14 +107,13 @@ export default function AdminPage() {
     const action = actions[r.id] ?? ACTIONS[0].id;
     const label = ACTIONS.find((a) => a.id === action)?.label ?? action;
     const paypalWarning = r.plan.provider === "paypal" && action !== "extend_trial" ? "\n\nOjo: tiene suscripción de PayPal; esto no la cancela en PayPal." : "";
-    const [actionId, tier] = action.split(":");
     if (!user || !confirm(`${label} para "${r.name}"?${paypalWarning}`)) return;
     setBusy(r.id);
     try {
       const res = await fetch("/api/admin/company", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
-        body: JSON.stringify({ companyId: r.id, action: actionId, tier }),
+        body: JSON.stringify({ companyId: r.id, action }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "No se pudo aplicar");
@@ -166,10 +156,10 @@ export default function AdminPage() {
   const tiles = [
     { label: "Restaurantes", value: s.total, note: s.none ? `${s.none} sin terminar registro` : "registrados" },
     { label: "En prueba", value: s.trial, note: `${s.trialEndingSoon} vencen en 3 días` },
-    { label: "Pagando", value: s.paying, note: "PayPal o SINPE" },
+    { label: "Pagando con PayPal", value: s.paying, note: "suscripciones activas" },
     { label: "Activos manuales", value: s.manual, note: "activados por ti" },
     { label: "Vencidos", value: s.expired, note: "sin plan activo" },
-    { label: "Ingreso mensual", value: `${s.monthlyRevenueUsd} USD`, note: "PayPal + SINPE (anual ÷ 12)" },
+    { label: "Ingreso mensual", value: `${s.monthlyRevenueUsd} USD`, note: "estimado por PayPal" },
   ];
 
   return (
@@ -219,7 +209,6 @@ export default function AdminPage() {
         </div>
 
         <div hidden={vista !== "restaurantes"} className="flex flex-col gap-6">
-        <SinpeReview user={user} onChange={() => load().catch(console.error)} />
         <dl className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {tiles.map((t) => (
             <div key={t.label} className="bg-white border rounded-xl p-4">

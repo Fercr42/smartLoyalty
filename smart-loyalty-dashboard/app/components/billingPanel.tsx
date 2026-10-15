@@ -1,19 +1,13 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n/client";
-import { formatColones } from "../lib/format-money";
-import { PLANS, planState, priceCrc, type Period, type Plan, type PlanState, type Tier } from "../lib/plan";
-import PlanCards from "./planCards";
+import { PLAN_PRICE_USD, planState, type Plan, type PlanState } from "../lib/plan";
 
-// "Tu plan": elegir Esencial, Pro o Multi-local y pagar con SINPE Móvil (mensual o anual) o PayPal (mensual).
+// Suscripción mensual con los botones de PayPal (PayPal o tarjeta).
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
-const PAYPAL_PLANS: Record<Tier, string> = {
-  esencial: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ESENCIAL ?? "",
-  pro: process.env.NEXT_PUBLIC_PAYPAL_PLAN_PRO ?? "",
-  multi: process.env.NEXT_PUBLIC_PAYPAL_PLAN_MULTI ?? "",
-};
+const PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID ?? "";
 const SANDBOX = process.env.NEXT_PUBLIC_PAYPAL_ENV !== "live";
 
 type PaypalButtons = { render: (el: HTMLElement) => Promise<void>; close?: () => Promise<void> };
@@ -24,15 +18,6 @@ declare global {
   }
 }
 
-type SinpeInfo =
-  | { enabled: false }
-  | {
-      enabled: true;
-      phone: string;
-      name: string;
-      reference: string;
-      pending: { tier: Tier; period: Period; amountCrc: number; receipt: string } | null;
-    };
 
 function loadPaypalSdk() {
   // Sin "locale": PayPal usa el idioma del navegador (es_XC da error de validación).
@@ -60,38 +45,17 @@ export default function BillingPanel({
   const { user } = useAuth();
   const { m, f, dateLocale, te } = useI18n();
   const t = m.billing;
-  const names = m.plansInfo.names;
   const formatDate = (ms: number) => new Date(ms).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" });
   const buttonsRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
-  const [tier, setTier] = useState<Tier>(plan.status === "active" ? plan.tier : "pro");
-  const [period, setPeriod] = useState<Period>("month");
-  const [method, setMethod] = useState<"sinpe" | "paypal">("sinpe");
-  const [sinpe, setSinpe] = useState<SinpeInfo | null>(null);
-  const [receipt, setReceipt] = useState("");
-  const [renewing, setRenewing] = useState(false);
 
   const paidWithPaypal = plan.status === "active" && plan.provider === "paypal";
-  const paidWithSinpe = plan.status === "active" && plan.provider === "sinpe";
-  const manualActive = plan.status === "active" && (!plan.provider || plan.provider === "manual");
-  // Mostrar la elección de plan si no hay plan pagado, si PayPal se canceló o si quiere renovar por SINPE.
-  const choosing = !manualActive && (!paidWithPaypal || plan.canceled) && (!paidWithSinpe || renewing);
-  const paypalPlan = PAYPAL_PLANS[tier];
-  const showPaypal = choosing && method === "paypal" && period === "month" && Boolean(CLIENT_ID && paypalPlan);
-
-  const loadSinpe = useCallback(async () => {
-    if (!user) return;
-    const res = await fetch("/api/billing/sinpe", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
-    if (res.ok) setSinpe(await res.json());
-  }, [user]);
+  const manualActive = plan.status === "active" && !plan.provider;
+  const showButtons = !manualActive && (!paidWithPaypal || plan.canceled);
 
   useEffect(() => {
-    loadSinpe().catch(console.error);
-  }, [loadSinpe]);
-
-  useEffect(() => {
-    if (!showPaypal || !user || !buttonsRef.current) return;
+    if (!showButtons || !user || !buttonsRef.current || !CLIENT_ID || !PLAN_ID) return;
     const container = buttonsRef.current;
     let buttons: PaypalButtons | null = null;
     let cancelled = false;
@@ -102,7 +66,7 @@ export default function BillingPanel({
         buttons = window.paypal.Buttons({
           style: { shape: "rect", layout: "vertical", label: "subscribe" },
           createSubscription: (_data: unknown, actions: PaypalActions) =>
-            actions.subscription.create({ plan_id: paypalPlan, custom_id: user.uid }),
+            actions.subscription.create({ plan_id: PLAN_ID, custom_id: user.uid }),
           onApprove: async (data: { subscriptionID?: string }) => {
             setBusy(true);
             setNotice(null);
@@ -133,7 +97,7 @@ export default function BillingPanel({
       buttons?.close?.().catch(() => {});
       container.innerHTML = "";
     };
-  }, [showPaypal, paypalPlan, user, onPlanChange, t, te]);
+  }, [showButtons, user, onPlanChange, t, te]);
 
   const cancel = async () => {
     if (!user || !confirm(t.confirmCancel)) return;
@@ -155,51 +119,21 @@ export default function BillingPanel({
     }
   };
 
-  const reportSinpe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setBusy(true);
-    setNotice(null);
-    try {
-      const res = await fetch("/api/billing/sinpe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
-        body: JSON.stringify({ tier, period, receipt }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(te(body.error) ?? t.sinpeFailed);
-      setReceipt("");
-      await loadSinpe();
-    } catch (err) {
-      setNotice({ ok: false, text: err instanceof Error ? err.message : t.sinpeFailed });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const pending = sinpe?.enabled ? sinpe.pending : null;
-  const tab = (id: "sinpe" | "paypal", label: string) => (
-    <button
-      type="button"
-      onClick={() => setMethod(id)}
-      className={`px-3 py-1.5 rounded-full text-sm border ${method === id ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 hover:bg-gray-100"}`}
-    >
-      {label}
-    </button>
-  );
-
   return (
-    <div className="flex flex-col gap-6">
-      {/* Estado actual */}
-      <div className="flex flex-col gap-2">
-        {manualActive && <p className="text-gray-800 font-medium">{f(t.activeManual, { tier: names[plan.tier] })}</p>}
+    <div className="grid gap-6 lg:grid-cols-2 items-start">
+      <div className="flex flex-col gap-3">
+        {manualActive && <p className="text-gray-800 font-medium">{t.activeManual}</p>}
 
         {paidWithPaypal && !plan.canceled && (
           <>
-            <p className="text-gray-800 font-medium">{f(t.activePaypal, { tier: names[plan.tier], price: PLANS[plan.tier].usd })}</p>
-            {plan.paidUntil && <p className="text-sm text-gray-600">{f(t.nextCharge, { date: formatDate(plan.paidUntil) })}</p>}
+            <p className="text-gray-800 font-medium">{f(t.activePaypal, { price: PLAN_PRICE_USD })}</p>
+            {plan.paidUntil && (
+              <p className="text-sm text-gray-600">{f(t.nextCharge, { date: formatDate(plan.paidUntil) })}</p>
+            )}
             {plan.paymentFailed && (
-              <p className="text-sm rounded bg-amber-50 text-amber-900 border border-amber-200 p-3">{t.failedNote}</p>
+              <p className="text-sm rounded bg-amber-50 text-amber-900 border border-amber-200 p-3">
+                {t.failedNote}
+              </p>
             )}
             <button
               onClick={cancel}
@@ -210,107 +144,45 @@ export default function BillingPanel({
             </button>
           </>
         )}
+
         {paidWithPaypal && plan.canceled && plan.paidUntil && (
           <p className="text-gray-800">{f(t.canceledUntil, { date: formatDate(plan.paidUntil) })}</p>
         )}
 
-        {paidWithSinpe && plan.paidUntil && (
+        {!manualActive && !paidWithPaypal && (
           <>
-            <p className="text-gray-800 font-medium">{f(t.activeSinpe, { tier: names[plan.tier], date: formatDate(plan.paidUntil) })}</p>
-            {!renewing && !pending && (
-              <button onClick={() => setRenewing(true)} className="self-start text-sm border rounded px-3 py-1.5 hover:bg-gray-50">
-                {t.renew}
-              </button>
-            )}
+            <p className="text-3xl font-bold text-gray-900 tabular-nums">
+              {PLAN_PRICE_USD} USD <span className="text-base font-normal text-gray-600">{t.perMonth}</span>
+            </p>
+            <p className="text-gray-700">
+              {plan.status === "trial"
+                ? f(t.trialLeft, { days: plan.daysLeft })
+                : t.activatePrompt}
+            </p>
+            <ul className="text-sm text-gray-600 list-disc pl-5">
+              <li>{t.point1}</li>
+              <li>{t.point2}</li>
+              <li>{t.point3}</li>
+            </ul>
           </>
         )}
 
-        {!plan.allowed && !pending && <p className="text-gray-700">{t.activatePrompt}</p>}
-        {plan.status === "trial" && <p className="text-gray-700">{f(t.trialLeft, { days: plan.daysLeft })}</p>}
-
-        {pending && (
-          <p className="text-sm rounded bg-sky-50 text-sky-900 border border-sky-200 p-3">
-            {f(t.sinpePending, { receipt: pending.receipt, amount: formatColones(pending.amountCrc), tier: names[pending.tier] })}
-          </p>
-        )}
         {notice && <p className={`text-sm ${notice.ok ? "text-green-700" : "text-red-600"}`}>{notice.text}</p>}
       </div>
 
-      {/* Elegir plan y pagar */}
-      {choosing && !pending && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-semibold text-gray-900">{t.choosePlan}</h3>
-            <div className="flex gap-2">
-              {(["month", "year"] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 rounded-full text-sm border ${period === p ? "bg-[#0e7c66] text-white border-[#0e7c66]" : "bg-white text-gray-700 hover:bg-gray-100"}`}
-                >
-                  {p === "month" ? m.plansInfo.monthly : m.plansInfo.annual}
-                </button>
-              ))}
-            </div>
-          </div>
-          <PlanCards period={period} selected={tier} onSelect={setTier} />
-          {tier === "multi" && <p className="text-sm text-gray-600">{t.multiNote}</p>}
-
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-gray-700">{t.payWith}</span>
-              {tab("sinpe", t.sinpe)}
-              {tab("paypal", t.paypal)}
-            </div>
-
-            {method === "sinpe" &&
-              (sinpe?.enabled ? (
-                <form onSubmit={reportSinpe} className="rounded-xl border bg-gray-50 p-4 flex flex-col gap-2 max-w-xl">
-                  <ol className="list-decimal pl-5 text-sm text-gray-800 flex flex-col gap-1">
-                    <li>
-                      <strong>{f(t.sinpeStep1, { amount: formatColones(priceCrc(tier, period)), phone: sinpe.phone })}</strong>
-                      {sinpe.name && <> {f(t.sinpeName, { name: sinpe.name })}</>}
-                    </li>
-                    <li>{f(t.sinpeStep2, { reference: sinpe.reference })}</li>
-                    <li>{t.sinpeStep3}</li>
-                  </ol>
-                  <div className="flex flex-wrap gap-2">
-                    <label htmlFor="sinpe-receipt" className="sr-only">
-                      {t.receipt}
-                    </label>
-                    <input
-                      id="sinpe-receipt"
-                      value={receipt}
-                      onChange={(e) => setReceipt(e.target.value)}
-                      placeholder={t.receipt}
-                      inputMode="numeric"
-                      maxLength={40}
-                      required
-                      className="border rounded p-2 flex-1 min-w-[12rem] bg-white"
-                    />
-                    <button disabled={busy || !receipt.trim()} className="bg-gray-900 text-white px-4 py-2 rounded disabled:opacity-50">
-                      {busy ? t.sending : t.reportPaid}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                sinpe && <p className="text-sm text-gray-600">{t.sinpeOff}</p>
-              ))}
-
-            {method === "paypal" &&
-              (period === "year" ? (
-                <p className="text-sm text-gray-600">{t.paypalAnnual}</p>
-              ) : !CLIENT_ID || !paypalPlan ? (
-                <p className="text-sm text-red-600">{t.notConfigured}</p>
-              ) : (
-                <div className="max-w-md flex flex-col gap-2">
-                  <div ref={buttonsRef} className={busy ? "opacity-50 pointer-events-none" : ""} />
-                  {SANDBOX && <p className="text-xs text-amber-700">{t.sandbox}</p>}
-                </div>
-              ))}
-          </div>
-        </>
+      {showButtons && (
+        <div className="flex flex-col gap-2">
+          {!CLIENT_ID || !PLAN_ID ? (
+            <p className="text-sm text-red-600">{t.notConfigured}</p>
+          ) : (
+            <>
+              <div ref={buttonsRef} className={busy ? "opacity-50 pointer-events-none" : ""} />
+              {SANDBOX && (
+                <p className="text-xs text-amber-700">{t.sandbox}</p>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );

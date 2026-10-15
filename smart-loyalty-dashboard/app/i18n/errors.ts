@@ -7,14 +7,6 @@ type Table = Record<string, [en: string, th: string]>;
 
 const EXACT: Table = {
   "No autorizado": ["Not authorized", "ไม่ได้รับอนุญาต"],
-  "El pago por SINPE Móvil aún no está disponible.": ["Paying with SINPE Móvil isn't available yet.", "ยังไม่เปิดให้ชำระผ่าน SINPE Móvil"],
-  "Elige un plan válido.": ["Choose a valid plan.", "เลือกแพ็กเกจที่ถูกต้อง"],
-  "Escribe el número de comprobante del SINPE.": ["Enter the SINPE receipt number.", "กรอกเลขที่ใบเสร็จ SINPE"],
-  "Ya tienes un pago en revisión. Te avisamos por correo al aprobarlo.": ["You already have a payment under review. We'll email you when it's approved.", "คุณมีการชำระเงินที่รอตรวจสอบอยู่แล้ว เราจะแจ้งทางอีเมลเมื่ออนุมัติ"],
-  "Esta función es del plan Pro. Cámbiate de plan en la sección Tu plan del panel.": [
-    "This feature is part of the Pro plan. Change your plan in the Your plan section of the dashboard.",
-    "ฟีเจอร์นี้อยู่ในแพ็กเกจ Pro เปลี่ยนแพ็กเกจได้ที่ส่วนแพ็กเกจของคุณในแดชบอร์ด",
-  ],
   "Sesión inválida": ["Invalid session. Log in again.", "เซสชันไม่ถูกต้อง โปรดเข้าสู่ระบบอีกครั้ง"],
   "Restaurante no encontrado": ["Business not found", "ไม่พบร้าน"],
   "Restaurante inválido": ["Invalid business", "ร้านไม่ถูกต้อง"],
@@ -95,7 +87,6 @@ const EXACT: Table = {
 const PATTERNS: [RegExp, en: string, th: string][] = [
   [/^Llegaste al máximo de (\d+) usos de IA de hoy\. Mañana se renueva\.$/, "You've reached today's limit of $1 AI uses. It resets tomorrow.", "ใช้ AI ครบ $1 ครั้งของวันนี้แล้ว จะรีเซ็ตพรุ่งนี้"],
   [/^Necesitas al menos (\d+) opiniones de los últimos (\d+) días\.$/, "You need at least $1 reviews from the last $2 days.", "ต้องมีความคิดเห็นอย่างน้อย $1 รายการใน $2 วันที่ผ่านมา"],
-  [/^Ya enviaste las (\d+) campañas de este mes\. El plan Pro no tiene límite\.$/, "You've sent this month's $1 campaigns. The Pro plan has no limit.", "คุณส่งแคมเปญครบ $1 ครั้งของเดือนนี้แล้ว แพ็กเกจ Pro ส่งได้ไม่จำกัด"],
   [/^Le faltan (\d+) para "(.+)"\.$/, "$1 more needed for “$2”.", "ยังขาดอีก $1 สำหรับ “$2”"],
 ];
 

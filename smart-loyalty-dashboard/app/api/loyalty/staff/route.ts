@@ -78,8 +78,7 @@ async function maybeRequestReview(
   // Con encuesta, primero califica de 1 a 5 (solo 4 o 5 estrellas van a Google); sin encuesta, directo a Google.
   const survey = reviews?.survey !== false;
   if (!reviews?.enabled || (!survey && !/^https:\/\/\S+$/.test(reviews.url ?? ""))) return;
-  const plan = planState((company as { plan?: Plan }).plan);
-  if (!plan.allowed || !plan.features.reviews) return;
+  if (!planState((company as { plan?: Plan }).plan).allowed) return;
   try {
     const memberRef = companyRef.collection("walletMembers").doc(memberId);
     const member = await memberRef.get();

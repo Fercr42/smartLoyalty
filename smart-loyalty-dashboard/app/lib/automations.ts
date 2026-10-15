@@ -92,10 +92,7 @@ export async function runAutomations(origin: string) {
     const company = { ...snap.data(), id: snap.id } as CompanyData;
     const timezone = validTimezone(company.timezone);
     const today = localParts(timezone);
-    const plan = planState(company.plan);
-    if (today.hour < AUTOMATIONS_RUN_HOUR || !plan.allowed) continue;
-    // Plan Esencial: solo "casi lo logras" (corre al sumar puntos, no aquí).
-    if (!plan.features.birthday && !plan.features.winback) continue;
+    if (today.hour < AUTOMATIONS_RUN_HOUR || !planState(company.plan).allowed) continue;
 
     const claimed = await db.runTransaction(async (tx) => {
       const fresh = await tx.get(snap.ref);
@@ -111,7 +108,7 @@ export async function runAutomations(origin: string) {
       const members = await snap.ref.collection("walletMembers").get();
       const vars = { business: company.name ?? "" };
 
-      if (settings.birthday.enabled && plan.features.birthday) {
+      if (settings.birthday.enabled) {
         const { gift, days } = settings.birthday;
         const ids = members.docs
           .filter((d) => {
@@ -144,7 +141,7 @@ export async function runAutomations(origin: string) {
         result.birthday = ids.length;
       }
 
-      if (settings.winback.enabled && plan.features.winback) {
+      if (settings.winback.enabled) {
         const cutoff = Date.now() - settings.winback.days * DAY;
         // Una vez por ausencia: si vuelve y se vuelve a ausentar, se le escribe otra vez.
         const ids = members.docs

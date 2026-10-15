@@ -43,8 +43,5 @@
     "passkit-generator": {
       "joi": "^18.2.9"
     }
-  },
-  "engines": {
-    "node": ">=22"
   }
 }

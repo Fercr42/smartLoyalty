@@ -4,7 +4,7 @@ import { fmt } from "../i18n/config";
 import { LanguageSwitcher } from "../i18n/client";
 import type { Messages } from "../i18n/messages";
 import { CONTACT_EMAIL } from "../lib/legal";
-import { ENTRY_PRICE_USD, TRIAL_DAYS } from "../lib/plan";
+import { PLAN_PRICE_USD, TRIAL_DAYS } from "../lib/plan";
 
 // Página de texto legal (privacidad y términos), en el idioma de quien la abre.
 export default function LegalPage({
@@ -14,7 +14,7 @@ export default function LegalPage({
   doc: Messages["legal"]["privacy"] | Messages["legal"]["terms"];
   legal: Messages["legal"];
 }) {
-  const vars = { email: CONTACT_EMAIL, company: legal.company, days: TRIAL_DAYS, price: ENTRY_PRICE_USD };
+  const vars = { email: CONTACT_EMAIL, company: legal.company, days: TRIAL_DAYS, price: PLAN_PRICE_USD };
 
   return (
     <main className="min-h-screen bg-white text-[#111418]">

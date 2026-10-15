@@ -2,9 +2,7 @@ import { NextRequest } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { requireAdmin } from "../../../lib/admin-auth";
-import { ANNUAL_MONTHS, isTier, PLANS, planState } from "../../../lib/plan";
-
-const LEGACY_PRICE_USD = 100; // precio único anterior a los tres planes
+import { PLAN_PRICE_USD, planState } from "../../../lib/plan";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -44,11 +42,6 @@ export async function GET(req: NextRequest) {
             ...state,
             provider: data.plan?.provider ?? null,
             trialEndsAt: data.plan?.trialEndsAt ?? null,
-            // Ingreso mensual equivalente (el anual se reparte en 12 meses).
-            monthlyUsd: isTier(data.plan?.tier)
-              ? (PLANS[data.plan.tier as keyof typeof PLANS].usd * (data.plan?.period === "year" ? ANNUAL_MONTHS : 1)) /
-                (data.plan?.period === "year" ? 12 : 1)
-              : LEGACY_PRICE_USD,
           },
           usage: {
             members: members.data().count,
@@ -62,18 +55,16 @@ export async function GET(req: NextRequest) {
 
   rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
   const now = Date.now();
-  const paying = rows.filter(
-    (r) => r.plan.allowed && (r.plan.provider === "paypal" || r.plan.provider === "sinpe") && !r.plan.canceled
-  );
+  const paying = rows.filter((r) => r.plan.allowed && r.plan.provider === "paypal" && !r.plan.canceled);
   const summary = {
     total: rows.length,
     trial: rows.filter((r) => r.plan.status === "trial").length,
     trialEndingSoon: rows.filter((r) => r.plan.status === "trial" && (r.plan.trialEndsAt ?? 0) - now <= 3 * DAY).length,
     paying: paying.length,
-    manual: rows.filter((r) => r.plan.status === "active" && r.plan.provider !== "paypal" && r.plan.provider !== "sinpe").length,
+    manual: rows.filter((r) => r.plan.status === "active" && r.plan.provider !== "paypal").length,
     expired: rows.filter((r) => r.plan.status === "expired").length,
     none: rows.filter((r) => r.plan.status === "none").length,
-    monthlyRevenueUsd: Math.round(paying.reduce((sum, r) => sum + r.plan.monthlyUsd, 0)),
+    monthlyRevenueUsd: paying.length * PLAN_PRICE_USD,
   };
 
   return Response.json({ summary, restaurants: rows, generatedAt: now });

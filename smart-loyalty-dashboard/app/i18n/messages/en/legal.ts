@@ -124,7 +124,7 @@ export const legal: Messages["legal"] = {
         h: "Price, trial and payments",
         p: [
           "The free trial lasts {days} days with every feature and needs no card.",
-          "After that it costs from {price} USD a month depending on the plan (Essential, Pro or Multi-location). With PayPal the charge is automatic until you cancel; with SINPE Móvil you pay each month or year and there are no automatic charges.",
+          "After that it costs {price} USD a month. PayPal charges automatically until you cancel.",
           "If a charge fails, we keep access for a few days while PayPal retries.",
         ],
       },

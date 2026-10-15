@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/client";
-import { PLANS } from "../lib/plan";
+import { PLAN_PRICE_USD } from "../lib/plan";
 import { roi } from "../lib/roi";
 
 // El número del resultado viaja hasta su valor nuevo en lugar de saltar.
@@ -55,9 +55,8 @@ export default function RoiCalculator() {
     setTicket(range.start);
   }
 
-  // Se compara con el plan Pro: en colones el precio real; en otras monedas, convertido.
   const rate = Number(t.roiRate) || 1;
-  const planLocal = locale === "es" ? PLANS.pro.crc : Math.round(PLANS.pro.usd * rate);
+  const planLocal = Math.round(PLAN_PRICE_USD * rate);
   const result = roi({ customers, ticket, returning, margin, planLocal });
   const animado = useCountUp(result.profit);
   const number = (value: number) => value.toLocaleString(dateLocale);
@@ -110,7 +109,7 @@ export default function RoiCalculator() {
         </p>
         <p className="text-sm text-white/70">
           {f(t.roiCost, {
-            price: PLANS.pro.usd,
+            price: PLAN_PRICE_USD,
             local: money(planLocal),
             count: Number.isFinite(result.breakEven) ? number(result.breakEven) : "—",
           })}
