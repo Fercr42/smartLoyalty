@@ -100,25 +100,79 @@ export const ai = {
 };
 
 export const billing = {
-  sdkError: "No se pudo cargar PayPal. Recarga la página.",
-  activateFailed: "No se pudo activar el plan",
-  activated: "¡Listo! Tu plan está activo.",
-  paypalError: "PayPal no pudo procesar el pago. Inténtalo de nuevo.",
-  confirmCancel: "¿Cancelar tu suscripción? PayPal dejará de cobrar y conservas el acceso hasta el fin del mes pagado.",
-  cancelFailed: "No se pudo cancelar",
-  canceled: "Suscripción cancelada. No se harán más cobros.",
-  activeManual: "Tu plan está activo.",
-  activePaypal: "Plan activo · {price} USD al mes, pagado con PayPal.",
-  nextCharge: "Próximo cobro: {date}.",
-  failedNote: "El último cobro falló. PayPal lo va a reintentar; revisa tu método de pago en tu cuenta de PayPal.",
-  cancel: "Cancelar suscripción",
-  canceledUntil: "Cancelaste tu suscripción. Tienes acceso hasta el {date}. Puedes volver a suscribirte cuando quieras.",
-  perMonth: "al mes",
-  trialLeft: "Te quedan {days} días de prueba. Suscríbete ahora y el primer cobro se hace hoy.",
-  activatePrompt: "Activa tu plan para seguir enviando notificaciones y usar las automatizaciones.",
-  point1: "Todas las funciones, sin límite de clientes ni notificaciones.",
-  point2: "Pagas con PayPal o con tarjeta. PayPal cobra solo cada mes.",
-  point3: "Cancelas cuando quieras desde aquí.",
-  notConfigured: "PayPal aún no está configurado.",
-  sandbox: "Modo de pruebas de PayPal (Sandbox): no se cobra dinero real.",
+  "sdkError": "No se pudo cargar PayPal. Recarga la página.",
+  "activateFailed": "No se pudo activar el plan",
+  "activated": "¡Listo! Tu plan está activo.",
+  "paypalError": "PayPal no pudo procesar el pago. Inténtalo de nuevo.",
+  "confirmCancel": "¿Cancelar tu suscripción? PayPal dejará de cobrar y conservas el acceso hasta el fin del mes pagado.",
+  "cancelFailed": "No se pudo cancelar",
+  "canceled": "Suscripción cancelada. No se harán más cobros.",
+  "activeManual": "Tu plan {tier} está activo.",
+  "activePaypal": "Plan {tier} activo · {price} USD al mes, pagado con PayPal.",
+  "activeSinpe": "Plan {tier} pagado por SINPE Móvil hasta el {date}.",
+  "nextCharge": "Próximo cobro: {date}.",
+  "failedNote": "El último cobro falló. PayPal lo va a reintentar; revisa tu método de pago en tu cuenta de PayPal.",
+  "cancel": "Cancelar suscripción",
+  "canceledUntil": "Cancelaste tu suscripción. Tienes acceso hasta el {date}. Puedes volver a suscribirte cuando quieras.",
+  "trialLeft": "Te quedan {days} días de prueba con todo lo del plan Pro. Elige tu plan para seguir después.",
+  "activatePrompt": "Elige un plan para seguir enviando notificaciones y usar las automatizaciones.",
+  "renew": "Renovar o cambiar de plan",
+  "choosePlan": "Elige tu plan",
+  "payWith": "Forma de pago",
+  "sinpe": "SINPE Móvil",
+  "paypal": "PayPal o tarjeta",
+  "sinpeStep1": "Envía {amount} por SINPE Móvil al {phone}.",
+  "sinpeName": "A nombre de {name}.",
+  "sinpeStep2": "En el detalle del SINPE escribe: {reference}",
+  "sinpeStep3": "Escribe aquí el número de comprobante que te da tu banco.",
+  "receipt": "Número de comprobante",
+  "reportPaid": "Ya pagué",
+  "sending": "Enviando...",
+  "sinpePending": "Recibimos tu comprobante {receipt} por {amount}. Revisamos el pago y activamos tu plan {tier}, normalmente el mismo día. Te avisamos por correo.",
+  "sinpeOff": "El pago por SINPE Móvil aún no está disponible.",
+  "sinpeFailed": "No se pudo enviar el comprobante",
+  "paypalAnnual": "El plan anual se paga por SINPE Móvil. Con PayPal el cobro es mensual.",
+  "multiNote": "Multi-local cubre hasta 3 locales (una cuenta por local). Al pagar te escribimos para activar los otros.",
+  "notConfigured": "PayPal aún no está configurado para este plan.",
+  "sandbox": "Modo de pruebas de PayPal (Sandbox): no se cobra dinero real."
+};
+
+export const plansInfo = {
+  "names": {
+    "esencial": "Esencial",
+    "pro": "Pro",
+    "multi": "Multi-local"
+  },
+  "taglines": {
+    "esencial": "Para empezar con un local",
+    "pro": "Todo para que vuelvan más",
+    "multi": "Para 2 o 3 locales"
+  },
+  "features": {
+    "esencial": [
+      "Tarjeta en Google y Apple Wallet",
+      "Escáner con PIN para empleados",
+      "4 campañas de notificaciones al mes",
+      "Aviso automático \"ya casi lo logras\"",
+      "Estadísticas de visitas"
+    ],
+    "pro": [
+      "Todo lo de Esencial",
+      "Notificaciones sin límite, programadas y por grupo",
+      "Cumpleaños y \"te extrañamos\" con cupón",
+      "Reseñas en Google después de la visita",
+      "Cupones de un solo uso e inteligencia artificial"
+    ],
+    "multi": [
+      "Todo lo de Pro",
+      "Hasta 3 locales (una cuenta por local)",
+      "+{price} por cada local extra",
+      "Soporte prioritario"
+    ]
+  },
+  "perMonth": "al mes",
+  "monthly": "Mensual",
+  "annual": "Anual · 2 meses gratis",
+  "perYear": "al año",
+  "recommended": "Recomendado"
 };

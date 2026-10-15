@@ -45,3 +45,33 @@ describe("planState", () => {
     expect(planState({ status: "raro" }, NOW)).toMatchObject({ status: "expired", allowed: false });
   });
 });
+
+import { extendPaidUntil, FEATURES, priceCrc } from "../../app/lib/plan";
+
+describe("tres planes", () => {
+  const now = Date.UTC(2026, 9, 14);
+
+  it("la prueba y los planes viejos sin tier tienen todo lo de Pro", () => {
+    expect(planState({ status: "trial", trialEndsAt: now + 86_400_000, tier: "esencial" }, now).tier).toBe("pro");
+    expect(planState({ status: "active" }, now).tier).toBe("pro");
+    expect(planState({ status: "active", tier: "esencial" }, now).features.ai).toBe(false);
+    expect(planState({ status: "active", tier: "inventado" }, now).tier).toBe("pro");
+  });
+
+  it("Esencial tiene 4 campañas y sin automatizaciones de cupón; Pro no tiene límite", () => {
+    expect(FEATURES.esencial.campaignsPerMonth).toBe(4);
+    expect(FEATURES.esencial.birthday).toBe(false);
+    expect(FEATURES.pro.campaignsPerMonth).toBeNull();
+  });
+
+  it("el anual cuesta 10 meses", () => {
+    expect(priceCrc("pro", "month")).toBe(35_900);
+    expect(priceCrc("pro", "year")).toBe(359_000);
+  });
+
+  it("extiende desde el fin del periodo pagado si aún no vence", () => {
+    const paid = Date.UTC(2026, 10, 1);
+    expect(new Date(extendPaidUntil(paid, "month", now)).getUTCMonth()).toBe(11);
+    expect(new Date(extendPaidUntil(undefined, "year", now)).getUTCFullYear()).toBe(2027);
+  });
+});

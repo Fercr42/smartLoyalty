@@ -100,25 +100,79 @@ export const ai: Messages["ai"] = {
 };
 
 export const billing: Messages["billing"] = {
-  sdkError: "Couldn't load PayPal. Reload the page.",
-  activateFailed: "Couldn't activate the plan",
-  activated: "Done! Your plan is active.",
-  paypalError: "PayPal couldn't process the payment. Please try again.",
-  confirmCancel: "Cancel your subscription? PayPal will stop charging and you keep access until the end of the paid month.",
-  cancelFailed: "Couldn't cancel",
-  canceled: "Subscription canceled. No more charges will be made.",
-  activeManual: "Your plan is active.",
-  activePaypal: "Active plan · {price} USD a month, paid with PayPal.",
-  nextCharge: "Next charge: {date}.",
-  failedNote: "The last charge failed. PayPal will retry it; check your payment method in your PayPal account.",
-  cancel: "Cancel subscription",
-  canceledUntil: "You canceled your subscription. You have access until {date}. You can subscribe again anytime.",
-  perMonth: "a month",
-  trialLeft: "{days} trial days left. Subscribe now and the first charge is made today.",
-  activatePrompt: "Activate your plan to keep sending notifications and using automations.",
-  point1: "Every feature, no limit on customers or notifications.",
-  point2: "Pay with PayPal or card. PayPal charges automatically every month.",
-  point3: "Cancel anytime from here.",
-  notConfigured: "PayPal isn't set up yet.",
-  sandbox: "PayPal test mode (Sandbox): no real money is charged.",
+  "sdkError": "Couldn't load PayPal. Reload the page.",
+  "activateFailed": "Couldn't activate the plan",
+  "activated": "Done! Your plan is active.",
+  "paypalError": "PayPal couldn't process the payment. Please try again.",
+  "confirmCancel": "Cancel your subscription? PayPal will stop charging and you keep access until the end of the paid month.",
+  "cancelFailed": "Couldn't cancel",
+  "canceled": "Subscription canceled. No more charges will be made.",
+  "activeManual": "Your {tier} plan is active.",
+  "activePaypal": "{tier} plan active · {price} USD a month, paid with PayPal.",
+  "activeSinpe": "{tier} plan paid with SINPE Móvil until {date}.",
+  "nextCharge": "Next charge: {date}.",
+  "failedNote": "The last charge failed. PayPal will retry it; check your payment method in your PayPal account.",
+  "cancel": "Cancel subscription",
+  "canceledUntil": "You canceled your subscription. You have access until {date}. You can subscribe again anytime.",
+  "trialLeft": "You have {days} trial days left with everything in Pro. Choose your plan to continue afterwards.",
+  "activatePrompt": "Choose a plan to keep sending notifications and using automations.",
+  "renew": "Renew or change plan",
+  "choosePlan": "Choose your plan",
+  "payWith": "Payment method",
+  "sinpe": "SINPE Móvil",
+  "paypal": "PayPal or card",
+  "sinpeStep1": "Send {amount} via SINPE Móvil to {phone}.",
+  "sinpeName": "Account holder: {name}.",
+  "sinpeStep2": "In the SINPE description write: {reference}",
+  "sinpeStep3": "Enter the receipt number your bank gives you.",
+  "receipt": "Receipt number",
+  "reportPaid": "I've paid",
+  "sending": "Sending...",
+  "sinpePending": "We received your receipt {receipt} for {amount}. We'll check the payment and activate your {tier} plan, usually the same day. We'll email you.",
+  "sinpeOff": "Paying with SINPE Móvil isn't available yet.",
+  "sinpeFailed": "Couldn't send the receipt",
+  "paypalAnnual": "The annual plan is paid with SINPE Móvil. With PayPal the charge is monthly.",
+  "multiNote": "Multi-location covers up to 3 locations (one account each). After paying we'll contact you to activate the others.",
+  "notConfigured": "PayPal isn't set up for this plan yet.",
+  "sandbox": "PayPal test mode (Sandbox): no real money is charged."
+};
+
+export const plansInfo: Messages["plansInfo"] = {
+  "names": {
+    "esencial": "Essential",
+    "pro": "Pro",
+    "multi": "Multi-location"
+  },
+  "taglines": {
+    "esencial": "To start with one location",
+    "pro": "Everything to bring them back",
+    "multi": "For 2 or 3 locations"
+  },
+  "features": {
+    "esencial": [
+      "Card in Google and Apple Wallet",
+      "Staff scanner with PIN",
+      "4 notification campaigns a month",
+      "Automatic \"almost there\" message",
+      "Visit statistics"
+    ],
+    "pro": [
+      "Everything in Essential",
+      "Unlimited, scheduled and segmented notifications",
+      "Birthday and \"we miss you\" with a coupon",
+      "Google reviews after the visit",
+      "Single-use coupons and AI"
+    ],
+    "multi": [
+      "Everything in Pro",
+      "Up to 3 locations (one account each)",
+      "+{price} per extra location",
+      "Priority support"
+    ]
+  },
+  "perMonth": "a month",
+  "monthly": "Monthly",
+  "annual": "Annual · 2 months free",
+  "perYear": "a year",
+  "recommended": "Recommended"
 };
