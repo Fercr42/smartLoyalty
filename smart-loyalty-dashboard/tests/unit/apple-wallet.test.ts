@@ -4,7 +4,7 @@ import {
   appleConfig,
   packPass,
   parseSerial,
-  passAuthToken,
+  newPassAuthToken,
   passJson,
   passSerial,
   readPem,
@@ -14,8 +14,8 @@ import {
 
 const COMPANY = "abcDEF1234567890";
 const MEMBER = "3f9a12bc-1111-4222-8333-444455556666";
-const SECRET = "un-secreto-de-pruebas-largo";
-const CONFIG = { passTypeId: "pass.com.smartloyalty.test", teamId: "ABCDE12345", authSecret: SECRET };
+const TOKEN = "token-de-pruebas-de-la-tarjeta";
+const CONFIG = { passTypeId: "pass.com.smartloyalty.test", teamId: "ABCDE12345" };
 
 // Certificados de mentira (autofirmados) para probar la firma sin la cuenta de Apple.
 function fakeCertificates() {
@@ -68,11 +68,10 @@ describe("Apple Wallet: configuración", () => {
       APPLE_WALLET_CERT: pem,
       APPLE_WALLET_KEY: pem,
       APPLE_WALLET_WWDR: pem,
-      APPLE_WALLET_AUTH_SECRET: SECRET,
     };
     expect(appleConfig(env)).not.toBeNull();
     expect(appleConfig({ ...env, APPLE_WALLET_WWDR: "" })).toBeNull();
-    expect(appleConfig({ ...env, APPLE_WALLET_AUTH_SECRET: "corto" })).toBeNull();
+    expect(appleConfig({ ...env, APPLE_WALLET_TEAM_ID: " " })).toBeNull();
   });
 });
 
@@ -84,14 +83,14 @@ describe("Apple Wallet: número de serie y token", () => {
     expect(parseSerial("../../x")).toBeNull();
   });
 
-  it("acepta solo el token de ese pase", () => {
-    const serial = passSerial(COMPANY, MEMBER);
-    const token = passAuthToken(serial, SECRET);
+  it("cada tarjeta tiene un token aleatorio y solo se acepta ese", () => {
+    const token = newPassAuthToken();
     expect(token.length).toBeGreaterThanOrEqual(16);
-    expect(validPassAuth(`ApplePass ${token}`, serial, SECRET)).toBe(true);
-    expect(validPassAuth(`ApplePass ${token}`, passSerial(COMPANY, "00000000-0000-4000-8000-000000000000"), SECRET)).toBe(false);
-    expect(validPassAuth(`ApplePass ${token}`, serial, "otro-secreto-diferente")).toBe(false);
-    expect(validPassAuth(null, serial, SECRET)).toBe(false);
+    expect(newPassAuthToken()).not.toBe(token);
+    expect(validPassAuth(`ApplePass ${token}`, token)).toBe(true);
+    expect(validPassAuth(`ApplePass ${token}`, newPassAuthToken())).toBe(false);
+    expect(validPassAuth(`ApplePass ${token}`, undefined)).toBe(false); // tarjeta sin pase todavía
+    expect(validPassAuth(null, token)).toBe(false);
   });
 });
 
@@ -102,10 +101,12 @@ describe("Apple Wallet: contenido del pase", () => {
     member: { stamps: 120, name: "Luis", applePromo: { title: "2x1 hoy", body: "Solo hasta las 6", at: 2 } },
     origin: "https://smartloyalty.app",
     config: CONFIG,
+    authToken: TOKEN,
   });
 
   it("lleva el QR, el servicio web y los colores de la marca", () => {
     expect(json.serialNumber).toBe(passSerial(COMPANY, MEMBER));
+    expect(json.authenticationToken).toBe(TOKEN);
     expect(json.webServiceURL).toBe("https://smartloyalty.app/api/wallet/apple");
     expect(json.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", message: MEMBER, altText: "3F9A12BC" });
     expect(json.backgroundColor).toBe("rgb(14, 124, 102)");
@@ -134,12 +135,13 @@ describe("Apple Wallet: contenido del pase", () => {
       member: { applePromo: { title: "Solo para ti", at: 2 } },
       origin: "https://smartloyalty.app",
       config: CONFIG,
+      authToken: TOKEN,
     });
     expect(newer.storeCard.backFields[0].value).toContain("Para todos");
   });
 
   it("sin HTTPS no pone servicio web ni enlaces a la página", () => {
-    const local = passJson({ company, memberId: MEMBER, member: {}, origin: "http://localhost:3000", config: CONFIG });
+    const local = passJson({ company, memberId: MEMBER, member: {}, origin: "http://localhost:3000", config: CONFIG, authToken: TOKEN });
     expect(local.webServiceURL).toBeUndefined();
     expect(local.storeCard.backFields.some((f) => f.key === "review" || f.key === "promos")).toBe(false);
   });
@@ -149,7 +151,7 @@ describe("Apple Wallet: firma", () => {
   it("empaqueta un .pkpass firmado con pass.json, manifest y firma", () => {
     const certs = fakeCertificates();
     const config: AppleConfig = { ...CONFIG, ...certs };
-    const json = passJson({ company, memberId: MEMBER, member: { stamps: 10 }, origin: "https://smartloyalty.app", config });
+    const json = passJson({ company, memberId: MEMBER, member: { stamps: 10 }, origin: "https://smartloyalty.app", config, authToken: TOKEN });
     // PNG de 1x1 para el ícono (Apple lo exige).
     const icon = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
