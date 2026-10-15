@@ -85,3 +85,23 @@ describe("retraso de la encuesta de reseña", () => {
     expect(reviewDelayMinutes({ delayMinutes: 99999 })).toBe(2880);
   });
 });
+
+import { shouldAskReview } from "../../app/lib/rewards";
+
+describe("volver a pedir la reseña", () => {
+  const DAY = 86_400_000;
+  const now = Date.UTC(2026, 9, 15);
+  const at = (ms: number) => ({ toMillis: () => ms });
+
+  it("se pide la primera vez y nunca más si respondió", () => {
+    expect(shouldAskReview({}, now)).toBe(true);
+    expect(shouldAskReview({ reviewAnsweredAt: at(now - 30 * DAY), reviewRequestedAt: at(now - 30 * DAY) }, now)).toBe(false);
+  });
+
+  it("si no respondió, se vuelve a pedir después de 7 días, hasta 3 veces", () => {
+    expect(shouldAskReview({ reviewRequestedAt: at(now - 2 * DAY), reviewRequests: 1 }, now)).toBe(false);
+    expect(shouldAskReview({ reviewRequestedAt: at(now - 8 * DAY), reviewRequests: 1 }, now)).toBe(true);
+    expect(shouldAskReview({ reviewRequestedAt: at(now - 8 * DAY) }, now)).toBe(true); // pedidos antes de este cambio
+    expect(shouldAskReview({ reviewRequestedAt: at(now - 30 * DAY), reviewRequests: 3 }, now)).toBe(false);
+  });
+});

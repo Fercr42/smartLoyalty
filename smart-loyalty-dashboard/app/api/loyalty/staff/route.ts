@@ -17,7 +17,7 @@ import { messages } from "../../../i18n/messages";
 import { publicOrigin } from "../../../lib/origin";
 import { planState, type Plan } from "../../../lib/plan";
 import { cleanLoyalty, earnedFor, formatBalance, MAX_SALE } from "../../../lib/loyalty-mode";
-import { cleanRewards, reviewDelayMinutes } from "../../../lib/rewards";
+import { cleanRewards, reviewDelayMinutes, shouldAskReview } from "../../../lib/rewards";
 import { scheduleNotification } from "../../../lib/send-notification";
 import { checkPin, readStaffToken, signStaffToken } from "../../../lib/staff-auth";
 
@@ -83,12 +83,13 @@ async function maybeRequestReview(
   try {
     const memberRef = companyRef.collection("walletMembers").doc(memberId);
     const member = await memberRef.get();
-    if (member.data()?.reviewRequestedAt) return;
+    // Si no respondió la encuesta anterior, se le puede volver a pedir (ver shouldAskReview).
+    if (!shouldAskReview(member.data() ?? {})) return;
     // Sin celular ligado ni tarjeta guardada en Wallet no hay cómo avisarle: no se marca y se intenta en otra visita.
     if (!(await canReach(companyRef, memberId))) return;
     const delayMinutes = reviewDelayMinutes(reviews);
     const pass = messages[companyLocale(company as { language?: unknown })].pass;
-    await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp() });
+    await memberRef.update({ reviewRequestedAt: FieldValue.serverTimestamp(), reviewRequests: FieldValue.increment(1) });
     await scheduleNotification(
       company.id,
       {

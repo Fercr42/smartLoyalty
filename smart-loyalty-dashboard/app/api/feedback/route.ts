@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
     }
     throw e;
   }
+  // Ya respondió: no volver a pedirle la reseña.
+  if (memberId) {
+    await companyRef
+      .collection("walletMembers")
+      .doc(memberId)
+      .update({ reviewAnsweredAt: FieldValue.serverTimestamp() })
+      .catch(() => {}); // tarjeta que ya no existe
+  }
   await companyRef.update({
     "feedbackStats.count": FieldValue.increment(1),
     "feedbackStats.sum": FieldValue.increment(rating),
