@@ -15,12 +15,12 @@ export default function PlanBanner({ plan }: { plan: PlanState }) {
   return (
     <div
       role="status"
-      className={`rounded-lg border px-4 py-3 flex flex-wrap items-center justify-between gap-3 ${
+      className={`rounded-2xl border px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-l-4 ${
         expired
-          ? "bg-red-50 border-red-200 text-red-900"
+          ? "bg-[#fff4f2] border-[#f3c9c1] border-l-[#d9452b] text-[#6b1d10]"
           : failed
-            ? "bg-amber-50 border-amber-200 text-amber-900"
-            : "bg-emerald-50 border-emerald-200 text-emerald-900"
+            ? "bg-[#fff8e8] border-[#f5dfa6] border-l-[#f2b134] text-[#5c4108]"
+            : "bg-[#07201b] border-[#07201b] border-l-[#19c58a] text-white/85"
       }`}
     >
       <p className="text-sm">
@@ -41,7 +41,7 @@ export default function PlanBanner({ plan }: { plan: PlanState }) {
       {!failed && (
         <a
           href="#plan"
-          className={`text-sm font-semibold px-3 py-1.5 rounded ${expired ? "bg-red-700 text-white" : "bg-emerald-700 text-white"}`}
+          className={`sl-press text-sm font-semibold px-4 py-2 rounded-xl ${expired ? "bg-[#d9452b] text-white" : "bg-[#19c58a] text-[#07201b]"}`}
         >
           {t.activate}
         </a>

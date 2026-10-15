@@ -19,9 +19,11 @@ import AutomationsEditor from "../components/automationsEditor";
 import BillingPanel from "../components/billingPanel";
 import CardDesigner from "../components/cardDesigner";
 import CampaignResults from "../components/campaignResults";
-import BrandLogo from "../components/brandLogo";
+import PanelShell from "../components/panelShell";
+import { BrandMark } from "../components/brandLogo";
+import { display } from "../fonts";
 import { auth, db } from "../firebase/config";
-import { LanguageSwitcher, useI18n } from "../i18n/client";
+import { useI18n } from "../i18n/client";
 import { planState, type PlanState } from "../lib/plan";
 import { nativePlatform, nativePushReady, registerNativePush } from "../lib/native";
 import { useIsNativeApp } from "../lib/use-native";
@@ -77,8 +79,6 @@ export default function Panel() {
     setTab(id);
     history.replaceState(null, "", `#${id}`);
     window.scrollTo({ top: 0 });
-    // En celular el menú se desliza de lado: deja visible la pestaña elegida.
-    document.getElementById(`tab-${id}`)?.scrollIntoView({ inline: "center", block: "nearest" });
   };
 
   const handleLogout = async () => {
@@ -87,8 +87,11 @@ export default function Panel() {
 
   if (loading || (user && !plan)) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">{m.common.loading}</div>
+      <div className="pn-rail flex min-h-screen flex-col items-center justify-center gap-4">
+        <span className="sl-pulse grid place-items-center h-14 w-14 rounded-2xl bg-white/95">
+          <BrandMark size={30} />
+        </span>
+        <p className="text-sm text-white/60">{m.common.loading}</p>
       </div>
     );
   }
@@ -99,9 +102,9 @@ export default function Panel() {
 
   if (plan?.status === "none") {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 bg-gray-50">
-        <div className="bg-white rounded-2xl border p-8 max-w-md w-full text-center flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">{m.panel.finishTitle}</h1>
+      <div className="pn-rail flex min-h-screen items-center justify-center px-4">
+        <div className="pn-card p-8 max-w-md w-full text-center flex flex-col gap-4">
+          <h1 className={`${display.className} text-3xl font-extrabold text-[#07201b]`}>{m.panel.finishTitle}</h1>
           <p className="text-gray-600">{m.panel.finishLead}</p>
           <Link href="/registro" className="bg-[#0e7c66] text-white rounded-xl py-3 font-semibold">
             {m.panel.finishCta}
@@ -117,135 +120,116 @@ export default function Panel() {
   const current = m.panel.tabs[tab];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <BrandLogo size={26} />
-            {companyName && <span className="text-sm text-gray-500 truncate hidden sm:inline">· {companyName}</span>}
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher />
-            <span className="text-sm text-gray-600 hidden md:inline truncate max-w-[16rem]">{user.email}</span>
-            <button onClick={handleLogout} className="text-sm border rounded-md px-3 py-1.5 text-gray-700 hover:bg-gray-100">
-              {m.common.logout}
-            </button>
-            {inApp && (
-              <a href="/app?cambiar=1" aria-label={m.appHome.change} className="text-sm border rounded-md px-2 py-1.5 text-gray-700">
-                ⇄
-              </a>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid gap-6 grid-cols-[minmax(0,1fr)] lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label={m.panel.sectionsLabel} className="lg:sticky lg:top-24 self-start min-w-0">
-          <ul className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-            {TABS.map((id) => (
-              <li key={id} className="shrink-0">
-                <button
-                  onClick={() => go(id)}
-                  id={`tab-${id}`}
-                  aria-current={tab === id ? "page" : undefined}
-                  className={`w-full text-left whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-                    tab === id ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-white hover:shadow-sm"
-                  }`}
-                >
-                  {m.panel.tabs[id].label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <main className="flex flex-col gap-6 min-w-0">
+    <PanelShell
+      tabs={TABS.map((id) => ({ id, label: m.panel.tabs[id].label }))}
+      active={tab}
+      onSelect={(id) => go(id as TabId)}
+      title={current.label}
+      description={current.description}
+      companyName={companyName}
+      email={user.email ?? ""}
+      logoutLabel={m.common.logout}
+      onLogout={handleLogout}
+      sectionsLabel={m.panel.sectionsLabel}
+      extra={
+        inApp && (
+          <a
+            href="/app?cambiar=1"
+            aria-label={m.appHome.change}
+            className="text-sm rounded-lg px-2.5 py-1.5 text-white/80 border border-white/20 hover:bg-white/10"
+          >
+            ⇄
+          </a>
+        )
+      }
+      banners={
+        <>
           <VerifyEmailBanner user={user} />
           {plan && <PlanBanner plan={plan} />}
+        </>
+      }
+    >
+      {tab === "inicio" && (
+        <Card>
+          <StatsPanel />
+        </Card>
+      )}
 
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{current.label}</h1>
-            <p className="text-sm text-gray-600">{current.description}</p>
-          </div>
+      {tab === "clientes" && (
+        <Card>
+          <CustomersList />
+        </Card>
+      )}
 
-          {tab === "inicio" && (
-            <Card>
-              <StatsPanel />
-            </Card>
-          )}
+      {tab === "mensajes" && (
+        <Card>
+          <NotificationComposer />
+        </Card>
+      )}
 
-          {tab === "clientes" && (
-            <Card>
-              <CustomersList />
-            </Card>
-          )}
+      {tab === "resultados" && (
+        <Card>
+          <CampaignResults />
+        </Card>
+      )}
 
-          {tab === "mensajes" && (
-            <Card>
-              <NotificationComposer />
-            </Card>
-          )}
+      {tab === "automatizaciones" && (
+        <Card>
+          <AutomationsEditor />
+        </Card>
+      )}
 
-          {tab === "resultados" && (
-            <Card>
-              <CampaignResults />
-            </Card>
-          )}
+      {tab === "tarjeta" && (
+        <>
+          <Card title={m.panel.cardDesign}>
+            <CardDesigner />
+          </Card>
+          <Card title={m.panel.walletData}>
+            <WalletCardEditor />
+          </Card>
+        </>
+      )}
 
-          {tab === "automatizaciones" && (
-            <Card>
-              <AutomationsEditor />
-            </Card>
-          )}
+      {tab === "recompensas" && (
+        <>
+          <Card>
+            <LoyaltyEditor />
+          </Card>
+          <Card title={m.reviewQueue.title}>
+            <ReviewQueue />
+          </Card>
+        </>
+      )}
 
-          {tab === "tarjeta" && (
-            <>
-              <Card title={m.panel.cardDesign}>
-                <CardDesigner />
-              </Card>
-              <Card title={m.panel.walletData}>
-                <WalletCardEditor />
-              </Card>
-            </>
-          )}
+      {tab === "negocio" && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title={m.panel.businessData}>
+            <BusinessForm />
+          </Card>
+          <Card title={m.panel.qrTitle}>
+            <CompanyQR />
+          </Card>
+        </div>
+      )}
 
-          {tab === "recompensas" && (
-            <>
-              <Card>
-                <LoyaltyEditor />
-              </Card>
-              <Card title={m.reviewQueue.title}>
-                <ReviewQueue />
-              </Card>
-            </>
-          )}
-
-          {tab === "negocio" && (
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card title={m.panel.businessData}>
-                <BusinessForm />
-              </Card>
-              <Card title={m.panel.qrTitle}>
-                <CompanyQR />
-              </Card>
-            </div>
-          )}
-
-          {tab === "plan" && plan && (
-            <Card>
-              <BillingPanel plan={plan} onPlanChange={setPlan} />
-            </Card>
-          )}
-        </main>
-      </div>
-    </div>
+      {tab === "plan" && plan && (
+        <Card>
+          <BillingPanel plan={plan} onPlanChange={setPlan} />
+        </Card>
+      )}
+    </PanelShell>
   );
 }
 
 function Card({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-xl border p-5 sm:p-6">
-      {title && <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>}
+    <section className="pn-card p-5 sm:p-7">
+      {title && (
+        <h2 className={`${display.className} text-xl font-semibold tracking-tight text-[#07201b] mb-5 flex items-center gap-2.5`}>
+          <span aria-hidden className="h-2 w-2 rounded-full bg-[#19c58a]" />
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   );
