@@ -13,7 +13,9 @@ export async function GET(
   const { companyId } = await params;
   // ?m= lleva la tarjeta del cliente al ícono de inicio (ver lib/member-id.ts).
   const memberId = new URL(req.url).searchParams.get("m") ?? "";
-  const startUrl = /^[0-9a-f-]{36}$/i.test(memberId) ? `/join/${companyId}?m=${memberId}` : `/join/${companyId}`;
+  // Sin ?m= no se pone start_url: así el iPhone abre la dirección actual de la página, que ya lleva
+  // la tarjeta (joinClient la agrega). Con start_url fijo, el ícono abría /join sin tarjeta y creaba otra.
+  const startUrl = /^[0-9a-f-]{36}$/i.test(memberId) ? `/join/${companyId}?m=${memberId}` : null;
   const cookie = req.headers.get("cookie")?.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([a-z]{2})`))?.[1];
   let name = messages[pickLocale(cookie, req.headers.get("accept-language"))].join.appName;
   let logoUrl = "";
@@ -34,7 +36,7 @@ export async function GET(
     {
       name,
       short_name: name.slice(0, 12),
-      start_url: startUrl,
+      ...(startUrl ? { start_url: startUrl } : {}),
       scope: "/",
       display: "standalone",
       background_color: bg,
