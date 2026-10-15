@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import BrandLogo from "./components/brandLogo";
+import NuevaLanding from "./nueva/landing";
 import HeroParallax from "./components/heroParallax";
 import ProgramShowcase from "./components/programShowcase";
 import ScrollProgress from "./components/scrollProgress";
@@ -26,7 +27,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Landing() {
-  const { m } = await getI18n();
+  const { m, locale } = await getI18n();
+  // Portada nueva (3D) en español. Inglés y tailandés siguen con la portada anterior hasta traducirla.
+  if (locale === "es") return <NuevaLanding />;
   const t = m.landing;
   const vars = { days: TRIAL_DAYS, price: ENTRY_PRICE_USD };
 
