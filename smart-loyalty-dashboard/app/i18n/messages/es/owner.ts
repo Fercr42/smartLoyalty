@@ -143,3 +143,21 @@ export const customers = {
   loadError: "No se pudo cargar la lista de clientes.",
   namesHint: "Los clientes escriben su nombre en su tarjeta (página de tu QR).",
 };
+
+export const reviewQueue = {
+  "title": "Encuestas de reseña",
+  "lead": "Las encuestas salen unos minutos después de la compra, cuando corre el revisor de envíos (cada 5 minutos aproximadamente).",
+  "scheduled": "Programadas",
+  "none": "No hay encuestas programadas ahora.",
+  "sendsIn": "Sale en {min} min",
+  "late": "Atrasada {min} min · sale en la próxima revisión",
+  "retrying": "Reintentando el envío",
+  "sent": "Enviadas recientemente",
+  "noneSent": "Todavía no se ha enviado ninguna encuesta.",
+  "reachedOne": "Llegó a 1 celular",
+  "reachedMany": "Llegó a {count} celulares",
+  "wallet": "Quedó en su tarjeta de Wallet",
+  "notReached": "No llegó a ningún celular: se volverá a pedir en su próxima compra",
+  "refresh": "Actualizar",
+  "loadError": "No se pudieron cargar las encuestas."
+};
