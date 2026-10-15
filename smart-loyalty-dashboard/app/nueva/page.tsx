@@ -12,6 +12,7 @@ import Choreo from "./components/choreo";
 import Magnetic from "./components/magnetic";
 import Simulator from "./components/simulator";
 import Pricing from "./components/pricing";
+import StepQr from "./components/stepQr";
 import { Chars, Words } from "./components/split";
 import { TRIAL_DAYS } from "../lib/plan";
 
@@ -78,17 +79,7 @@ const FIGURES = [
 ];
 
 function StepArt({ kind }: { kind: string }) {
-  if (kind === "qr")
-    return (
-      <div className="nv-art-qr" aria-hidden>
-        {Array.from({ length: 81 }, (_, i) => {
-          const r = Math.floor(i / 9);
-          const c = i % 9;
-          const finder = (r < 3 && c < 3) || (r < 3 && c > 5) || (r > 5 && c < 3);
-          return <i key={i} className={finder || (r * 5 + c * 3 + r * c) % 4 === 0 ? "on" : ""} style={{ ["--d" as string]: `${(r + c) * 40}ms` }} />;
-        })}
-      </div>
-    );
+  if (kind === "qr") return <StepQr />;
   if (kind === "tap")
     return (
       <div className="nv-art-tap" aria-hidden>

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { confettiPop } from "../../lib/fun";
 import { formatColones } from "../../lib/format-money";
+import { QRCodeSVG } from "qrcode.react";
+import CafeLunaLogo from "./cafeLunaLogo";
 
 // Simulador: el visitante elige cómo premia su negocio, "escanea" compras y ve lo que vive su cliente:
 // la tarjeta que se llena y la notificación que llega a la pantalla de bloqueo. Nada se guarda.
@@ -164,7 +166,9 @@ export default function Simulator() {
           <div className="nv-notif-slot" aria-live="polite">
             {notif && (
               <div key={notif.key} className="nv-notif">
-                <span className="nv-notif-icon" aria-hidden />
+                <span className="nv-notif-icon" aria-hidden>
+                  <CafeLunaLogo size={26} />
+                </span>
                 <div>
                   <p className="nv-notif-head">
                     Café Luna <span>ahora</span>
@@ -176,38 +180,46 @@ export default function Simulator() {
             )}
           </div>
 
+          {/* Pase al estilo Wallet: encabezado, franja con sellos o barra, campos y código. */}
           <div ref={cardRef} className={`nv-wallet ${scanning ? "is-scanning" : ""}`}>
             <div className="nv-wallet-head">
-              <span className="nv-wallet-logo" aria-hidden>
-                CL
-              </span>
-              <div>
-                <p className="nv-wallet-name">Café Luna</p>
-                <p className="nv-wallet-sub">Cliente frecuente</p>
-              </div>
-              <p className="nv-wallet-value" aria-live="polite">
+              <CafeLunaLogo size={30} />
+              <p className="nv-wallet-name">Café Luna</p>
+              <p className="nv-wallet-field nv-wallet-field-right" aria-live="polite">
+                <span>{mode === "sellos" ? "SELLOS" : mode === "puntos" ? "PUNTOS" : "SALDO"}</span>
                 {mode === "cashback" ? formatColones(shown) : shown.toLocaleString("es-CR")}
-                <span>{mode === "sellos" ? "sellos" : mode === "puntos" ? "puntos" : "saldo"}</span>
               </p>
             </div>
 
-            {mode === "sellos" ? (
-              <div className="nv-wallet-stamps" aria-hidden>
-                {Array.from({ length: 10 }, (_, i) => (
-                  <span key={i} className={i < shown ? (i === 9 ? "is-on is-gold" : "is-on") : ""} />
-                ))}
-              </div>
-            ) : (
-              <div className="nv-wallet-bar" aria-hidden>
-                <i style={{ transform: `scaleX(${progress})` }} />
-              </div>
-            )}
-            <p className="nv-wallet-status">{status}</p>
-            <div className="nv-wallet-qr" aria-hidden>
-              {Array.from({ length: 49 }, (_, i) => (
-                <i key={i} className={(i * 7 + (i % 5) * 3) % 3 === 0 || [0, 1, 7, 8, 5, 6, 12, 13, 35, 36, 42, 43].includes(i) ? "on" : ""} />
-              ))}
+            <div className="nv-wallet-strip">
+              {mode === "sellos" ? (
+                <div className="nv-wallet-stamps" aria-hidden>
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span key={i} className={i < shown ? (i === 9 ? "is-on is-gold" : "is-on") : ""} />
+                  ))}
+                </div>
+              ) : (
+                <div className="nv-wallet-bar" aria-hidden>
+                  <i style={{ transform: `scaleX(${progress})` }} />
+                </div>
+              )}
+              <p className="nv-wallet-status">{status}</p>
             </div>
+
+            <div className="nv-wallet-fields">
+              <p className="nv-wallet-field">
+                <span>MIEMBRO</span>Ana Solís
+              </p>
+              <p className="nv-wallet-field">
+                <span>PREMIO</span>
+                {mode === "cashback" ? "5% de vuelta" : "Café gratis"}
+              </p>
+            </div>
+
+            <div className="nv-wallet-qr" aria-hidden>
+              <QRCodeSVG value="https://smartloyalty.app" size={74} level="M" bgColor="#ffffff" fgColor="#1b120d" />
+            </div>
+            <p className="nv-wallet-caption">Muestra este código en caja</p>
           </div>
           <p className="nv-phone-foot" aria-hidden>
             Se actualiza sola en Google Wallet

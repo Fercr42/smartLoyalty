@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import qrcode from "qrcode-generator";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -10,14 +11,15 @@ import { stage } from "./stage";
 // que cambian de figura según la sección: galaxia, sellos, ondas de aviso, estrella de reseña y esfera.
 
 const INK = 0x04140f;
-const CARD_W = 3.4;
-const CARD_H = 2.14;
-const FACE_W = 3.3;
-const FACE_H = 2.04;
+// Tarjeta vertical con proporción de pase de Apple Wallet.
+const CARD_W = 2.3;
+const CARD_H = 3.04;
+const FACE_W = 2.2;
+const FACE_H = 2.94;
 
 // Sellos de la tarjeta (coordenadas de la tarjeta). Los usan el dibujo de la cara y la figura "sellos".
-const STAMP_R = 0.19;
-export const STAMPS = [-0.12, -0.64].flatMap((y) => [-1.2, -0.6, 0, 0.6, 1.2].map((x) => ({ x, y })));
+const STAMP_R = 0.135;
+export const STAMPS = [0.66, 0.3].flatMap((y) => [-0.76, -0.38, 0, 0.38, 0.76].map((x) => ({ x, y })));
 
 type Options = { mobile: boolean; reduced: boolean };
 
@@ -193,55 +195,182 @@ const fragment = /* glsl */ `
   }
 `;
 
-// Cara de la tarjeta dibujada en un canvas: negocio, puntos y los 10 sellos.
-function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number, mark: HTMLImageElement | null) {
+// Logo inventado de "Café Luna": una luna creciente ámbar que abraza un grano de café.
+export function drawCafeLunaLogo(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  const off = document.createElement("canvas");
+  off.width = off.height = Math.ceil(r * 2 + 4);
+  const o = off.getContext("2d")!;
+  const c = off.width / 2;
+  o.fillStyle = "#f2b134";
+  o.beginPath();
+  o.arc(c, c, r, 0, Math.PI * 2);
+  o.fill();
+  o.globalCompositeOperation = "destination-out";
+  o.beginPath();
+  o.arc(c + r * 0.42, c - r * 0.3, r * 0.82, 0, Math.PI * 2);
+  o.fill();
+  o.globalCompositeOperation = "source-over";
+  // grano de café
+  o.save();
+  o.translate(c + r * 0.18, c + r * 0.12);
+  o.rotate(-0.55);
+  o.fillStyle = "#f6ead8";
+  o.beginPath();
+  o.ellipse(0, 0, r * 0.3, r * 0.42, 0, 0, Math.PI * 2);
+  o.fill();
+  o.strokeStyle = "#5b3a24";
+  o.lineWidth = Math.max(1.5, r * 0.07);
+  o.lineCap = "round";
+  o.beginPath();
+  o.moveTo(0, -r * 0.36);
+  o.bezierCurveTo(-r * 0.14, -r * 0.1, r * 0.14, r * 0.1, 0, r * 0.36);
+  o.stroke();
+  o.restore();
+  ctx.drawImage(off, cx - c, cy - c);
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// QR real y escaneable: lleva a smartloyalty.app.
+const QR = (() => {
+  const q = qrcode(0, "M");
+  q.addData("https://smartloyalty.app");
+  q.make();
+  return q;
+})();
+function drawQr(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const n = QR.getModuleCount();
+  const cell = size / n;
+  ctx.fillStyle = "#1b120d";
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) if (QR.isDark(r, c)) ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
+}
+
+// Cara de la tarjeta: un pase de Apple Wallet de "Café Luna" con puntos, 10 sellos, datos y código.
+function drawFace(ctx: CanvasRenderingContext2D, points: number, lit: number) {
   const { width: w, height: h } = ctx.canvas;
   const X = (x: number) => (x / FACE_W + 0.5) * w;
   const Y = (y: number) => (0.5 - y / FACE_H) * h;
+  const sans = "'Geist Variable', 'Geist', -apple-system, 'Helvetica Neue', system-ui, sans-serif";
+  const cream = "#f6ead8";
+  const label = "#d9b98f";
   ctx.clearRect(0, 0, w, h);
-  const display = "'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif";
 
-  if (mark?.complete) ctx.drawImage(mark, X(-1.48), Y(0.86), 74, 74 * (mark.naturalHeight / mark.naturalWidth || 1));
-  ctx.shadowColor = "rgba(4,20,15,0.55)";
-  ctx.shadowBlur = 12;
-  ctx.fillStyle = "rgba(244,255,250,0.97)";
-  ctx.font = `700 60px ${display}`;
-  ctx.fillText("Café Luna", X(-1.48) + 94, Y(0.86) + 52);
-  ctx.font = `500 30px ${display}`;
-  ctx.fillStyle = "rgba(232,250,242,0.72)";
-  ctx.fillText("Cliente frecuente", X(-1.48) + 96, Y(0.86) + 94);
+  // Fondo del pase: espresso con un brillo cálido arriba.
+  roundRect(ctx, 0, 0, w, h, 46);
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, "#3a261b");
+  bg.addColorStop(1, "#1f140e");
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
 
+  // Encabezado: logo + nombre a la izquierda, puntos a la derecha.
+  drawCafeLunaLogo(ctx, 74, 78, 36);
+  ctx.fillStyle = cream;
+  ctx.font = `600 46px ${sans}`;
+  ctx.fillText("Café Luna", 124, 94);
   ctx.textAlign = "right";
-  ctx.fillStyle = "rgba(244,255,250,0.97)";
-  ctx.font = `800 76px ${display}`;
-  ctx.fillText(points.toLocaleString("es-CR"), X(1.46), Y(0.86) + 62);
-  ctx.font = `500 28px ${display}`;
-  ctx.fillStyle = "rgba(232,250,242,0.72)";
-  ctx.fillText("puntos", X(1.46), Y(0.86) + 98);
+  ctx.fillStyle = label;
+  ctx.font = `600 22px ${sans}`;
+  ctx.fillText("PUNTOS", w - 40, 60);
+  ctx.fillStyle = cream;
+  ctx.font = `500 58px ${sans}`;
+  ctx.fillText(points.toLocaleString("es-CR"), w - 40, 108);
   ctx.textAlign = "left";
-  ctx.shadowBlur = 0;
 
-  STAMPS.forEach((s, k) => {
+  // Franja (strip) con los sellos.
+  const sTop = Y(0.9);
+  const sBot = Y(0.06);
+  const strip = ctx.createLinearGradient(0, sTop, w, sBot);
+  strip.addColorStop(0, "#c98a3d");
+  strip.addColorStop(0.55, "#8a5530");
+  strip.addColorStop(1, "#4a2d1c");
+  ctx.fillStyle = strip;
+  ctx.fillRect(0, sTop, w, sBot - sTop);
+  // ondas de "latte art" muy suaves
+  ctx.strokeStyle = "rgba(246,234,216,0.12)";
+  ctx.lineWidth = 3;
+  for (let k = 0; k < 6; k++) {
     ctx.beginPath();
-    ctx.arc(X(s.x), Y(s.y), (STAMP_R / FACE_W) * w, 0, Math.PI * 2);
+    for (let x = 0; x <= w; x += 12) {
+      const yy = sTop + 30 + k * 40 + Math.sin(x / 70 + k) * 10;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  const sr = (STAMP_R / FACE_W) * w;
+  STAMPS.forEach((st, k) => {
+    const cx = X(st.x);
+    const cy = Y(st.y);
+    ctx.beginPath();
+    ctx.arc(cx, cy, sr, 0, Math.PI * 2);
     if (k < lit) {
-      ctx.fillStyle = k === 9 ? "#f2b134" : "#19c58a";
+      ctx.fillStyle = k === 9 ? "#f2b134" : cream;
       ctx.fill();
+      // tacita dentro del sello
+      ctx.fillStyle = "#5b3a24";
+      ctx.fillRect(cx - sr * 0.38, cy - sr * 0.22, sr * 0.62, sr * 0.5);
+      ctx.beginPath();
+      ctx.arc(cx + sr * 0.3, cy + sr * 0.02, sr * 0.16, -Math.PI / 2, Math.PI / 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#5b3a24";
+      ctx.stroke();
     } else {
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "rgba(232,250,242,0.45)";
-      ctx.setLineDash([10, 8]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(246,234,216,0.6)";
+      ctx.setLineDash([8, 7]);
       ctx.stroke();
       ctx.setLineDash([]);
     }
   });
+
+  // Campos secundarios.
+  const fields = [
+    { l: "MIEMBRO", v: "Ana Solís", x: 40 },
+    { l: "SELLOS", v: `${lit} de 10`, x: w * 0.42 },
+    { l: "PREMIO", v: "Café gratis", x: w * 0.66 },
+  ];
+  fields.forEach((f) => {
+    ctx.fillStyle = label;
+    ctx.font = `600 22px ${sans}`;
+    ctx.fillText(f.l, f.x, Y(-0.12));
+    ctx.fillStyle = cream;
+    ctx.font = `500 34px ${sans}`;
+    ctx.fillText(f.v, f.x, Y(-0.12) + 44);
+  });
+
+  // Código para mostrar en caja.
+  const qs = 0.66 / FACE_W * w;
+  const qx = w / 2 - qs / 2;
+  const qy = Y(-0.6);
+  roundRect(ctx, qx - 18, qy - 18, qs + 36, qs + 36, 16);
+  ctx.fillStyle = "#efe7da"; // blanco cálido: no se "quema" con el brillo
+  ctx.fill();
+  drawQr(ctx, qx, qy, qs);
+  ctx.textAlign = "center";
+  ctx.fillStyle = label;
+  ctx.font = `500 23px ${sans}`;
+  ctx.fillText("Muestra este código en caja", w / 2, qy + qs + 58);
+  ctx.textAlign = "left";
+  ctx.restore();
 }
 
 function roundedCard() {
   const shape = new THREE.Shape();
   const w = CARD_W / 2;
   const h = CARD_H / 2;
-  const r = 0.22;
+  const r = 0.2;
   shape.moveTo(-w + r, -h);
   shape.lineTo(w - r, -h);
   shape.quadraticCurveTo(w, -h, w, -h + r);
@@ -287,7 +416,7 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
 
   // Luces: una principal que sigue al cursor, un relleno menta y un contraluz ámbar.
   scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-  const key = new THREE.DirectionalLight(0xffffff, 1.6);
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
   key.position.set(3, 4, 6);
   scene.add(key);
   const mintLight = new THREE.PointLight(0x19c58a, 40, 20);
@@ -316,55 +445,44 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
         color: 0xe6fbf3,
         roughness: 0.2,
         emissive: new THREE.Color(0x0e7c66),
-        emissiveIntensity: 0.18,
+        emissiveIntensity: 0.08,
         metalness: 0,
         transmission: 1,
         thickness: 0.9,
         ior: 1.42,
         attenuationColor: new THREE.Color(0x19c58a),
         attenuationDistance: 3,
-        clearcoat: 1,
-        clearcoatRoughness: 0.08,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.2,
         iridescence: 0.4,
         iridescenceIOR: 1.25,
-        envMapIntensity: 2.1,
+        envMapIntensity: 1.2,
       });
   const cardGeo = roundedCard();
   card.add(new THREE.Mesh(cardGeo, glass));
 
   const faceCanvas = document.createElement("canvas");
-  faceCanvas.width = 1024;
-  faceCanvas.height = Math.round((1024 * FACE_H) / FACE_W);
+  faceCanvas.width = 768;
+  faceCanvas.height = Math.round((768 * FACE_H) / FACE_W);
   const faceCtx = faceCanvas.getContext("2d")!;
   const faceTex = new THREE.CanvasTexture(faceCanvas);
   faceTex.colorSpace = THREE.SRGBColorSpace;
   faceTex.anisotropy = 4;
   const faceGeo = new THREE.PlaneGeometry(FACE_W, FACE_H);
-  const faceMat = new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, toneMapped: false });
+  const faceMat = new THREE.MeshBasicMaterial({ map: faceTex, transparent: true });
   const face = new THREE.Mesh(faceGeo, faceMat);
   face.position.z = 0.062;
   card.add(face);
 
-  const mark = new Image();
-  mark.src = "/brand/mark.png";
   let shown = { points: -1, lit: -1 };
   const redrawFace = () => {
-    drawFace(faceCtx, Math.round(stage.points), Math.round(stage.stamps), mark);
+    drawFace(faceCtx, Math.round(stage.points), Math.round(stage.stamps));
     faceTex.needsUpdate = true;
     shown = { points: Math.round(stage.points), lit: Math.round(stage.stamps) };
   };
-  mark.onload = redrawFace;
   document.fonts?.ready.then(redrawFace).catch(() => {});
   redrawFace();
 
-  // Esferitas de luz detrás de la tarjeta: se ven refractadas a través del cristal.
-  const orbGeo = new THREE.SphereGeometry(0.11, 24, 24);
-  const orbs = [0x19c58a, 0xf2b134, 0xbff3df].map((c, i) => {
-    const m = new THREE.Mesh(orbGeo, new THREE.MeshBasicMaterial({ color: c, toneMapped: false }));
-    m.userData.phase = (i * Math.PI * 2) / 3;
-    card.add(m);
-    return m;
-  });
 
   // --- Partículas -------------------------------------------------------------
   const count = mobile ? 4200 : 12000;
@@ -408,7 +526,7 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
   if (!mobile) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.65, 0.55, 0.18);
+    bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.7, 0.5, 0.9); // umbral alto: brillan las partículas, no la tarjeta
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
   }
@@ -487,14 +605,10 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
     const mx = reduced ? 0 : stage.mouse.x;
     const my = reduced ? 0 : stage.mouse.y;
     card.position.set(cur.x, cur.y + Math.sin(time * 0.8) * 0.07, cur.z);
-    card.rotation.set(cur.rx - my * 0.2, cur.ry + mx * 0.3 + stage.spin, cur.rz + Math.sin(time * 0.6) * 0.02);
+    card.rotation.set(cur.rx - my * 0.2, cur.ry + mx * 0.2 + stage.spin, cur.rz + Math.sin(time * 0.6) * 0.02);
     card.scale.setScalar(Math.max(cur.s, 0.0001));
     card.visible = cur.s > 0.02;
     uniforms.uCenter.value.set(cur.x, cur.y, cur.z);
-    orbs.forEach((o) => {
-      const a = time * 0.7 + o.userData.phase;
-      o.position.set(Math.cos(a) * 1.25, Math.sin(a * 1.3) * 0.55, -0.9 + Math.sin(a) * 0.3);
-    });
 
     // Cara: solo se vuelve a dibujar cuando cambian los puntos o los sellos.
     if (Math.round(stage.points) !== shown.points || Math.round(stage.stamps) !== shown.lit) redrawFace();
@@ -506,7 +620,8 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
       const hit = ray.ray.intersectPlane(plane, new THREE.Vector3());
       if (hit) mouseWorld.lerp(hit, 1 - Math.exp(-dt * 10));
       uniforms.uMouse.value.copy(mouseWorld);
-      key.position.set(3 + mx * 4, 4 + my * 3, 6);
+      // La luz se mueve poco con el cursor: así el reflejo nunca apunta de lleno a la cámara.
+      key.position.set(3 + mx * 1.2, 4 + my * 0.8, 6);
     }
     camera.position.x += (mx * 0.35 - camera.position.x) * k;
     camera.position.y += (my * 0.25 - camera.position.y) * k;
@@ -542,8 +657,6 @@ export function createScene(canvas: HTMLCanvasElement, { mobile, reduced }: Opti
       faceGeo.dispose();
       faceMat.dispose();
       faceTex.dispose();
-      orbGeo.dispose();
-      orbs.forEach((o) => (o.material as THREE.Material).dispose());
       env.dispose();
       pmrem.dispose();
       composer?.dispose();

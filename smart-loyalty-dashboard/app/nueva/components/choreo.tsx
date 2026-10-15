@@ -27,12 +27,12 @@ export default function Choreo() {
     const scenes: Record<string, Scene> = {
       hero: {
         shape: SHAPE.galaxy,
-        card: portrait ? { x: 0, y: 1.55, z: 0, rx: -0.1, ry: -0.3, rz: 0.04, s: 0.92 } : { x: 2.1, y: 0.45, z: 0, rx: -0.12, ry: -0.42, rz: 0.06, s: 1 },
+        card: portrait ? { x: 0, y: 2.1, z: 0, rx: -0.08, ry: -0.3, rz: 0.04, s: 0.82 } : { x: 2.8, y: 0.2, z: 0, rx: -0.08, ry: -0.38, rz: 0.05, s: 1 },
         fade: 1,
       },
-      suma: { shape: SHAPE.stamps, card: portrait ? { x: 0, y: 1.7, z: 0, rx: 0, ry: 0, rz: 0, s: 1 } : { x: 2.7, y: 0.1, z: 0, rx: 0, ry: 0, rz: 0, s: 1 }, fade: 1 },
-      avisa: { shape: SHAPE.rings, card: portrait ? { x: 0, y: 1.7, rx: -0.08, ry: 0.3, rz: 0, s: 0.9 } : { x: 2.7, y: 0.15, rx: -0.1, ry: 0.4, rz: 0.03, s: 1 }, fade: 1 },
-      recomienda: { shape: SHAPE.star, card: portrait ? { x: 0, y: 1.7, rx: 0.05, ry: -0.25, rz: -0.05, s: 0.85 } : { x: 2.7, y: 0, rx: 0.08, ry: -0.3, rz: -0.06, s: 0.95 }, fade: 1 },
+      suma: { shape: SHAPE.stamps, card: portrait ? { x: 0, y: 2.25, z: 0, rx: 0, ry: 0, rz: 0, s: 1 } : { x: 2.8, y: 0, z: 0, rx: 0, ry: 0, rz: 0, s: 1 }, fade: 1 },
+      avisa: { shape: SHAPE.rings, card: portrait ? { x: 0, y: 2.25, rx: -0.06, ry: 0.3, rz: 0, s: 0.9 } : { x: 2.8, y: 0.05, rx: -0.08, ry: 0.38, rz: 0.03, s: 1 }, fade: 1 },
+      recomienda: { shape: SHAPE.star, card: portrait ? { x: 0, y: 2.25, rx: 0.05, ry: -0.25, rz: -0.05, s: 0.85 } : { x: 2.8, y: 0, rx: 0.06, ry: -0.3, rz: -0.06, s: 0.95 }, fade: 1 },
       sim: { shape: SHAPE.galaxy, card: HIDDEN, fade: 0.5 },
       numbers: { shape: SHAPE.galaxy, card: HIDDEN, fade: 0.75 },
       steps: { shape: SHAPE.galaxy, card: HIDDEN, fade: 0.45 },
