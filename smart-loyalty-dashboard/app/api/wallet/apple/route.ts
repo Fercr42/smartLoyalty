@@ -4,6 +4,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "../../../firebase/admin";
 import { appleConfig } from "../../../lib/apple-wallet";
 import { buildMemberPass } from "../../../lib/apple-wallet-updates";
+import { passcreatorReady } from "../../../lib/passcreator-config";
+import { passLink } from "../../../lib/passcreator";
 import { publicOrigin } from "../../../lib/origin";
 
 export const runtime = "nodejs";
@@ -22,7 +24,8 @@ function linkSignature(companyId: string, memberId: string, expires: number) {
 
 // 1) La página del cliente pide el enlace. Crea su registro si aún no existe (igual que Google Wallet).
 export async function POST(req: NextRequest) {
-  if (!appleConfig()) return Response.json({ error: "Apple Wallet aún no está configurado" }, { status: 503 });
+  const own = Boolean(appleConfig());
+  if (!own && !passcreatorReady()) return Response.json({ error: "Apple Wallet aún no está configurado" }, { status: 503 });
   const { companyId, memberId } = await req.json().catch(() => ({}));
   if (!COMPANY_ID.test(companyId ?? "") || !MEMBER_ID.test(memberId ?? "")) {
     return Response.json({ error: "Datos inválidos" }, { status: 400 });
@@ -34,6 +37,18 @@ export async function POST(req: NextRequest) {
     .doc(memberId)
     .create({ platform: "web", stamps: 0, totalVisits: 0, createdAt: FieldValue.serverTimestamp() })
     .catch(() => {}); // ya existía
+
+  // Sin certificado propio: Passcreator crea el pase y nos da el enlace para guardarlo.
+  if (!own) {
+    try {
+      const url = await passLink(companyId, memberId, publicOrigin(req.nextUrl.origin));
+      if (!url) return Response.json({ error: "Tarjeta no encontrada" }, { status: 404 });
+      return Response.json({ url });
+    } catch (e) {
+      console.error("Apple Wallet (Passcreator)", e);
+      return Response.json({ error: "No se pudo crear la tarjeta" }, { status: 502 });
+    }
+  }
 
   const expires = Date.now() + LINK_MS;
   const params = new URLSearchParams({ companyId, memberId, e: String(expires), s: linkSignature(companyId, memberId, expires) });

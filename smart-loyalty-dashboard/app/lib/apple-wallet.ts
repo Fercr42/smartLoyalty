@@ -10,6 +10,7 @@ import { validLocation } from "./location";
 import { cleanLoyalty, formatBalance } from "./loyalty-mode";
 import { cleanRewards, nextRewardText } from "./rewards";
 import type { WalletCompany } from "./google-wallet";
+import { passcreatorReady } from "./passcreator-config";
 
 // Apple Wallet: un pase .pkpass (tipo storeCard) por cliente, firmado con el certificado del Pass Type ID.
 // El iPhone se registra en /api/wallet/apple/v1/... y pide el pase nuevo cuando le avisamos por APNs.
@@ -46,7 +47,9 @@ export function appleConfig(env: Record<string, string | undefined> = process.en
   return complete ? config : null;
 }
 
-export const appleWalletEnabled = () => appleConfig() !== null;
+// Con certificado propio se firma aquí; si no, Passcreator firma los pases por nosotros.
+export const appleProvider = (): "own" | "passcreator" | null => (appleConfig() ? "own" : passcreatorReady() ? "passcreator" : null);
+export const appleWalletEnabled = () => appleProvider() !== null;
 
 // Número de serie del pase: "{companyId}.{memberId}".
 const COMPANY_ID = /^[A-Za-z0-9]{10,64}$/;

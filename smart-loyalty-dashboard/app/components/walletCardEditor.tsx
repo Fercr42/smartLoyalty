@@ -10,6 +10,7 @@ import { useI18n } from "../i18n/client";
 import { describeLink } from "../lib/links";
 import { parseMapsLink, validLocation, type LatLng } from "../lib/location";
 import { syncWalletCards } from "../lib/walletClient";
+import { cleanRewards } from "../lib/rewards";
 
 type InfoRow = { label: string; value: string };
 type LinkRow = { label: string; url: string };
@@ -38,6 +39,9 @@ export default function WalletCardEditor() {
   const [info, setInfo] = useState<InfoRow[]>(threeInfo());
   const [links, setLinks] = useState<LinkRow[]>(threeLinks());
   const [saving, setSaving] = useState(false);
+  const [view, setView] = useState<"google" | "apple">("google");
+  const [mode, setMode] = useState<"stamps" | "points" | "cashback">("points");
+  const [reward, setReward] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -55,6 +59,9 @@ export default function WalletCardEditor() {
         setWideLogoUrl(card.wideLogoUrl ?? "");
         setLocation(validLocation(data.location));
         setInfo(threeInfo(card.info));
+        const loyaltyMode = data.loyalty?.mode;
+        if (loyaltyMode === "stamps" || loyaltyMode === "points" || loyaltyMode === "cashback") setMode(loyaltyMode);
+        setReward(cleanRewards(data.loyalty?.rewards)[0]?.title ?? "");
         setLinks(threeLinks(card.links));
       })
       .catch(console.error);
@@ -401,7 +408,40 @@ export default function WalletCardEditor() {
       </form>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-6 self-start w-full">
-        <p className="text-xs uppercase tracking-wide text-gray-500">{t.preview}</p>
+        <div className="flex items-center justify-between gap-3 w-full max-w-[340px] mx-auto">
+          <p className="text-xs uppercase tracking-wide text-gray-500">{t.preview}</p>
+          {/* Cómo se ve la misma tarjeta en cada billetera del celular. */}
+          <div className="flex rounded-full bg-gray-100 p-0.5 text-xs font-medium" role="group">
+            {(["google", "apple"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 rounded-full transition-colors ${view === v ? "bg-white shadow text-gray-900" : "text-gray-500"}`}
+              >
+                {v === "google" ? "Google Wallet" : "Apple Wallet"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {view === "apple" ? (
+          <ApplePassPreview
+            color={color}
+            fg={fg}
+            name={company.name || t.yourBusiness}
+            logo={wideLogoPreview || company.logoUrl}
+            wide={Boolean(wideLogoPreview)}
+            hero={heroPreview}
+            balanceLabel={m.pass.unit[mode]}
+            balance={mode === "stamps" ? "4" : mode === "points" ? "120" : "1.200"}
+            memberLabel={header || m.pass.member}
+            memberValue={subheader || m.pass.membership}
+            rewardLabel={m.pass.reward}
+            reward={reward}
+            codeLabel={m.pass.cardCode}
+          />
+        ) : (
         <div
           className="rounded-2xl overflow-hidden shadow-md w-full max-w-[340px] mx-auto"
           style={{ background: color, color: fg }}
@@ -436,6 +476,7 @@ export default function WalletCardEditor() {
             <img src={heroPreview} alt="" className="w-full aspect-[1032/336] object-cover" />
           )}
         </div>
+        )}
 
         <div className="w-full max-w-[340px] mx-auto rounded-xl border bg-white divide-y text-sm">
           <p className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500">{t.details}</p>
@@ -454,6 +495,78 @@ export default function WalletCardEditor() {
             <p key={`l${i}`} className="px-4 py-2 text-blue-700">{label}</p>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Vista previa del pase de Apple Wallet (tipo "store card"): logo arriba, saldo a la derecha,
+// franja con la portada, datos del cliente y el código abajo. Apple fija el orden; el negocio elige el contenido.
+function ApplePassPreview({
+  color,
+  fg,
+  name,
+  logo,
+  wide,
+  hero,
+  balanceLabel,
+  balance,
+  memberLabel,
+  memberValue,
+  rewardLabel,
+  reward,
+  codeLabel,
+}: {
+  color: string;
+  fg: string;
+  name: string;
+  logo: string;
+  wide: boolean;
+  hero: string;
+  balanceLabel: string;
+  balance: string;
+  memberLabel: string;
+  memberValue: string;
+  rewardLabel: string;
+  reward: string;
+  codeLabel: string;
+}) {
+  return (
+    <div className="w-full max-w-[340px] mx-auto rounded-[14px] overflow-hidden shadow-lg" style={{ background: color, color: fg }}>
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2 min-h-[52px]">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="" className={wide ? "h-8 max-w-[160px] object-contain object-left" : "h-8 w-8 object-contain"} />
+        ) : null}
+        {!wide && <span className="text-[15px] font-medium truncate">{name}</span>}
+        <div className="ml-auto text-right shrink-0">
+          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{balanceLabel}</p>
+          <p className="text-xl leading-none font-medium tabular-nums">{balance}</p>
+        </div>
+      </div>
+      {hero ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={hero} alt="" className="w-full aspect-[375/123] object-cover" />
+      ) : (
+        <div className="w-full aspect-[375/123]" style={{ background: fg, opacity: 0.12 }} />
+      )}
+      <div className="flex justify-between gap-3 px-3 pt-2.5">
+        <div className="min-w-0">
+          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{memberLabel}</p>
+          <p className="text-sm truncate">{memberValue}</p>
+        </div>
+        {reward && (
+          <div className="text-right min-w-0">
+            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{rewardLabel}</p>
+            <p className="text-sm truncate">{reward}</p>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-center gap-1 pt-4 pb-4">
+        <div className="bg-white p-2 rounded-lg">
+          <QRCodeSVG value="smart-loyalty-vista-previa" size={96} />
+        </div>
+        <p className="text-[10px]" style={{ opacity: 0.8 }}>{codeLabel}</p>
       </div>
     </div>
   );
