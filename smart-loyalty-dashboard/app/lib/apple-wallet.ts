@@ -85,6 +85,21 @@ const rgb = (hex: string) => {
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
 };
 
+// Ancho aproximado de un texto en "letras" (un emoji ocupa como dos).
+function visualWidth(text: string) {
+  const parts =
+    typeof Intl !== "undefined" && "Segmenter" in Intl
+      ? [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].map((s) => s.segment)
+      : [...text];
+  return parts.reduce((sum, g) => sum + (/\p{Extended_Pictographic}/u.test(g) ? 2 : 1), 0);
+}
+
+// Nombre junto al logo: Apple lo pone en la misma fila que el saldo y, si es largo, se montan.
+// Si no cabe, solo va el logo (el nombre igual sale en la pantalla de bloqueo y en los avisos).
+export function logoTextFor(name: string, withBalance: boolean) {
+  return visualWidth(name) <= (withBalance ? 15 : 24) ? name : undefined;
+}
+
 // La promo más reciente: la del cliente (envío por grupo) o la de todos.
 function latestPromo(company: AppleCompany, member: AppleMember) {
   const promos = [company.appleWalletPromo, member.applePromo].filter((p): p is Promo => Boolean(p?.title));
@@ -179,7 +194,7 @@ export function passJson({
     ...(https ? { webServiceURL: `${origin}/api/wallet/apple` } : {}),
     organizationName: name,
     description: `${name} · ${p.member}`,
-    logoText: card.wideLogoUrl ? undefined : name,
+    logoText: card.wideLogoUrl ? undefined : logoTextFor(name, showBalance),
     backgroundColor: rgb(colors.background),
     foregroundColor: rgb(colors.foreground),
     labelColor: rgb(colors.foreground),
