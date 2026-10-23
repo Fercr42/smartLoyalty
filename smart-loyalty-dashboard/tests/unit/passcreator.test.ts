@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { passValues, templateBody } from "../../app/lib/passcreator";
+import { passValues, passcreatorStrip, templateBody } from "../../app/lib/passcreator";
 import { passcreatorReady } from "../../app/lib/passcreator-config";
 
 const COMPANY = "abcDEF1234567890";
@@ -76,5 +76,19 @@ describe("Passcreator: configuración", () => {
     process.env.PASSCREATOR_TEMPLATE_ID = "t";
     expect(passcreatorReady()).toBe(true);
     process.env = before;
+  });
+});
+
+describe("Passcreator: franja", () => {
+  it("usa la portada si el dueño subió una", () => {
+    expect(passcreatorStrip({ ...company, walletCard: { heroUrl: "https://example.com/portada.jpg" } }, ORIGIN)).toBe("https://example.com/portada.jpg");
+  });
+  it("con el diseño de marca usa solo el fondo, sin puntos", () => {
+    const strip = passcreatorStrip({ ...company, cardDesign: { useInWallet: true } }, ORIGIN);
+    expect(strip).toContain("variant=strip");
+    expect(strip).not.toContain("s=");
+  });
+  it("sin portada ni diseño no hay franja", () => {
+    expect(passcreatorStrip(company, ORIGIN)).toBe("");
   });
 });

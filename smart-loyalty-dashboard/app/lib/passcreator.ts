@@ -2,7 +2,8 @@ import { createHash } from "crypto";
 import { adminDb } from "../firebase/admin";
 import { messages } from "../i18n/messages";
 import { companyLocale } from "../i18n/config";
-import { passColors, passJson, stripSource, type AppleCompany, type AppleMember } from "./apple-wallet";
+import { passColors, passJson, type AppleCompany, type AppleMember } from "./apple-wallet";
+import { cardImageVersion } from "./card-version";
 import { validLocation } from "./location";
 import { renderPassImages } from "./apple-pass-images";
 
@@ -48,6 +49,14 @@ async function call<T = Record<string, unknown>>(path: string, init: { method: s
   }
 }
 
+// Franja del pase: la portada que subió el dueño o, si usa el diseño de marca, solo su fondo
+// (sin textos ni puntos: Passcreator usa la misma franja para todos los clientes).
+export function passcreatorStrip(company: AppleCompany, origin: string) {
+  const hero = absolute(company.walletCard?.heroUrl, origin);
+  if (hero) return hero;
+  return passColors(company).drawn ? `${origin}/card-image/${company.id}?variant=strip&v=${cardImageVersion(company)}` : "";
+}
+
 const absolute = (url: string | undefined, origin: string) => {
   const u = url?.startsWith("/") ? `${origin}${url}` : url ?? "";
   return u.startsWith("https://") ? u : "";
@@ -75,7 +84,7 @@ export function templateBody(company: AppleCompany, origin: string, passTypeId: 
   const name = json.organizationName;
   const logo = absolute(card.wideLogoUrl, origin) || absolute(company.logoUrl, origin);
   const icon = absolute(company.logoUrl, origin) || `${origin}/icon.png`;
-  const strip = absolute(stripSource(company, origin, 0), origin);
+  const strip = passcreatorStrip(company, origin);
   const location = validLocation(company.location);
   const back = store.backFields as JsonField[];
   const hasReview = back.some((f) => f.key === "review");
@@ -159,7 +168,7 @@ const hashOf = (value: unknown) => createHash("sha256").update(JSON.stringify(va
 // Las imágenes se mandan ya hechas en PNG (base64), las mismas del pase propio: así Passcreator no depende
 // de poder descargar nuestras URLs (la versión de prueba está protegida) ni de formatos como WebP.
 async function withImages(body: ReturnType<typeof templateBody>, company: AppleCompany, origin: string) {
-  const png = await renderPassImages(company, origin, 0);
+  const png = await renderPassImages(company, origin, 0, passcreatorStrip(company, origin));
   const b64 = (buf?: Buffer) => (buf?.length ? `data:image/png;base64,${buf.toString("base64")}` : null);
   const icon = b64(png["icon@3x.png"] ?? png["icon@2x.png"] ?? png["icon.png"]);
   const logo = b64(png["logo@3x.png"] ?? png["logo@2x.png"] ?? png["logo.png"]);

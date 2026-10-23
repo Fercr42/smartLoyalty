@@ -29,11 +29,13 @@ async function reachable(url: string) {
   }
 }
 
-export async function renderPassImages(company: WalletCompany, origin: string, stamps: number): Promise<PassImages> {
+// stripUrl: franja a usar en lugar de la normal ("" = sin franja). La usa Passcreator, que tiene una sola
+// franja para todos los clientes y por eso no puede llevar los puntos dibujados.
+export async function renderPassImages(company: WalletCompany, origin: string, stamps: number, stripUrl?: string): Promise<PassImages> {
   const colors = passColors(company);
   const logoUrl = absolute(company.logoUrl, origin);
   const wideLogo = absolute(company.walletCard?.wideLogoUrl, origin);
-  const strip = stripSource(company, origin, stamps);
+  const strip = stripUrl ?? stripSource(company, origin, stamps);
   const [hasLogo, hasWide, hasStrip] = await Promise.all([reachable(logoUrl), reachable(wideLogo), reachable(strip)]);
   const initial = (company.name ?? "").trim().charAt(0).toUpperCase() || "★";
   const images: PassImages = {};
