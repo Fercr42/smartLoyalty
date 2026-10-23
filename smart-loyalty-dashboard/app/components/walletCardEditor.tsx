@@ -11,6 +11,7 @@ import { describeLink } from "../lib/links";
 import { parseMapsLink, validLocation, type LatLng } from "../lib/location";
 import { syncWalletCards } from "../lib/walletClient";
 import { cleanRewards } from "../lib/rewards";
+import { cleanDesign } from "../lib/card-design";
 
 type InfoRow = { label: string; value: string };
 type LinkRow = { label: string; url: string };
@@ -42,6 +43,8 @@ export default function WalletCardEditor() {
   const [view, setView] = useState<"google" | "apple">("google");
   const [mode, setMode] = useState<"stamps" | "points" | "cashback">("points");
   const [reward, setReward] = useState("");
+  // Si el diseño de marca está activado para Wallet, los colores salen de ahí (no del color de abajo).
+  const [designColors, setDesignColors] = useState<{ bg: string; text: string; accent: string } | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -62,13 +65,18 @@ export default function WalletCardEditor() {
         const loyaltyMode = data.loyalty?.mode;
         if (loyaltyMode === "stamps" || loyaltyMode === "points" || loyaltyMode === "cashback") setMode(loyaltyMode);
         setReward(cleanRewards(data.loyalty?.rewards)[0]?.title ?? "");
+        if (data.cardDesign) {
+          const design = cleanDesign(data.cardDesign, data.brandColor);
+          setDesignColors(design.useInWallet ? { bg: design.bgColor, text: design.textColor, accent: design.accentColor } : null);
+        }
         setLinks(threeLinks(card.links));
       })
       .catch(console.error);
   }, [user]);
 
   const heroPreview = heroData ?? heroUrl;
-  const fg = textOn(color);
+  const cardColor = designColors?.bg ?? color;
+  const fg = designColors?.text ?? textOn(color);
 
   const wideLogoPreview = wideLogoData ?? wideLogoUrl;
 
@@ -231,11 +239,13 @@ export default function WalletCardEditor() {
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="h-8 w-10 cursor-pointer bg-transparent"
+                disabled={Boolean(designColors)}
+                className="h-8 w-10 cursor-pointer bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
               />
               <span className="font-mono text-xs uppercase">{color}</span>
             </span>
           </label>
+          {designColors && <p className="text-xs text-amber-700 basis-full max-w-md">{t.colorFromDesign}</p>}
           <div className="flex flex-wrap items-center gap-3">
             <label className="border px-3 py-2 rounded text-sm cursor-pointer hover:bg-gray-100">
               {heroPreview ? t.changeHero : t.addHero}
@@ -427,7 +437,8 @@ export default function WalletCardEditor() {
         </div>
         {view === "apple" ? (
           <ApplePassPreview
-            color={color}
+            color={cardColor}
+            label={designColors?.accent ?? fg}
             fg={fg}
             name={company.name || t.yourBusiness}
             logo={wideLogoPreview || company.logoUrl}
@@ -444,7 +455,7 @@ export default function WalletCardEditor() {
         ) : (
         <div
           className="rounded-2xl overflow-hidden shadow-md w-full max-w-[340px] mx-auto"
-          style={{ background: color, color: fg }}
+          style={{ background: cardColor, color: fg }}
         >
           {wideLogoPreview ? (
             <div className="px-4 pt-4 pb-3">
@@ -505,6 +516,7 @@ export default function WalletCardEditor() {
 function ApplePassPreview({
   color,
   fg,
+  label,
   name,
   logo,
   wide,
@@ -519,6 +531,7 @@ function ApplePassPreview({
 }: {
   color: string;
   fg: string;
+  label: string;
   name: string;
   logo: string;
   wide: boolean;
@@ -540,7 +553,7 @@ function ApplePassPreview({
         ) : null}
         {!wide && <span className="text-[15px] font-medium truncate">{name}</span>}
         <div className="ml-auto text-right shrink-0">
-          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{balanceLabel}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: label }}>{balanceLabel}</p>
           <p className="text-xl leading-none font-medium tabular-nums">{balance}</p>
         </div>
       </div>
@@ -552,12 +565,12 @@ function ApplePassPreview({
       )}
       <div className="flex justify-between gap-3 px-3 pt-2.5">
         <div className="min-w-0">
-          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{memberLabel}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: label }}>{memberLabel}</p>
           <p className="text-sm truncate">{memberValue}</p>
         </div>
         {reward && (
           <div className="text-right min-w-0">
-            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.85 }}>{rewardLabel}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: label }}>{rewardLabel}</p>
             <p className="text-sm truncate">{reward}</p>
           </div>
         )}
