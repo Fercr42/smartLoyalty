@@ -38,7 +38,9 @@ async function call<T = Record<string, unknown>>(path: string, init: { method: s
     signal: AbortSignal.timeout(20_000),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`Passcreator ${init.method} ${path.split("?")[0]} ${res.status}: ${text.slice(0, 400)}`);
+  // Los errores pueden repetir la imagen en base64: se recorta para que el motivo quede visible.
+  const reason = text.replace(/(data:image\/[a-z]+;base64,)?[A-Za-z0-9+/=]{120,}/g, "[imagen]").slice(0, 600);
+  if (!res.ok) throw new Error(`Passcreator ${init.method} ${path.split("?")[0]} ${res.status}: ${reason}`);
   try {
     return (text ? JSON.parse(text) : {}) as T;
   } catch {
@@ -158,7 +160,7 @@ const hashOf = (value: unknown) => createHash("sha256").update(JSON.stringify(va
 // de poder descargar nuestras URLs (la versión de prueba está protegida) ni de formatos como WebP.
 async function withImages(body: ReturnType<typeof templateBody>, company: AppleCompany, origin: string) {
   const png = await renderPassImages(company, origin, 0);
-  const b64 = (buf?: Buffer) => (buf?.length ? buf.toString("base64") : null);
+  const b64 = (buf?: Buffer) => (buf?.length ? `data:image/png;base64,${buf.toString("base64")}` : null);
   const icon = b64(png["icon@3x.png"] ?? png["icon@2x.png"] ?? png["icon.png"]);
   const logo = b64(png["logo@3x.png"] ?? png["logo@2x.png"] ?? png["logo.png"]);
   const strip = b64(png["strip@3x.png"] ?? png["strip@2x.png"] ?? png["strip.png"]);
