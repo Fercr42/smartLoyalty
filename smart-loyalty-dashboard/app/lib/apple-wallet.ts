@@ -109,9 +109,11 @@ function latestPromo(company: AppleCompany, member: AppleMember) {
 // Colores de la tarjeta: los del diseño de marca si se usa en Wallet, si no el color de la tarjeta.
 export function passColors(company: WalletCompany) {
   const design = company.cardDesign ? cleanDesign(company.cardDesign, company.brandColor) : null;
-  if (design?.useInWallet) return { background: design.bgColor, foreground: design.textColor, drawn: true };
+  // Con el diseño de marca, las etiquetas (SALDO, CLIENTE…) van en su color de acento.
+  if (design?.useInWallet) return { background: design.bgColor, foreground: design.textColor, label: design.accentColor, drawn: true };
   const background = safeColor(company.walletCard?.color, safeColor(company.brandColor, DEFAULT_BRAND));
-  return { background, foreground: textOn(background), drawn: false };
+  const foreground = textOn(background);
+  return { background, foreground, label: foreground, drawn: false };
 }
 
 // pass.json (sin imágenes). Función pura: la usan el pase nuevo, el pase actualizado y las pruebas.
@@ -197,7 +199,7 @@ export function passJson({
     logoText: card.wideLogoUrl ? undefined : logoTextFor(name, showBalance),
     backgroundColor: rgb(colors.background),
     foregroundColor: rgb(colors.foreground),
-    labelColor: rgb(colors.foreground),
+    labelColor: rgb(colors.label),
     sharingProhibited: true,
     barcodes: [
       {

@@ -104,7 +104,7 @@ export function templateBody(company: AppleCompany, origin: string, passTypeId: 
     colors: {
       backgroundColor: colors.background,
       foregroundColor: colors.foreground,
-      labelColor: colors.foreground,
+      labelColor: colors.label,
       backgroundColorDifferentForEachPass: false,
       foregroundColorDifferentForEachPass: false,
       labelColorDifferentForEachPass: false,
