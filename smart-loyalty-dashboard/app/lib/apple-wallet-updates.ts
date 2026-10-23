@@ -13,6 +13,9 @@ import {
   type AppleMember,
 } from "./apple-wallet";
 import { renderPassImages } from "./apple-pass-images";
+import { passcreatorReady } from "./passcreator-config";
+import { passcreatorHolders, passcreatorSaved, refreshPasscreatorPasses } from "./passcreator";
+import { SITE_URL } from "./site";
 
 // Registros de iPhones que guardaron un pase y avisos por APNs para que pidan la versión nueva.
 // appleWalletRegistrations/{deviceId}_{serial}: { deviceId, serial, companyId, memberId, pushToken, passUpdatedAt }
@@ -84,7 +87,7 @@ export async function updatedSerials(deviceId: string, since?: string | null) {
 
 // ¿Este cliente tiene su pase guardado en algún iPhone?
 export async function applePassSaved(companyId: string, memberId: string) {
-  if (!appleConfig()) return false;
+  if (!appleConfig()) return passcreatorReady() ? passcreatorSaved(companyId, memberId) : false;
   const snap = await registrations().where("serial", "==", passSerial(companyId, memberId)).limit(1).get();
   return !snap.empty;
 }
@@ -197,7 +200,7 @@ async function withMerged(companyRef: DocumentReference, memberIds: string[]) {
 // Algo cambió (puntos, nombre, diseño, promo): marcar los pases y avisar a los iPhones.
 // memberIds null = todos los pases del negocio. Devuelve cuántos iPhones avisó.
 export async function refreshApplePasses(companyId: string, memberIds: string[] | null) {
-  if (!appleConfig()) return 0;
+  if (!appleConfig()) return passcreatorReady() ? refreshPasscreatorPasses(companyId, memberIds, SITE_URL) : 0;
   const db = adminDb();
   let docs;
   if (memberIds) {
@@ -233,7 +236,7 @@ export async function refreshApplePasses(companyId: string, memberIds: string[] 
 
 // Clientes que tienen el pase de este negocio (para contar a quién le llegó una promo).
 export async function appleHolders(companyId: string) {
-  if (!appleConfig()) return [];
+  if (!appleConfig()) return passcreatorReady() ? passcreatorHolders(companyId) : [];
   const snap = await registrations().where("companyId", "==", companyId).select("memberId").get();
   return [...new Set(snap.docs.map((d) => d.data().memberId as string))];
 }
