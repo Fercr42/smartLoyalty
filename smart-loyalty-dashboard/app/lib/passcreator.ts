@@ -4,6 +4,7 @@ import { messages } from "../i18n/messages";
 import { companyLocale } from "../i18n/config";
 import { passColors, passJson, stripSource, type AppleCompany, type AppleMember } from "./apple-wallet";
 import { validLocation } from "./location";
+import { renderPassImages } from "./apple-pass-images";
 
 // Apple Wallet a través de Passcreator, mientras no tengamos certificado propio de Apple.
 // Passcreator firma los pases con su cuenta de Apple. Nosotros:
@@ -153,6 +154,27 @@ export function passValues(company: AppleCompany, memberId: string, member: Appl
 
 const hashOf = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32);
 
+// Las imágenes se mandan ya hechas en PNG (base64), las mismas del pase propio: así Passcreator no depende
+// de poder descargar nuestras URLs (la versión de prueba está protegida) ni de formatos como WebP.
+async function withImages(body: ReturnType<typeof templateBody>, company: AppleCompany, origin: string) {
+  const png = await renderPassImages(company, origin, 0);
+  const b64 = (buf?: Buffer) => (buf?.length ? buf.toString("base64") : null);
+  const icon = b64(png["icon@3x.png"] ?? png["icon@2x.png"] ?? png["icon.png"]);
+  const logo = b64(png["logo@3x.png"] ?? png["logo@2x.png"] ?? png["logo.png"]);
+  const strip = b64(png["strip@3x.png"] ?? png["strip@2x.png"] ?? png["strip.png"]);
+  return {
+    ...body,
+    images: {
+      ...body.images,
+      ...(icon ? { icon } : {}),
+      logo: logo ?? body.images.logo,
+      logoHidden: !(logo ?? body.images.logo),
+      background: strip ?? body.images.background,
+      backgroundHidden: !(strip ?? body.images.background),
+    },
+  };
+}
+
 // "YYYY-MM-DD HH:MM" en la zona horaria de la cuenta de Passcreator (un minuto atrás: que publique ya).
 function publicationDate() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -191,8 +213,9 @@ export async function ensureTemplate(company: AppleCompany & { passcreator?: Com
   const saved = company.passcreator ?? {};
   if (saved.templateId && saved.hash === hash) return saved.templateId;
 
+  const full = await withImages(body, company, origin);
   if (saved.templateId) {
-    await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}`, { method: "POST", body });
+    await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}`, { method: "POST", body: full });
     // Que los pases que ya tienen los clientes tomen el diseño nuevo.
     await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}/publish`, {
       method: "POST",
@@ -202,7 +225,7 @@ export async function ensureTemplate(company: AppleCompany & { passcreator?: Com
     return saved.templateId;
   }
 
-  const res = await call<Record<string, unknown>>("/api/v2/pass-template", { method: "POST", body });
+  const res = await call<Record<string, unknown>>("/api/v2/pass-template", { method: "POST", body: full });
   const data = (res.data ?? res) as Record<string, unknown>;
   const templateId = String(data.identifier ?? "");
   if (!templateId) throw new Error(`Passcreator: no devolvió el id de la plantilla (${JSON.stringify(res).slice(0, 200)})`);
@@ -325,7 +348,7 @@ export async function passcreatorSelfTest(origin: string) {
     loyalty: { mode: "stamps", rewards: [{ id: "r1", title: "Café gratis", stamps: 10 }] },
     walletCard: { header: "Cliente frecuente" },
   };
-  const body = templateBody(company, origin, passTypeId);
+  const body = await withImages(templateBody(company, origin, passTypeId), company, origin);
   const created = await call<Record<string, unknown>>("/api/v2/pass-template", { method: "POST", body });
   const templateId = String(((created.data ?? created) as Record<string, unknown>).identifier ?? "");
   steps.templateId = templateId;
