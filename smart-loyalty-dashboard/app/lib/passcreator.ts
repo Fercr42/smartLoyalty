@@ -222,16 +222,23 @@ export async function ensureTemplate(company: AppleCompany & { passcreator?: Com
   const body = templateBody(company, origin, passTypeId);
   const hash = hashOf(body);
   const saved = company.passcreator ?? {};
-  if (saved.templateId && saved.hash === hash) return saved.templateId;
+  if (saved.templateId && saved.hash === hash) {
+    console.info("Passcreator plantilla sin cambios", company.id);
+    return saved.templateId;
+  }
 
   const full = await withImages(body, company, origin);
   if (saved.templateId) {
-    await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}`, { method: "POST", body: full });
+    const updated = await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}`, { method: "POST", body: full });
+    console.info("Passcreator plantilla actualizada", company.id, JSON.stringify(updated).slice(0, 300));
     // Que los pases que ya tienen los clientes tomen el diseño nuevo.
+    const when = publicationDate();
     await call(`/api/v2/pass-template/${encodeURIComponent(saved.templateId)}/publish`, {
       method: "POST",
-      body: { publicationDate: publicationDate() },
-    }).catch((e) => console.error("Passcreator publicar", e));
+      body: { publicationDate: when },
+    })
+      .then((r) => console.info("Passcreator publicar", company.id, when, JSON.stringify(r).slice(0, 300)))
+      .catch((e) => console.error("Passcreator publicar", company.id, when, e));
     await ref.set({ passcreator: { templateId: saved.templateId, hash } }, { merge: true });
     return saved.templateId;
   }
@@ -296,7 +303,10 @@ export async function refreshPasscreatorPasses(companyId: string, memberIds: str
   const company = await companyRef.get();
   if (!company.exists) return 0;
   const companyData = { ...company.data(), id: companyId } as AppleCompany & { passcreator?: CompanyPasscreator };
-  if (!companyData.passcreator?.templateId) return 0; // nadie ha guardado el pase todavía
+  if (!companyData.passcreator?.templateId) {
+    console.info("Passcreator sin plantilla todavía", companyId);
+    return 0; // nadie ha guardado el pase todavía
+  }
   await ensureTemplate(companyData, origin);
 
   let docs;
@@ -331,6 +341,7 @@ export async function refreshPasscreatorPasses(companyId: string, memberIds: str
       })
     );
   }
+  console.info("Passcreator pases actualizados", companyId, `${updated}/${docs.length}`);
   return updated;
 }
 
