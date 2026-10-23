@@ -163,3 +163,12 @@ describe("Apple Wallet: firma", () => {
     for (const file of ["pass.json", "icon.png", "manifest.json", "signature"]) expect(text).toContain(file);
   }, 30_000);
 });
+
+describe("Apple Wallet: nombre junto al logo", () => {
+  it("se quita si no cabe junto al saldo", async () => {
+    const { logoTextFor } = await import("../../app/lib/apple-wallet");
+    expect(logoTextFor("Café Aroma", true)).toBe("Café Aroma");
+    expect(logoTextFor("Rancho Potrillos! 🍖🍺 Delicias", true)).toBeUndefined();
+    expect(logoTextFor("Rancho Potrillos! 🍖", false)).toBe("Rancho Potrillos! 🍖");
+  });
+});
