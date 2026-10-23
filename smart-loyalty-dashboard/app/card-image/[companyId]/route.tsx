@@ -11,9 +11,10 @@ export const runtime = "nodejs";
 
 // Tarjeta de cliente dibujada con el diseño de la marca y los puntos.
 // ?variant=card (1012x638, página del QR) | hero (1032x336, portada de Google Wallet)
+//   | strip (1125x369, franja de Apple Wallet: solo el fondo del diseño, sin textos ni puntos)
 // ?s=puntos &code=código &p=diseño sin guardar (vista previa del panel) &v=versión (solo para caché)
 
-const SIZES = { card: { width: 1012, height: 638 }, hero: { width: 1032, height: 336 } };
+const SIZES = { card: { width: 1012, height: 638 }, hero: { width: 1032, height: 336 }, strip: { width: 1125, height: 369 } };
 const LOGO_PX: Record<CardSize, number> = { sm: 84, md: 112, lg: 148 };
 const TITLE_PX: Record<CardSize, number> = { sm: 44, md: 58, lg: 74 };
 
@@ -79,7 +80,8 @@ function rgba(hex: string, alpha: number) {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = await params;
   const q = req.nextUrl.searchParams;
-  const variant = q.get("variant") === "hero" ? "hero" : "card";
+  const asVariant = q.get("variant");
+  const variant = asVariant === "hero" ? "hero" : asVariant === "strip" ? "strip" : "card";
   const stamps = Math.min(Math.max(parseInt(q.get("s") ?? "0", 10) || 0, 0), 9_999_999);
   const code = (q.get("code") ?? "").replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase();
   const preview = q.get("p");
@@ -144,6 +146,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
       ? { backgroundImage: `linear-gradient(${design.bgAngle}deg, ${design.bgColor}, ${design.bgColor2})` }
       : { backgroundColor: design.bgColor };
   const photo = design.bgType === "image" && design.bgImageUrl ? abs(design.bgImageUrl) : "";
+  // Franja de Apple Wallet: el pase ya muestra logo, nombre y saldo; aquí va solo el fondo de la marca.
+  if (variant === "strip") {
+    const strip = new ImageResponse(
+      (
+        <div style={{ width, height, display: "flex", position: "relative", ...background }}>
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" width={width} height={height} style={{ position: "absolute", left: 0, top: 0, objectFit: "cover" }} />
+          ) : null}
+          {photo ? (
+            <div style={{ position: "absolute", left: 0, top: 0, width, height, backgroundColor: `rgba(0,0,0,${design.bgOverlay})` }} />
+          ) : null}
+        </div>
+      ),
+      { width, height }
+    );
+    strip.headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
+    return strip;
+  }
+
   const logo = company.logoUrl ? abs(company.logoUrl) : "";
   const pad = px(variant === "card" ? 48 : 30);
   const areaWidth = width - pad * 2;
