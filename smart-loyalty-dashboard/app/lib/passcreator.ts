@@ -310,3 +310,35 @@ export async function passcreatorSaved(companyId: string, memberId: string) {
   const doc = await adminDb().collection("companies").doc(companyId).collection("walletMembers").doc(memberId).get();
   return Boolean(doc.data()?.passcreator?.passId);
 }
+
+// Prueba de punta a punta (solo en la versión de prueba): crea una plantilla de ejemplo y un pase,
+// y devuelve el enlace para abrirlo en un iPhone. No toca datos de negocios reales.
+export async function passcreatorSelfTest(origin: string) {
+  const steps: Record<string, unknown> = {};
+  const passTypeId = await accountPassTypeId();
+  steps.passTypeId = passTypeId;
+  const company: AppleCompany = {
+    id: "PRUEBApasscreator",
+    name: "Café Luna (prueba)",
+    brandColor: "#2a1c15",
+    description: "Pase de prueba de Smart Loyalty",
+    loyalty: { mode: "stamps", rewards: [{ id: "r1", title: "Café gratis", stamps: 10 }] },
+    walletCard: { header: "Cliente frecuente" },
+  };
+  const body = templateBody(company, origin, passTypeId);
+  const created = await call<Record<string, unknown>>("/api/v2/pass-template", { method: "POST", body });
+  const templateId = String(((created.data ?? created) as Record<string, unknown>).identifier ?? "");
+  steps.templateId = templateId;
+  if (!templateId) return { ok: false, steps, response: created };
+  const memberId = "3f9a12bc-1111-4222-8333-444455556666";
+  const values = passValues(company, memberId, { stamps: 4, name: "Ana" }, origin);
+  const pass = await call<Record<string, unknown>>("/api/v3/pass?async=false", {
+    method: "POST",
+    body: { data: { templateId, userProvidedId: `prueba.${Date.now()}`, barcodeValue: memberId, ...values } },
+  });
+  const data = (pass.data ?? pass) as Record<string, unknown>;
+  steps.passId = data.identifier;
+  steps.iPhoneUri = data.iPhoneUri;
+  steps.downloadPage = data.downloadPage;
+  return { ok: Boolean(data.identifier), steps };
+}
